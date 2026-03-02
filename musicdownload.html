@@ -27,10 +27,11 @@ color: var(–text);
 font-family: ‘Syne’, sans-serif;
 min-height: 100vh;
 display: flex;
-align-items: center;
+align-items: flex-start;
 justify-content: center;
-overflow: hidden;
+overflow-y: auto;
 position: relative;
+padding: 40px 0;
 }
 
 body::before {
@@ -355,11 +356,131 @@ transition: opacity 0.2s;
 
 .btn-run:hover { opacity: 0.88; }
 
-.options-grid {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 14px;
-margin-bottom: 4px;
+/* ===== PILL SELECTOR ===== */
+.pill-group {
+display: flex;
+gap: 6px;
+flex-wrap: wrap;
+}
+
+.pill {
+padding: 8px 16px;
+border-radius: 100px;
+border: 1px solid var(–border);
+background: var(–bg);
+color: var(–muted);
+font-size: 13px;
+font-weight: 700;
+font-family: ‘Space Mono’, monospace;
+cursor: pointer;
+transition: all 0.18s;
+user-select: none;
+}
+
+.pill:hover { border-color: var(–accent); color: var(–accent); }
+
+.pill.active {
+background: var(–accent);
+border-color: var(–accent);
+color: #000;
+}
+
+.pill.active-purple {
+background: var(–accent2);
+border-color: var(–accent2);
+color: #fff;
+}
+
+/* ===== SLIDER ===== */
+.slider-wrap {
+position: relative;
+}
+
+.slider-track {
+position: relative;
+height: 6px;
+background: var(–border);
+border-radius: 100px;
+margin: 10px 0 6px;
+}
+
+.slider-fill {
+position: absolute;
+left: 0;
+top: 0;
+height: 100%;
+background: linear-gradient(90deg, var(–accent2), var(–accent));
+border-radius: 100px;
+transition: width 0.15s;
+pointer-events: none;
+}
+
+input[type=“range”] {
+position: absolute;
+top: -7px;
+left: 0;
+width: 100%;
+-webkit-appearance: none;
+appearance: none;
+background: transparent;
+cursor: pointer;
+}
+
+input[type=“range”]::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 20px;
+height: 20px;
+border-radius: 50%;
+background: var(–accent);
+border: 3px solid var(–bg);
+box-shadow: 0 0 0 1px var(–accent);
+transition: transform 0.15s;
+}
+
+input[type=“range”]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.slider-labels {
+display: flex;
+justify-content: space-between;
+font-size: 11px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+margin-top: 4px;
+}
+
+.slider-value {
+display: inline-block;
+background: linear-gradient(135deg, var(–accent2), var(–accent));
+color: #fff;
+font-family: ‘Space Mono’, monospace;
+font-size: 13px;
+font-weight: 700;
+padding: 3px 10px;
+border-radius: 100px;
+margin-left: 10px;
+vertical-align: middle;
+}
+
+/* ===== SECTION LABEL ===== */
+.section-label {
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+margin-bottom: 10px;
+margin-top: 22px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.section-label::after {
+content: ‘’;
+flex: 1;
+height: 1px;
+background: var(–border);
 }
 
 .option-item label {
@@ -390,6 +511,83 @@ transition: border-color 0.2s;
 .option-item select:focus,
 .option-item input:focus {
 border-color: var(–accent);
+}
+
+.options-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 14px;
+margin-bottom: 4px;
+}
+
+/* ===== FORMAT CARD ===== */
+.format-card {
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 14px 10px;
+border-radius: 12px;
+border: 1.5px solid var(–border);
+background: var(–bg);
+cursor: pointer;
+transition: all 0.18s;
+text-align: center;
+gap: 6px;
+}
+
+.format-card:hover { border-color: var(–accent); }
+
+.format-card.active {
+border-color: var(–accent);
+background: rgba(0,229,160,0.07);
+}
+
+.format-card .fmt-icon { font-size: 22px; }
+
+.format-card .fmt-name {
+font-size: 13px;
+font-weight: 700;
+font-family: ‘Space Mono’, monospace;
+color: var(–text);
+}
+
+.format-card .fmt-desc {
+font-size: 10px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+line-height: 1.4;
+}
+
+.format-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 10px;
+}
+
+/* ===== PRESETS ===== */
+.preset-btn {
+padding: 10px 14px;
+border-radius: 10px;
+border: 1px solid var(–border);
+background: var(–bg);
+color: var(–text);
+font-size: 12px;
+font-weight: 700;
+font-family: ‘Space Mono’, monospace;
+cursor: pointer;
+transition: all 0.18s;
+text-align: left;
+}
+
+.preset-btn:hover { border-color: var(–accent2); color: var(–accent); }
+
+.preset-btn .preset-name { font-size: 13px; margin-bottom: 3px; }
+.preset-btn .preset-desc { font-size: 10px; color: var(–muted); }
+
+.preset-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 10px;
 }
 
 .toggle-row {
@@ -521,6 +719,100 @@ background: var(–surface);
 color: var(–text);
 }
 
+.cookie-method-tabs {
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
+}
+
+.cmethod {
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 10px 14px;
+border-radius: 10px;
+border: 1.5px solid var(–border);
+background: var(–bg);
+cursor: pointer;
+transition: all 0.18s;
+font-size: 13px;
+font-weight: 700;
+color: var(–muted);
+position: relative;
+}
+
+.cmethod:hover { border-color: var(–accent); color: var(–text); }
+
+.cmethod.active {
+border-color: var(–accent);
+background: rgba(0,229,160,0.07);
+color: var(–text);
+}
+
+.cmethod-icon { font-size: 16px; }
+.cmethod-label { font-family: ‘Syne’, sans-serif; }
+
+.cmethod-badge {
+background: var(–accent);
+color: #000;
+font-size: 10px;
+font-weight: 700;
+padding: 2px 7px;
+border-radius: 100px;
+font-family: ‘Space Mono’, monospace;
+}
+
+.browser-grid {
+display: grid;
+grid-template-columns: repeat(6, 1fr);
+gap: 8px;
+}
+
+.browser-card {
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 12px 6px;
+border-radius: 10px;
+border: 1.5px solid var(–border);
+background: var(–bg);
+cursor: pointer;
+transition: all 0.18s;
+gap: 6px;
+}
+
+.browser-card:hover { border-color: var(–accent); }
+
+.browser-card.active {
+border-color: var(–accent);
+background: rgba(0,229,160,0.07);
+}
+
+.br-icon { font-size: 20px; }
+
+.br-name {
+font-size: 11px;
+font-weight: 700;
+font-family: ‘Space Mono’, monospace;
+color: var(–muted);
+}
+
+.browser-card.active .br-name { color: var(–accent); }
+
+.cookie-note {
+margin-top: 12px;
+padding: 10px 14px;
+background: rgba(124,58,237,0.08);
+border: 1px solid rgba(124,58,237,0.2);
+border-radius: 8px;
+font-size: 12px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+line-height: 1.6;
+}
+
+.cookie-note strong { color: var(–accent); }
+
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 </style>
@@ -592,68 +884,203 @@ color: var(–text);
       <div class="url-input-wrap">
         <input type="text" id="ytUrl" placeholder="https://www.youtube.com/watch?v=... または playlist URL"
           value="https://www.youtube.com/watch?v=ju9W47AL3Lw&list=PLg3Q8w2gsKyAqs_YuYaLj7mPwZFHB9D5Z">
-        <button class="btn-run" onclick="generateCommand()">生成 ▶</button>
+        <button class="btn-run" onclick="generateCommand(); switchTab('command')">生成 ▶</button>
       </div>
     </div>
 
 ```
+<!-- PRESETS -->
 <div class="card">
-  <div class="card-title">⚙ オプション設定</div>
-  <div class="options-grid">
-    <div class="option-item">
-      <label>音質</label>
-      <select id="quality">
-        <option value="320K" selected>320K (最高)</option>
-        <option value="256K">256K</option>
-        <option value="192K">192K</option>
-        <option value="128K">128K</option>
-      </select>
+  <div class="card-title">⚡ プリセット</div>
+  <div class="preset-grid">
+    <button class="preset-btn" onclick="applyPreset('hifi')">
+      <div class="preset-name">🎼 Hi-Fi</div>
+      <div class="preset-desc">FLAC / 最高音質<br>ロスレス</div>
+    </button>
+    <button class="preset-btn" onclick="applyPreset('standard')">
+      <div class="preset-name">🎵 Standard</div>
+      <div class="preset-desc">MP3 / 320K<br>汎用性重視</div>
+    </button>
+    <button class="preset-btn" onclick="applyPreset('podcast')">
+      <div class="preset-name">🎙 Podcast</div>
+      <div class="preset-desc">MP3 / 128K<br>軽量・省容量</div>
+    </button>
+  </div>
+</div>
+
+<!-- FORMAT -->
+<div class="card">
+  <div class="card-title">🎵 音声フォーマット</div>
+  <div class="format-grid">
+    <div class="format-card active" id="fmt-mp3" onclick="selectFormat('mp3')">
+      <div class="fmt-icon">🎸</div>
+      <div class="fmt-name">MP3</div>
+      <div class="fmt-desc">互換性最高<br>汎用</div>
     </div>
-    <div class="option-item">
-      <label>フォーマット</label>
-      <select id="format">
-        <option value="mp3" selected>mp3</option>
-        <option value="m4a">m4a</option>
-        <option value="flac">flac</option>
-        <option value="opus">opus</option>
-      </select>
+    <div class="format-card" id="fmt-flac" onclick="selectFormat('flac')">
+      <div class="fmt-icon">💿</div>
+      <div class="fmt-name">FLAC</div>
+      <div class="fmt-desc">ロスレス<br>高音質</div>
     </div>
-    <div class="option-item">
-      <label>Cookies ファイル</label>
-      <input type="text" id="cookies" value="~/Desktop/cookies.txt">
+    <div class="format-card" id="fmt-m4a" onclick="selectFormat('m4a')">
+      <div class="fmt-icon">🍎</div>
+      <div class="fmt-name">M4A</div>
+      <div class="fmt-desc">Apple向け<br>AAC</div>
     </div>
-    <div class="option-item">
-      <label>アーカイブファイル</label>
-      <input type="text" id="archive" value="~/yt-dlp-archive.txt">
+    <div class="format-card" id="fmt-opus" onclick="selectFormat('opus')">
+      <div class="fmt-icon">🔊</div>
+      <div class="fmt-name">OPUS</div>
+      <div class="fmt-desc">高効率<br>小サイズ</div>
     </div>
-    <div class="option-item">
-      <label>出力テンプレート</label>
-      <input type="text" id="output" value="%(playlist)s/%(playlist_index)03d - %(title)s.%(ext)s">
+  </div>
+</div>
+
+<!-- QUALITY -->
+<div class="card">
+  <div class="card-title">📊 音質 (ビットレート)</div>
+
+  <div class="section-label">プリセット音質</div>
+  <div class="pill-group" id="qualityPills">
+    <div class="pill" onclick="selectQualityPill(this,'96K')">96K</div>
+    <div class="pill" onclick="selectQualityPill(this,'128K')">128K</div>
+    <div class="pill" onclick="selectQualityPill(this,'192K')">192K</div>
+    <div class="pill" onclick="selectQualityPill(this,'256K')">256K</div>
+    <div class="pill active" onclick="selectQualityPill(this,'320K')">320K ⭐</div>
+  </div>
+
+  <div class="section-label">カスタムビットレート</div>
+  <div class="slider-wrap">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <span style="font-size:13px; color:var(--muted); font-family:'Space Mono',monospace;">ビットレート</span>
+      <span class="slider-value" id="qualityDisplay">320K</span>
+    </div>
+    <div class="slider-track">
+      <div class="slider-fill" id="qualityFill" style="width:100%"></div>
+      <input type="range" id="qualitySlider" min="0" max="4" value="4" step="1"
+        oninput="onQualitySlider(this.value)">
+    </div>
+    <div class="slider-labels">
+      <span>96K</span><span>128K</span><span>192K</span><span>256K</span><span>320K</span>
+    </div>
+  </div>
+</div>
+
+<!-- ADVANCED OPTIONS -->
+<div class="card">
+  <div class="card-title">⚙ 詳細設定</div>
+
+  <div class="section-label">🍪 Cookie 取得方法</div>
+
+  <!-- Cookie method selector -->
+  <div class="cookie-method-tabs">
+    <div class="cmethod active" id="cm-browser" onclick="selectCookieMethod('browser')">
+      <span class="cmethod-icon">🌐</span>
+      <span class="cmethod-label">ブラウザから自動取得</span>
+      <span class="cmethod-badge">推奨</span>
+    </div>
+    <div class="cmethod" id="cm-file" onclick="selectCookieMethod('file')">
+      <span class="cmethod-icon">📄</span>
+      <span class="cmethod-label">cookies.txt を指定</span>
+    </div>
+    <div class="cmethod" id="cm-none" onclick="selectCookieMethod('none')">
+      <span class="cmethod-icon">🚫</span>
+      <span class="cmethod-label">なし</span>
     </div>
   </div>
 
-  <div style="margin-top: 20px;">
-    <div class="toggle-row">
-      <div>
-        <div class="toggle-label">メタデータ埋め込み</div>
-        <div class="toggle-sub">--embed-metadata --add-metadata</div>
+  <!-- Browser selector -->
+  <div id="cookie-browser-section">
+    <div style="margin-top:14px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:10px;">使用するブラウザ</div>
+      <div class="browser-grid">
+        <div class="browser-card active" id="br-chrome" onclick="selectBrowser('chrome')">
+          <div class="br-icon">🟡</div>
+          <div class="br-name">Chrome</div>
+        </div>
+        <div class="browser-card" id="br-firefox" onclick="selectBrowser('firefox')">
+          <div class="br-icon">🦊</div>
+          <div class="br-name">Firefox</div>
+        </div>
+        <div class="browser-card" id="br-safari" onclick="selectBrowser('safari')">
+          <div class="br-icon">🧭</div>
+          <div class="br-name">Safari</div>
+        </div>
+        <div class="browser-card" id="br-edge" onclick="selectBrowser('edge')">
+          <div class="br-icon">🔷</div>
+          <div class="br-name">Edge</div>
+        </div>
+        <div class="browser-card" id="br-brave" onclick="selectBrowser('brave')">
+          <div class="br-icon">🦁</div>
+          <div class="br-name">Brave</div>
+        </div>
+        <div class="browser-card" id="br-opera" onclick="selectBrowser('opera')">
+          <div class="br-icon">🅾</div>
+          <div class="br-name">Opera</div>
+        </div>
       </div>
-      <div class="toggle on" id="t-metadata" onclick="toggleSwitch('t-metadata')"></div>
-    </div>
-    <div class="toggle-row">
-      <div>
-        <div class="toggle-label">サムネイル埋め込み</div>
-        <div class="toggle-sub">--embed-thumbnail</div>
+      <div class="cookie-note">
+        💡 YouTubeにログイン済みの状態でブラウザを<strong>閉じてから</strong>コマンドを実行してください
       </div>
-      <div class="toggle on" id="t-thumb" onclick="toggleSwitch('t-thumb')"></div>
     </div>
-    <div class="toggle-row">
-      <div>
-        <div class="toggle-label">ダウンロード履歴</div>
-        <div class="toggle-sub">--download-archive</div>
-      </div>
-      <div class="toggle on" id="t-archive" onclick="toggleSwitch('t-archive')"></div>
+  </div>
+
+  <!-- File path input -->
+  <div id="cookie-file-section" style="display:none; margin-top:14px;">
+    <div class="option-item">
+      <label>cookies.txt パス</label>
+      <input type="text" id="cookies" value="~/Desktop/cookies.txt" oninput="generateCommand()">
     </div>
+    <div class="cookie-note" style="margin-top:10px;">
+      💡 ブラウザ拡張 <strong>「Get cookies.txt LOCALLY」</strong> でエクスポートできます
+    </div>
+  </div>
+
+  <div class="options-grid" style="margin-top:18px;">
+    <div class="option-item">
+      <label>アーカイブファイル</label>
+      <input type="text" id="archive" value="~/yt-dlp-archive.txt" oninput="generateCommand()">
+    </div>
+    <div class="option-item" style="grid-column:1/-1;">
+      <label>出力テンプレート</label>
+      <input type="text" id="output" value="%(playlist)s/%(playlist_index)03d - %(title)s.%(ext)s" oninput="generateCommand()">
+    </div>
+  </div>
+
+  <div class="section-label">オプション</div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">メタデータ埋め込み</div>
+      <div class="toggle-sub">--embed-metadata --add-metadata</div>
+    </div>
+    <div class="toggle on" id="t-metadata" onclick="toggleSwitch('t-metadata')"></div>
+  </div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">サムネイル埋め込み</div>
+      <div class="toggle-sub">--embed-thumbnail</div>
+    </div>
+    <div class="toggle on" id="t-thumb" onclick="toggleSwitch('t-thumb')"></div>
+  </div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">ダウンロード履歴管理</div>
+      <div class="toggle-sub">--download-archive（重複スキップ）</div>
+    </div>
+    <div class="toggle on" id="t-archive" onclick="toggleSwitch('t-archive')"></div>
+  </div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">再生リストのみダウンロード</div>
+      <div class="toggle-sub">--yes-playlist</div>
+    </div>
+    <div class="toggle" id="t-playlist" onclick="toggleSwitch('t-playlist')"></div>
+  </div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">エラー時スキップ</div>
+      <div class="toggle-sub">--ignore-errors</div>
+    </div>
+    <div class="toggle" id="t-ignore" onclick="toggleSwitch('t-ignore')"></div>
   </div>
 </div>
 ```
@@ -692,22 +1119,15 @@ color: var(–text);
 
 <script>
 // ===== AUTH =====
-const USERS = {
-  admin: 'yt-dlp2024',
-  user: 'password123'
-};
-
+const USERS = { admin: 'yt-dlp2024', user: 'password123' };
 let currentUser = null;
 
 function handleLogin() {
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
   const err = document.getElementById('errorMsg');
-
   if (USERS[u] && USERS[u] === p) {
-    currentUser = u;
-    err.style.display = 'none';
-    showApp();
+    currentUser = u; err.style.display = 'none'; showApp();
   } else {
     err.style.display = 'block';
     document.getElementById('password').value = '';
@@ -734,11 +1154,8 @@ function handleLogout() {
   document.getElementById('password').value = '';
 }
 
-// Enter key support
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
-    handleLogin();
-  }
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') handleLogin();
 });
 
 // ===== TABS =====
@@ -752,31 +1169,122 @@ function switchTab(name) {
 // ===== TOGGLES =====
 function toggleSwitch(id) {
   document.getElementById(id).classList.toggle('on');
+  generateCommand();
+}
+function isOn(id) { return document.getElementById(id).classList.contains('on'); }
+
+// ===== FORMAT =====
+let selectedFormat = 'mp3';
+function selectFormat(fmt) {
+  selectedFormat = fmt;
+  document.querySelectorAll('.format-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('fmt-' + fmt).classList.add('active');
+  // FLAC doesn't support bitrate — grey out slider
+  const isLossless = fmt === 'flac';
+  document.getElementById('qualitySlider').disabled = isLossless;
+  document.getElementById('qualityFill').style.opacity = isLossless ? '0.3' : '1';
+  generateCommand();
 }
 
-function isOn(id) {
-  return document.getElementById(id).classList.contains('on');
+// ===== QUALITY =====
+const qualityValues = ['96K','128K','192K','256K','320K'];
+let selectedQuality = '320K';
+
+function selectQualityPill(el, val) {
+  selectedQuality = val;
+  document.querySelectorAll('#qualityPills .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  // sync slider
+  const idx = qualityValues.indexOf(val);
+  if (idx >= 0) {
+    document.getElementById('qualitySlider').value = idx;
+    updateSliderFill(idx);
+  }
+  document.getElementById('qualityDisplay').textContent = val;
+  generateCommand();
 }
 
-// ===== COMMAND GENERATION =====
+function onQualitySlider(val) {
+  const q = qualityValues[val];
+  selectedQuality = q;
+  document.getElementById('qualityDisplay').textContent = q;
+  updateSliderFill(val);
+  // sync pills
+  document.querySelectorAll('#qualityPills .pill').forEach((p,i) => {
+    p.classList.toggle('active', i === parseInt(val));
+  });
+  generateCommand();
+}
+
+function updateSliderFill(idx) {
+  const pct = (idx / 4) * 100;
+  document.getElementById('qualityFill').style.width = pct + '%';
+}
+
+// ===== PRESETS =====
+function applyPreset(name) {
+  const presets = {
+    hifi:     { format:'flac', quality:'320K' },
+    standard: { format:'mp3',  quality:'320K' },
+    podcast:  { format:'mp3',  quality:'128K' }
+  };
+  const p = presets[name];
+  selectFormat(p.format);
+  const idx = qualityValues.indexOf(p.quality);
+  document.getElementById('qualitySlider').value = idx;
+  onQualitySlider(idx);
+  // flash feedback
+  document.querySelectorAll('.preset-btn').forEach(b => b.style.borderColor = '');
+  event.currentTarget.style.borderColor = 'var(--accent)';
+  setTimeout(() => event.currentTarget.style.borderColor = '', 800);
+}
+
+// ===== COOKIE METHOD =====
+let cookieMethod = 'browser'; // 'browser' | 'file' | 'none'
+let selectedBrowser = 'chrome';
+
+function selectCookieMethod(method) {
+  cookieMethod = method;
+  document.querySelectorAll('.cmethod').forEach(el => el.classList.remove('active'));
+  document.getElementById('cm-' + method).classList.add('active');
+  document.getElementById('cookie-browser-section').style.display = method === 'browser' ? 'block' : 'none';
+  document.getElementById('cookie-file-section').style.display = method === 'file' ? 'block' : 'none';
+  generateCommand();
+}
+
+function selectBrowser(br) {
+  selectedBrowser = br;
+  document.querySelectorAll('.browser-card').forEach(el => el.classList.remove('active'));
+  document.getElementById('br-' + br).classList.add('active');
+  generateCommand();
+}
+
+
 function generateCommand() {
   const url = document.getElementById('ytUrl').value.trim() || 'YOUR_URL_HERE';
-  const quality = document.getElementById('quality').value;
-  const format = document.getElementById('format').value;
-  const cookies = document.getElementById('cookies').value.trim();
   const archive = document.getElementById('archive').value.trim();
   const output = document.getElementById('output').value.trim();
 
   let cmd = 'yt-dlp';
-  if (cookies) cmd += ` \\\n  --cookies ${cookies}`;
+
+  // Cookie handling
+  if (cookieMethod === 'browser') {
+    cmd += ` \\\n  --cookies-from-browser ${selectedBrowser}`;
+  } else if (cookieMethod === 'file') {
+    const cookiePath = document.getElementById('cookies') ? document.getElementById('cookies').value.trim() : '';
+    if (cookiePath) cmd += ` \\\n  --cookies ${cookiePath}`;
+  }
+
   cmd += ' \\\n  -f bestaudio';
   cmd += ' \\\n  --extract-audio';
-  cmd += ` \\\n  --audio-format ${format}`;
-  cmd += ` \\\n  --audio-quality ${quality}`;
+  cmd += ` \\\n  --audio-format ${selectedFormat}`;
+  if (selectedFormat !== 'flac') cmd += ` \\\n  --audio-quality ${selectedQuality}`;
   if (output) cmd += ` \\\n  -o "${output}"`;
   if (isOn('t-metadata')) cmd += ' \\\n  --embed-metadata \\\n  --add-metadata';
   if (isOn('t-thumb')) cmd += ' \\\n  --embed-thumbnail';
   if (isOn('t-archive') && archive) cmd += ` \\\n  --download-archive ${archive}`;
+  if (isOn('t-playlist')) cmd += ' \\\n  --yes-playlist';
+  if (isOn('t-ignore')) cmd += ' \\\n  --ignore-errors';
   cmd += ` \\\n  "${url}"`;
 
   document.getElementById('commandPreview').textContent = cmd;
@@ -792,11 +1300,7 @@ function copyCommand() {
   });
 }
 
-// Auto-regenerate on input change
-['ytUrl','quality','format','cookies','archive','output'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', generateCommand);
-});
+document.getElementById('ytUrl').addEventListener('input', generateCommand);
 </script>
 
 </body>
