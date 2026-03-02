@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Texas Hold'em Online</title>
+<!-- Firebase SDK (compat v10) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
 :root{--gold:#c9a84c;--gold-light:#f0d080;--gold-dark:#8a6820;--felt:#1a4a2e;--felt-dark:#0d2e1c;--felt-light:#235c39;--red:#c0392b;}
@@ -190,7 +193,7 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.01</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.03-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -367,6 +370,7 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
     <div class="mcards" id="mcards"></div>
     <div class="mbody" id="mbody"></div>
     <button class="mnext" id="mnext">次のラウンド</button>
+    <button id="mnext-end" style="display:none;width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.25);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">🏁 ゲームを終了する</button>
     <button id="mnext-lobby" style="display:none;width:100%;margin-top:8px;padding:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ戻る</button>
   </div>
 </div>
@@ -375,82 +379,108 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
 (function(){
 
 // ════════════════════════════════════════
-// Firebase REST API
+// Firebase SDK (compat v10) 初期化
 // ════════════════════════════════════════
-var DB = 'https://poker-cc448-default-rtdb.asia-southeast1.firebasedatabase.app';
-var _polls = {};
+var _fbApp, _fbDb;
 var offlineMode = false; // 早期宣言：fbGet等のガード用
+var _listeners = {}; // path -> { ref, unsub } のマップ
 
-function fbUrl(path){ return DB + '/' + path + '.json'; }
+(function initFirebase(){
+  try {
+    var config = {
+      apiKey: "AIzaSyB7Dr14Ce0bQX9mZLpQY3jdeT8umNv25xQ",
+      authDomain: "poker-cc448.firebaseapp.com",
+      databaseURL: "https://poker-cc448-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "poker-cc448",
+      storageBucket: "poker-cc448.firebasestorage.app",
+      messagingSenderId: "477320881493",
+      appId: "1:477320881493:web:9149d7c6b589700f293bdc"
+    };
+    // 既に初期化済みの場合は既存アプリを利用
+    if (firebase.apps.length === 0) {
+      _fbApp = firebase.initializeApp(config);
+    } else {
+      _fbApp = firebase.apps[0];
+    }
+    _fbDb = firebase.database(_fbApp);
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+})();
 
+// fbRef: パスからDatabaseReferenceを返す
+function fbRef(path){ return _fbDb.ref(path); }
+
+// ════════════════════════════════════════
+// Firebase API ラッパー（旧REST APIと同一シグネチャ）
+// ゲームロジックは一切変更せずSDKに移行
+// ════════════════════════════════════════
+
+// fbGet: 一回だけ読む（get）
 function fbGet(path, cb){
   if(offlineMode){ setTimeout(function(){cb(null);},0); return; }
-  try {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', fbUrl(path), true);
-    xhr.timeout = 5000;
-    xhr.onload = function(){
-      try { cb(JSON.parse(xhr.responseText)); } catch(e){ cb(null); }
-    };
-    xhr.onerror = function(){ cb(null); };
-    xhr.ontimeout = function(){ cb(null); };
-    xhr.send();
-  } catch(e){ setTimeout(function(){cb(null);},0); }
+  fbRef(path).get().then(function(snap){
+    cb(snap.exists() ? snap.val() : null);
+  }).catch(function(){ cb(null); });
 }
+
+// fbSet: 書き込み（set = PUT相当）
 function fbSet(path, val, cb){
   if(offlineMode){ if(cb) setTimeout(cb,0); return; }
-  try {
-    var xhr = new XMLHttpRequest();
-    xhr.open('PUT', fbUrl(path), true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 5000;
-    xhr.onload = function(){ if(cb) cb(); };
-    xhr.onerror = function(){ if(cb) cb(); };
-    xhr.ontimeout = function(){ if(cb) cb(); };
-    xhr.send(JSON.stringify(val));
-  } catch(e){ if(cb) setTimeout(cb,0); }
+  fbRef(path).set(val).then(function(){
+    if(cb) cb();
+  }).catch(function(){
+    if(cb) cb();
+  });
 }
+
+// fbPatch: 部分更新（update = PATCH相当）
 function fbPatch(path, val, cb){
   if(offlineMode){ if(cb) setTimeout(cb,0); return; }
-  try {
-    var xhr = new XMLHttpRequest();
-    xhr.open('PATCH', fbUrl(path), true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 5000;
-    xhr.onload = function(){ if(cb) cb(); };
-    xhr.onerror = function(){ if(cb) cb(); };
-    xhr.ontimeout = function(){ if(cb) cb(); };
-    xhr.send(JSON.stringify(val));
-  } catch(e){ if(cb) setTimeout(cb,0); }
+  fbRef(path).update(val).then(function(){
+    if(cb) cb();
+  }).catch(function(){
+    if(cb) cb();
+  });
 }
+
+// fbListen: リアルタイムリスナー登録（onValue）
+// skipInitial=true の時は初回コールバックをスキップ
 function fbListen(path, cb, skipInitial){
   if(offlineMode){ return; }
-  if(!_polls[path]) _polls[path] = {last:null, cbs:[], timer:null};
-  _polls[path].cbs.push(cb);
-  if(!skipInitial){
-    fbGet(path, function(d){
-      if(!_polls[path]) return;
-      _polls[path].last = JSON.stringify(d);
-      cb(d);
-    });
+  // 既に同じパスにリスナーがある場合は追加（複数コールバックをサポート）
+  if(!_listeners[path]){
+    _listeners[path] = { cbs: [], unsub: null, firstFired: false };
   }
-  if(!_polls[path].timer){
-    _polls[path].timer = setInterval(function(){
-      if(!_polls[path]) return;
-      fbGet(path, function(d){
-        if(!_polls[path]) return;
-        var j = JSON.stringify(d);
-        if(j !== _polls[path].last){
-          // nullへの変化は記録するがコールバックも呼ぶ（onState側でハンドリング）
-          _polls[path].last = j;
-          _polls[path].cbs.forEach(function(fn){ fn(d); });
+  _listeners[path].cbs.push({ fn: cb, skipFirst: !!skipInitial, skipped: false });
+
+  // まだonValueを登録していない場合は登録
+  if(!_listeners[path].unsub){
+    var ref = fbRef(path);
+    var handler = ref.on('value', function(snap){
+      var data = snap.exists() ? snap.val() : null;
+      if(!_listeners[path]) return;
+      _listeners[path].cbs.forEach(function(entry){
+        if(entry.skipFirst && !entry.skipped){
+          entry.skipped = true;
+          return; // 初回スキップ
         }
+        entry.fn(data);
       });
-    }, 800);
+    }, function(err){
+      console.warn('fbListen error:', err);
+    });
+    // off用に ref と handler を保存
+    _listeners[path].unsub = function(){ ref.off('value', handler); };
   }
 }
+
+// fbOff: リスナー解除
 function fbOff(path){
-  if(_polls[path]){ clearInterval(_polls[path].timer); delete _polls[path]; }
+  if(_listeners[path]){
+    if(_listeners[path].unsub) _listeners[path].unsub();
+    delete _listeners[path];
+  }
 }
 
 // 接続確認は下部のsetMode定義後に実行
@@ -837,14 +867,11 @@ document.getElementById('btn-mode-online').onclick = function(){
   }
   var t = setTimeout(fail, 8000);
   try {
-    var xhr = new XMLHttpRequest();
-    xhr.open('PUT', fbUrl('ping'), true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.timeout = 8000;
-    xhr.onload = function(){ clearTimeout(t); if(xhr.status>=200&&xhr.status<300) ok(); else fail(); };
-    xhr.onerror = function(){ clearTimeout(t); fail(); };
-    xhr.ontimeout = function(){ clearTimeout(t); fail(); };
-    xhr.send('"ok"');
+    fbRef('ping').set(Date.now()).then(function(){
+      clearTimeout(t); ok();
+    }).catch(function(){
+      clearTimeout(t); fail();
+    });
   } catch(e){ clearTimeout(t); fail(); }
 };
 
@@ -2271,18 +2298,85 @@ function finishSD(cont,holes){
   pushState({showdown:{body:body,ch:ch,comm:comm},reveal:holes,waitFor:null});
 }
 
+
+// ════════════════════════════════════════
+// ゲーム終了サマリー表示
+// ════════════════════════════════════════
+function showGameEndSummary(){
+  // 全プレイヤーをチップ降順でソート
+  var sorted = players.slice().filter(function(p){ return !p.eliminated || p.chips > 0; });
+  // eliminatedも含める
+  var allP = players.slice();
+  allP.sort(function(a,b){ return b.chips - a.chips; });
+
+  // 各プレイヤーの投資合計 = _initialChips × (rebuyCount + 1)
+  var ch = '<div style="width:100%;">';
+  allP.forEach(function(p, rank){
+    var invest = _initialChips * ((p.rebuyCount||0) + 1);
+    var net = p.chips - invest;
+    var netColor = net >= 0 ? '#7fef7f' : '#ff7f7f';
+    var netStr = (net >= 0 ? '+' : '') + net;
+    var isTop = rank === 0 && p.chips > 0;
+    var bg = isTop ? 'rgba(201,168,76,.2)' : p.eliminated ? 'rgba(80,0,0,.2)' : 'rgba(0,0,0,.35)';
+    var border = isTop ? 'rgba(201,168,76,.6)' : p.eliminated ? 'rgba(200,0,0,.3)' : 'rgba(255,255,255,.12)';
+    var medal = rank===0&&!p.eliminated?'🥇 ':rank===1&&!p.eliminated?'🥈 ':rank===2&&!p.eliminated?'🥉 ':'';
+
+    ch += '<div style="margin-bottom:5px;padding:7px 10px;border-radius:8px;background:'+bg+';border:1px solid '+border+';display:flex;align-items:center;gap:6px;">';
+    // 順位・名前
+    ch += '<div style="flex:1;min-width:0;">';
+    ch += '<div style="font-family:Cinzel,serif;font-size:12px;color:'+(isTop?'var(--gold-light)':p.eliminated?'rgba(255,100,100,.7)':'rgba(255,255,255,.85)')+';">'+medal+p.name+(p.isCpu?' 🤖':'')+(p.isMe?' ⭐':'')+'</div>';
+    // 残チップ
+    ch += '<div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">残チップ <span style="color:var(--gold-light);font-family:Cinzel,serif;">'+p.chips+'</span>';
+    // リバイ情報
+    if((p.rebuyCount||0) > 0){
+      ch += ' <span style="font-size:9px;color:rgba(255,180,80,.8);">（×'+(p.rebuyCount+1)+' 購入）</span>';
+    }
+    ch += '</div>';
+    // 投資対比
+    ch += '<div style="font-size:10px;color:rgba(255,255,255,.4);">投資 '+invest+' → <span style="color:'+netColor+';font-weight:700;">'+netStr+'</span></div>';
+    ch += '</div>';
+    // チップ表示
+    ch += '<div style="font-family:Cinzel,serif;font-size:16px;color:'+(isTop?'var(--gold-light)':'rgba(255,255,255,.5)')+';">'+p.chips+'</div>';
+    ch += '</div>';
+  });
+  ch += '</div>';
+
+  // ホストはFirebaseにゲーム終了を通知
+  if(isHost && gamePath){
+    pushState({result:{title:'🏁 ゲーム終了',body:'最終成績',ch:ch,gameEnd:true},waitFor:null});
+  }
+
+  // モーダル表示
+  var mover = document.getElementById('mover');
+  document.getElementById('mnext-end').style.display='none';
+  document.getElementById('mnext-lobby').style.display='none';
+  document.getElementById('mtitle').textContent='🏁 ゲーム終了 — 最終成績';
+  document.getElementById('mbody').innerHTML=ch;
+  document.getElementById('mcards').innerHTML='';
+  document.getElementById('mcomm').style.display='none';
+  var btn = document.getElementById('mnext');
+  btn.textContent='ロビーへ戻る';
+  btn.onclick = function(){
+    mover.classList.remove('show');
+    window._pokerGoLobby();
+  };
+  mover.classList.add('show');
+}
+
 function handleSD(sd){
   if(!sd)return;
   renderAll();
   showMsg('ショーダウン',sd.body,'次のラウンド',function(){
     if(isHost){
-      // checkEliminated を経由してリバイ処理してから次ラウンドへ
       checkEliminated(function(){ startRound(); });
     } else {
       _lastPhase=-1; _lastCommLen=0;
       showInfo('次のラウンドを待っています...');
     }
-  },sd.ch||'',sd.comm||comm);
+  },sd.ch||'',sd.comm||comm,
+  // ゲーム終了ボタン（ホスト専用）
+  isHost ? function(){ showGameEndSummary(); } : null
+  );
 }
 function handleResult(rr){
   _dbg('handleResult gt='+rr.gameOver);
@@ -2302,7 +2396,9 @@ function handleResult(rr){
         _lastPhase=-1; _lastCommLen=0;
         showInfo('次のラウンドを待っています...');
       }
-    },rr.ch||'',comm.length?comm:null);
+    },rr.ch||'',comm.length?comm:null,
+    isHost ? function(){ showGameEndSummary(); } : null
+    );
   }
 }
 
@@ -2450,14 +2546,12 @@ function renderAll(){
 }
 function showInfo(m){_dbg('showInfo:'+m.substring(0,25));document.getElementById('ibar').classList.add('show');document.getElementById('ibar-t').textContent=m;}
 function hideInfo(){document.getElementById('ibar').classList.remove('show');}
-function showMsg(title,body,lbl,fn,ch,commCards){
+function showMsg(title,body,lbl,fn,ch,commCards,endFn){
   document.getElementById('mover').classList.add('show');
-  // オンライン: ラウンド終了モーダル表示中のみロビーボタンを有効化
   if(gamePath) document.getElementById('back-btn-wrap').style.display='block';
   document.getElementById('mtitle').textContent=title;
   document.getElementById('mbody').innerHTML=body;
   document.getElementById('mcards').innerHTML=ch||'';
-  // コミュニティカード表示
   var mcomm=document.getElementById('mcomm');
   if(commCards&&commCards.length){
     mcomm.style.display='flex';
@@ -2471,9 +2565,24 @@ function showMsg(title,body,lbl,fn,ch,commCards){
   btn.onclick=function(){
     document.getElementById('mover').classList.remove('show');
     document.getElementById('mnext-lobby').style.display='none';
+    document.getElementById('mnext-end').style.display='none';
     if(gamePath) document.getElementById('back-btn-wrap').style.display='none';
     fn();
   };
+  // ゲーム終了ボタン: ホスト かつ オンライン かつ endFn指定時のみ表示
+  var endBtn=document.getElementById('mnext-end');
+  if(endFn && gamePath && isHost){
+    endBtn.style.display='block';
+    endBtn.onclick=function(){
+      document.getElementById('mover').classList.remove('show');
+      document.getElementById('mnext-lobby').style.display='none';
+      document.getElementById('mnext-end').style.display='none';
+      if(gamePath) document.getElementById('back-btn-wrap').style.display='none';
+      endFn();
+    };
+  } else {
+    endBtn.style.display='none';
+  }
   // モーダル内ロビーボタン: オンラインゲーム中のみ表示
   var lobbyBtn=document.getElementById('mnext-lobby');
   if(gamePath){ lobbyBtn.style.display='block'; } else { lobbyBtn.style.display='none'; }
