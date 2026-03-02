@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.06-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.07-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -376,7 +376,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <div class="mbody" id="mbody"></div>
     <button class="mnext" id="mnext">次のラウンド</button>
     <button id="mnext-end" style="display:none;width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.25);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">🏁 ゲームを終了する</button>
-    <button id="mnext-lobby" style="display:none;width:100%;margin-top:8px;padding:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ戻る</button>
+    <button id="mnext-lobby" style="display:none;width:100%;margin-top:8px;padding:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">✕ ロビーへ戻る</button>
   </div>
 </div>
 
@@ -2667,7 +2667,18 @@ function showMsg(title,body,lbl,fn,ch,commCards,endFn){
   }
   // モーダル内ロビーボタン: オンラインゲーム中のみ表示
   var lobbyBtn=document.getElementById('mnext-lobby');
-  if(gamePath){ lobbyBtn.style.display='block'; } else { lobbyBtn.style.display='none'; }
+  if(gamePath){
+    lobbyBtn.style.display='block';
+    lobbyBtn.onclick=function(){
+      document.getElementById('mover').classList.remove('show');
+      document.getElementById('mnext-lobby').style.display='none';
+      document.getElementById('mnext-end').style.display='none';
+      if(gamePath) document.getElementById('back-btn-wrap').style.display='none';
+      window._pokerGoLobby();
+    };
+  } else {
+    lobbyBtn.style.display='none';
+  }
 }
 
 
