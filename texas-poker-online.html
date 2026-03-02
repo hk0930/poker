@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -119,41 +120,41 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
 .chip-sel-25{background:radial-gradient(circle at 35% 35%,#27ae60,#1e8449);color:#fff;}
 .chip-sel-10{background:radial-gradient(circle at 35% 35%,#2980b9,#1a5276);color:#fff;}
 .chip-sel-5{background:radial-gradient(circle at 35% 35%,#e74c3c,#c0392b);color:#fff;}
-.bet-display{font-family:Cinzel,serif;font-size:22px;color:var(--gold-light);text-align:center;background:rgba(0,0,0,.5);border:1px solid rgba(201,168,76,.4);border-radius:10px;padding:8px 16px;margin-bottom:8px;letter-spacing:2px;}
+.bet-display{font-family:Cinzel,serif;font-size:22px;color:var(–gold-light);text-align:center;background:rgba(0,0,0,.5);border:1px solid rgba(201,168,76,.4);border-radius:10px;padding:8px 16px;margin-bottom:8px;letter-spacing:2px;}
 .bet-sub{font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:8px;}
 .chip-count{position:absolute;top:-4px;right:-4px;background:#000;color:#fd0;border-radius:6px;font-size:6px;padding:0 2px;font-family:Cinzel,serif;font-weight:700;line-height:10px;min-width:10px;text-align:center;}
-.chips-total{font-family:Cinzel,serif;font-size:10px;color:var(--gold-light);margin-top:2px;}
+.chips-total{font-family:Cinzel,serif;font-size:10px;color:var(–gold-light);margin-top:2px;}
 @keyframes cpuprog{from{width:0}to{width:100%}}
 
 /* アクション表示バブル */
 .action-bubble{position:absolute;top:-28px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.85);border:1px solid var(--gold);border-radius:10px;
-  padding:3px 10px;font-family:Cinzel,serif;font-size:10px;white-space:nowrap;
-  z-index:10;pointer-events:none;animation:bubblePop .25s ease;}
+background:rgba(0,0,0,.85);border:1px solid var(–gold);border-radius:10px;
+padding:3px 10px;font-family:Cinzel,serif;font-size:10px;white-space:nowrap;
+z-index:10;pointer-events:none;animation:bubblePop .25s ease;}
 .action-bubble.ab-fold{border-color:#e74c3c;color:#f88;}
 .action-bubble.ab-check{border-color:#3498db;color:#adf;}
 .action-bubble.ab-call{border-color:#27ae60;color:#afd;}
-.action-bubble.ab-raise{border-color:var(--gold);color:var(--gold-light);}
+.action-bubble.ab-raise{border-color:var(–gold);color:var(–gold-light);}
 .action-bubble.ab-allin{border-color:#e74c3c;color:#f00;font-weight:700;}
 @keyframes bubblePop{from{opacity:0;transform:translateX(-50%) scale(.7);}to{opacity:1;transform:translateX(-50%) scale(1);}}
 /* フェーズ移行オーバーレイ */
 #phase-overlay{display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;pointer-events:none;}
 #phase-overlay.show{display:flex;}
 #phase-card{background:linear-gradient(135deg,rgba(10,30,15,.95),rgba(5,15,8,.98));
-  border:2px solid var(--gold);border-radius:18px;padding:16px 20px;text-align:center;
-  animation:phaseIn .4s ease forwards;max-width:92vw;box-sizing:border-box;}
+border:2px solid var(–gold);border-radius:18px;padding:16px 20px;text-align:center;
+animation:phaseIn .4s ease forwards;max-width:92vw;box-sizing:border-box;}
 @keyframes phaseIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
 #phase-name{font-family:Cinzel,serif;font-size:26px;font-weight:900;
-  background:linear-gradient(135deg,#8a6820,#f0d080,#c9a84c);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  letter-spacing:6px;margin-bottom:6px;}
+background:linear-gradient(135deg,#8a6820,#f0d080,#c9a84c);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+letter-spacing:6px;margin-bottom:6px;}
 #phase-cards-row{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap;max-width:100%;}
 
 /* ディール演出 */
 #deal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
 #deal-overlay.show{display:flex;}
 #deal-cards-row{display:flex;gap:16px;justify-content:center;}
-#deal-label{font-family:Cinzel,serif;font-size:12px;color:var(--gold);letter-spacing:4px;opacity:.8;}
+#deal-label{font-family:Cinzel,serif;font-size:12px;color:var(–gold);letter-spacing:4px;opacity:.8;}
 @keyframes dealIn{from{opacity:0;transform:translateY(-30px) rotate(-5deg);}to{opacity:1;transform:translateY(0) rotate(0deg);}}
 .deal-card-anim{animation:dealIn .35s ease forwards;}
 .deal-card-anim:nth-child(2){animation-delay:.2s;opacity:0;}
@@ -161,39 +162,41 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
 /* コミュニティカード フリップ演出 */
 .comm-card-wrap{perspective:800px;display:inline-block;}
 .comm-card-inner{
-  position:relative;transform-style:preserve-3d;
-  transition:transform .5s ease;
-  transform:rotateY(-180deg);  /* 初期: 裏向き */
+position:relative;transform-style:preserve-3d;
+transition:transform .5s ease;
+transform:rotateY(-180deg);  /* 初期: 裏向き */
 }
 .comm-card-inner.flipped{transform:rotateY(0deg);}
 .comm-card-face,.comm-card-back{
-  position:absolute;top:0;left:0;
-  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+position:absolute;top:0;left:0;
+backface-visibility:hidden;-webkit-backface-visibility:hidden;
 }
 .comm-card-back{transform:rotateY(180deg);}
 /* フロップ: 左からスライドイン */
 @keyframes commSlideIn{
-  from{opacity:0;transform:translateX(-24px) rotateY(-180deg);}
-  to{opacity:1;transform:translateX(0) rotateY(0deg);}
+from{opacity:0;transform:translateX(-24px) rotateY(-180deg);}
+to{opacity:1;transform:translateX(0) rotateY(0deg);}
 }
 .comm-anim{animation:commSlideIn .45s ease forwards;opacity:0;}
 
 #confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center;padding:20px;}
 #confirm-overlay.show{display:flex;}
-#confirm-box{background:linear-gradient(145deg,#1a2a10,#0d1a08);border:2px solid var(--gold);border-radius:16px;padding:24px;text-align:center;max-width:300px;width:100%;}
+#confirm-box{background:linear-gradient(145deg,#1a2a10,#0d1a08);border:2px solid var(–gold);border-radius:16px;padding:24px;text-align:center;max-width:300px;width:100%;}
 #confirm-msg{font-family:Cinzel,serif;font-size:13px;color:rgba(255,255,255,.9);margin-bottom:20px;line-height:1.6;}
 #confirm-btns{display:flex;gap:10px;justify-content:center;}
 #confirm-yes{padding:10px 28px;background:linear-gradient(135deg,#7a0000,#c00);border:none;border-radius:8px;color:#fff;font-family:Cinzel,serif;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;}
 #confirm-no{padding:10px 28px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.7);font-family:Cinzel,serif;font-size:11px;cursor:pointer;touch-action:manipulation;}
 </style>
+
 </head>
 <body>
 
 <!-- ロビー -->
+
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.03-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.06-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -204,6 +207,7 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
   </div>
 
   <!-- オフライン設定パネル -->
+
   <div id="panel-offline" class="panel">
     <div class="ptitle">🤖 CPU対戦設定</div>
     <label class="flabel">プレイヤー名</label>
@@ -318,6 +322,7 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
 </div>
 
 <!-- ゲーム -->
+
 <div id="screen-game" class="screen">
   <div id="back-btn-wrap" style="display:none;width:100%;max-width:700px;margin:0 auto 6px;text-align:right;">
     <button id="btn-back-lobby" style="background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 14px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ</button>
@@ -485,6 +490,73 @@ function fbOff(path){
 
 // 接続確認は下部のsetMode定義後に実行
 
+
+
+// ════════════════════════════════════════
+// 画面スリープ防止（NoSleep）
+// 音声なし動画ループでiOS Safariの画面消灯を防ぐ
+// ユーザー操作起点でのみ有効化（ブラウザ制約）
+// ════════════════════════════════════════
+var _noSleepVideo = null;
+var _noSleepActive = false;
+
+function _noSleepEnable(){
+  if(_noSleepActive) return;
+  // Screen Wake Lock API（Safari 16.4+ / Chrome対応）を優先
+  if('wakeLock' in navigator){
+    navigator.wakeLock.request('screen').then(function(lock){
+      _noSleepActive = true;
+      _noSleepVideo = lock; // lockオブジェクトをvideoの代わりに使用
+      lock.addEventListener('release', function(){
+        _noSleepActive = false;
+      });
+    }).catch(function(){
+      _noSleepEnableVideo(); // フォールバック
+    });
+    return;
+  }
+  _noSleepEnableVideo();
+}
+
+function _noSleepEnableVideo(){
+  if(_noSleepActive) return;
+  try {
+    if(!_noSleepVideo){
+      _noSleepVideo = document.createElement('video');
+      _noSleepVideo.setAttribute('playsinline', '');
+      _noSleepVideo.setAttribute('muted', '');
+      _noSleepVideo.setAttribute('loop', '');
+      _noSleepVideo.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;';
+      // 最小限のMP4動画（1x1ピクセル、0.1秒、音声なし）をBase64で埋め込み
+      var src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE1MiByMjg1NCBlOWE1OTAzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNyAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTMgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yOC4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAABZWWIhAAv//72rvzLK0cLlS4dWXuzUfLoSXL9iDB9aAAAAwAAAwAAJuKZBZnGDQ+QAAECAAFgAAADADAAABwAAD4AAABAFAAAAHAAAAD4AAABQQAAAfAAAAD4AAABgAAAAH//AAAMAAEgAAAAAA==';
+      _noSleepVideo.src = src;
+      document.body.appendChild(_noSleepVideo);
+    }
+    _noSleepVideo.muted = true;
+    var p = _noSleepVideo.play();
+    if(p && p.then){
+      p.then(function(){
+        _noSleepActive = true;
+      }).catch(function(){
+        // ユーザー操作なしでは再生できない場合は無視
+      });
+    } else {
+      _noSleepActive = true;
+    }
+  } catch(e) {}
+}
+
+function _noSleepDisable(){
+  if(!_noSleepActive || !_noSleepVideo) return;
+  // Wake Lock APIのlockオブジェクトかvideoかを判別
+  if(typeof _noSleepVideo.release === 'function'){
+    _noSleepVideo.release();
+  } else if(typeof _noSleepVideo.pause === 'function'){
+    _noSleepVideo.pause();
+  }
+  _noSleepActive = false;
+  _noSleepVideo = null;
+}
 
 // ════════════════════════════════════════
 // チップ表示ユーティリティ
@@ -1522,8 +1594,18 @@ function _watchHostPresence(){
       btn.style.display='';
       btn.onclick=function(){
         mover.classList.remove('show');
-        // ゲームを継続（次のラウンドから新ホストとして進行）
-        startRound();
+        // Firebaseのplayers情報を再取得して退出済みプレイヤーを除外してからstartRound
+        fbGet(roomPath+'/players', function(fbPlayers){
+          if(fbPlayers){
+            // Firebase上に存在しないプレイヤー（退出済み）をplayersから除外
+            players = players.filter(function(p){
+              return fbPlayers[p.pid] !== undefined && fbPlayers[p.pid] !== null;
+            });
+            // myIdx を再計算
+            myIdx = players.findIndex(function(p){ return p.isMe; });
+          }
+          startRound();
+        });
       };
       mover.classList.add('show');
       return;
@@ -2847,29 +2929,37 @@ function showScreen(id){
 window._pokerShowScreen = showScreen;
 window._pokerGoLobby = function(){
   document.getElementById('back-btn-wrap').style.display='none';
-  // オンラインのFirebaseリスナーを停止
+  // オンラインのFirebaseリスナーを全て停止
   if(gamePath){
     fbOff(gamePath+'/state');
     fbOff(gamePath+'/action');
     if(myId) fbOff(holePfx+myId);
   }
-  // ホストが退出する場合: 非ホスト人間プレイヤーにホストを移譲
+  if(roomPath){
+    fbOff(roomPath); // watchLobby / _watchHostPresence のリスナーを停止
+  }
+  _hostWatchActive=false; // watchHostPresence再登録防止
+  // ホストが退出する場合: 自分のplayers情報を削除し非ホストにホストを移譲
   if(isHost && roomPath && gamePath){
+    var _rp = roomPath; // リセット前に保存
+    var _mp = myId;
     var nextHost = players.find(function(p){ return !p.isMe && !p.isCpu && p.active; });
-    if(nextHost){
-      // 新ホストのIDをroomに書き込んでからlobbyに戻す
-      fbPatch(roomPath, {hostId: nextHost.pid, status:'transferring'}, function(){
-        fbPatch(roomPath, {status:'lobby'}, function(){});
-      });
-    } else {
-      fbPatch(roomPath, {status:'lobby'}, function(){});
-    }
+    // 自分のplayers情報を削除してから移譲
+    fbSet(_rp+'/players/'+_mp, null, function(){
+      if(nextHost){
+        fbPatch(_rp, {hostId: nextHost.pid, status:'transferring'}, function(){
+          fbPatch(_rp, {status:'lobby'}, function(){});
+        });
+      } else {
+        fbPatch(_rp, {status:'lobby'}, function(){});
+      }
+    });
   } else if(roomPath && myId){
     // 非ホスト: 自分の参加情報を削除
     fbSet(roomPath+'/players/'+myId, null, function(){});
   }
+  _noSleepDisable(); // ロビーに戻ったらスリープ防止を解除
   // 状態リセット
-  _hostWatchActive=false;
   _hostLeftDetected=false;
   _stateEverReceived=false;
   _nullStateCount=0;
