@@ -1,1 +1,803 @@
+<!DOCTYPE html>
 
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT-DLP Audio Downloader</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #2a2a3a;
+    --accent: #00e5a0;
+    --accent2: #7c3aed;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --danger: #ff4444;
+    --warning: #ffaa00;
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+min-height: 100vh;
+display: flex;
+align-items: center;
+justify-content: center;
+overflow: hidden;
+position: relative;
+}
+
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background:
+radial-gradient(ellipse 60% 50% at 20% 20%, rgba(124,58,237,0.12) 0%, transparent 70%),
+radial-gradient(ellipse 50% 60% at 80% 80%, rgba(0,229,160,0.08) 0%, transparent 70%);
+pointer-events: none;
+}
+
+.grid-bg {
+position: fixed;
+inset: 0;
+background-image:
+linear-gradient(var(–border) 1px, transparent 1px),
+linear-gradient(90deg, var(–border) 1px, transparent 1px);
+background-size: 40px 40px;
+opacity: 0.3;
+pointer-events: none;
+}
+
+/* ===== LOGIN SCREEN ===== */
+.login-screen {
+width: 100%;
+max-width: 420px;
+padding: 20px;
+position: relative;
+z-index: 10;
+animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+text-align: center;
+margin-bottom: 40px;
+}
+
+.logo-icon {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 64px;
+height: 64px;
+background: linear-gradient(135deg, var(–accent2), var(–accent));
+border-radius: 16px;
+margin-bottom: 16px;
+font-size: 28px;
+position: relative;
+overflow: hidden;
+}
+
+.logo-icon::after {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15));
+}
+
+.logo h1 {
+font-size: 28px;
+font-weight: 800;
+letter-spacing: -0.5px;
+}
+
+.logo h1 span { color: var(–accent); }
+
+.logo p {
+color: var(–muted);
+font-size: 13px;
+font-family: ‘Space Mono’, monospace;
+margin-top: 6px;
+}
+
+.login-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 32px;
+position: relative;
+overflow: hidden;
+}
+
+.login-card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(90deg, var(–accent2), var(–accent));
+}
+
+.login-card h2 {
+font-size: 20px;
+font-weight: 700;
+margin-bottom: 24px;
+color: var(–text);
+}
+
+.form-group {
+margin-bottom: 18px;
+}
+
+.form-group label {
+display: block;
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 1px;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 8px;
+font-family: ‘Space Mono’, monospace;
+}
+
+.form-group input {
+width: 100%;
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 16px;
+color: var(–text);
+font-size: 15px;
+font-family: ‘Syne’, sans-serif;
+outline: none;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+border-color: var(–accent);
+box-shadow: 0 0 0 3px rgba(0,229,160,0.12);
+}
+
+.form-group input::placeholder { color: var(–muted); }
+
+.error-msg {
+background: rgba(255,68,68,0.1);
+border: 1px solid rgba(255,68,68,0.3);
+border-radius: 8px;
+padding: 10px 14px;
+font-size: 13px;
+color: #ff8888;
+margin-bottom: 16px;
+display: none;
+font-family: ‘Space Mono’, monospace;
+}
+
+.btn-primary {
+width: 100%;
+background: linear-gradient(135deg, var(–accent2), var(–accent));
+border: none;
+border-radius: 10px;
+padding: 13px;
+color: #fff;
+font-size: 15px;
+font-weight: 700;
+font-family: ‘Syne’, sans-serif;
+cursor: pointer;
+position: relative;
+overflow: hidden;
+transition: opacity 0.2s, transform 0.1s;
+letter-spacing: 0.3px;
+margin-top: 8px;
+}
+
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:active { transform: scale(0.98); }
+
+.hint {
+margin-top: 18px;
+padding: 12px;
+background: rgba(0,229,160,0.06);
+border: 1px solid rgba(0,229,160,0.15);
+border-radius: 8px;
+font-size: 12px;
+font-family: ‘Space Mono’, monospace;
+color: var(–muted);
+line-height: 1.6;
+}
+
+.hint strong { color: var(–accent); }
+
+/* ===== APP SCREEN ===== */
+.app-screen {
+display: none;
+width: 100%;
+max-width: 800px;
+padding: 20px;
+position: relative;
+z-index: 10;
+animation: fadeIn 0.6s ease;
+}
+
+.app-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 32px;
+}
+
+.app-header .brand {
+display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.mini-logo {
+width: 40px;
+height: 40px;
+background: linear-gradient(135deg, var(–accent2), var(–accent));
+border-radius: 10px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+}
+
+.app-header h1 {
+font-size: 22px;
+font-weight: 800;
+}
+
+.user-pill {
+display: flex;
+align-items: center;
+gap: 10px;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 100px;
+padding: 8px 16px 8px 10px;
+font-size: 13px;
+}
+
+.user-avatar {
+width: 28px;
+height: 28px;
+background: linear-gradient(135deg, var(–accent2), var(–accent));
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 12px;
+font-weight: 700;
+}
+
+.logout-btn {
+background: none;
+border: none;
+color: var(–muted);
+cursor: pointer;
+font-size: 12px;
+font-family: ‘Space Mono’, monospace;
+padding: 4px 8px;
+border-radius: 6px;
+transition: color 0.2s, background 0.2s;
+margin-left: 4px;
+}
+
+.logout-btn:hover { color: var(–danger); background: rgba(255,68,68,0.1); }
+
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 28px;
+margin-bottom: 20px;
+position: relative;
+overflow: hidden;
+}
+
+.card-title {
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 16px;
+font-family: ‘Space Mono’, monospace;
+}
+
+.url-input-wrap {
+display: flex;
+gap: 10px;
+}
+
+.url-input-wrap input {
+flex: 1;
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 16px;
+color: var(–text);
+font-size: 14px;
+font-family: ‘Space Mono’, monospace;
+outline: none;
+transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.url-input-wrap input:focus {
+border-color: var(–accent);
+box-shadow: 0 0 0 3px rgba(0,229,160,0.12);
+}
+
+.url-input-wrap input::placeholder { color: var(–muted); }
+
+.btn-run {
+background: linear-gradient(135deg, var(–accent2), var(–accent));
+border: none;
+border-radius: 10px;
+padding: 12px 22px;
+color: #fff;
+font-size: 14px;
+font-weight: 700;
+font-family: ‘Syne’, sans-serif;
+cursor: pointer;
+white-space: nowrap;
+transition: opacity 0.2s;
+}
+
+.btn-run:hover { opacity: 0.88; }
+
+.options-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 14px;
+margin-bottom: 4px;
+}
+
+.option-item label {
+display: block;
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 1px;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 6px;
+font-family: ‘Space Mono’, monospace;
+}
+
+.option-item select, .option-item input[type=“text”] {
+width: 100%;
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 9px 12px;
+color: var(–text);
+font-size: 13px;
+font-family: ‘Space Mono’, monospace;
+outline: none;
+transition: border-color 0.2s;
+-webkit-appearance: none;
+}
+
+.option-item select:focus,
+.option-item input:focus {
+border-color: var(–accent);
+}
+
+.toggle-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 10px 0;
+border-bottom: 1px solid var(–border);
+}
+
+.toggle-row:last-child { border-bottom: none; }
+
+.toggle-label {
+font-size: 14px;
+color: var(–text);
+}
+
+.toggle-sub {
+font-size: 11px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+margin-top: 2px;
+}
+
+.toggle {
+width: 44px;
+height: 24px;
+background: var(–border);
+border-radius: 100px;
+cursor: pointer;
+position: relative;
+transition: background 0.2s;
+flex-shrink: 0;
+}
+
+.toggle.on { background: var(–accent); }
+
+.toggle::after {
+content: ‘’;
+position: absolute;
+top: 3px;
+left: 3px;
+width: 18px;
+height: 18px;
+background: white;
+border-radius: 50%;
+transition: transform 0.2s;
+box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.toggle.on::after { transform: translateX(20px); }
+
+.command-preview {
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 16px;
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–accent);
+line-height: 1.7;
+white-space: pre-wrap;
+word-break: break-all;
+max-height: 160px;
+overflow-y: auto;
+position: relative;
+}
+
+.copy-btn {
+position: absolute;
+top: 10px;
+right: 10px;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 4px 10px;
+font-size: 11px;
+color: var(–muted);
+cursor: pointer;
+font-family: ‘Space Mono’, monospace;
+transition: color 0.2s, border-color 0.2s;
+}
+
+.copy-btn:hover { color: var(–accent); border-color: var(–accent); }
+
+.status-bar {
+display: flex;
+align-items: center;
+gap: 8px;
+margin-top: 14px;
+font-size: 12px;
+font-family: ‘Space Mono’, monospace;
+color: var(–muted);
+}
+
+.status-dot {
+width: 8px;
+height: 8px;
+border-radius: 50%;
+background: var(–muted);
+}
+
+.status-dot.ready { background: var(–accent); box-shadow: 0 0 6px var(–accent); }
+
+.tabs {
+display: flex;
+gap: 4px;
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 4px;
+margin-bottom: 20px;
+}
+
+.tab {
+flex: 1;
+padding: 8px;
+text-align: center;
+border-radius: 7px;
+font-size: 13px;
+font-weight: 700;
+cursor: pointer;
+transition: background 0.2s, color 0.2s;
+color: var(–muted);
+}
+
+.tab.active {
+background: var(–surface);
+color: var(–text);
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+</style>
+
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- LOGIN SCREEN -->
+
+<div class="login-screen" id="loginScreen">
+  <div class="logo">
+    <div class="logo-icon">🎵</div>
+    <h1>YT<span>-DLP</span></h1>
+    <p>Audio Downloader // Secure Access</p>
+  </div>
+
+  <div class="login-card">
+    <h2>ログイン</h2>
+    <div class="error-msg" id="errorMsg">⚠ ユーザー名またはパスワードが間違っています</div>
+
+```
+<div class="form-group">
+  <label>ユーザー名</label>
+  <input type="text" id="username" placeholder="username を入力" autocomplete="username">
+</div>
+
+<div class="form-group">
+  <label>パスワード</label>
+  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+</div>
+
+<button class="btn-primary" onclick="handleLogin()">ログイン →</button>
+
+<div class="hint">
+  <strong>デモ用アカウント</strong><br>
+  user: <strong>admin</strong> / pass: <strong>yt-dlp2024</strong>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+
+<div class="app-screen" id="appScreen">
+  <div class="app-header">
+    <div class="brand">
+      <div class="mini-logo">🎵</div>
+      <h1>YT-DLP Downloader</h1>
+    </div>
+    <div class="user-pill">
+      <div class="user-avatar" id="userAvatar">A</div>
+      <span id="userLabel">admin</span>
+      <button class="logout-btn" onclick="handleLogout()">ログアウト</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('download')">ダウンロード</div>
+    <div class="tab" onclick="switchTab('command')">コマンド確認</div>
+  </div>
+
+  <!-- DOWNLOAD TAB -->
+
+  <div class="tab-content active" id="tab-download">
+    <div class="card">
+      <div class="card-title">📎 YouTube URL</div>
+      <div class="url-input-wrap">
+        <input type="text" id="ytUrl" placeholder="https://www.youtube.com/watch?v=... または playlist URL"
+          value="https://www.youtube.com/watch?v=ju9W47AL3Lw&list=PLg3Q8w2gsKyAqs_YuYaLj7mPwZFHB9D5Z">
+        <button class="btn-run" onclick="generateCommand()">生成 ▶</button>
+      </div>
+    </div>
+
+```
+<div class="card">
+  <div class="card-title">⚙ オプション設定</div>
+  <div class="options-grid">
+    <div class="option-item">
+      <label>音質</label>
+      <select id="quality">
+        <option value="320K" selected>320K (最高)</option>
+        <option value="256K">256K</option>
+        <option value="192K">192K</option>
+        <option value="128K">128K</option>
+      </select>
+    </div>
+    <div class="option-item">
+      <label>フォーマット</label>
+      <select id="format">
+        <option value="mp3" selected>mp3</option>
+        <option value="m4a">m4a</option>
+        <option value="flac">flac</option>
+        <option value="opus">opus</option>
+      </select>
+    </div>
+    <div class="option-item">
+      <label>Cookies ファイル</label>
+      <input type="text" id="cookies" value="~/Desktop/cookies.txt">
+    </div>
+    <div class="option-item">
+      <label>アーカイブファイル</label>
+      <input type="text" id="archive" value="~/yt-dlp-archive.txt">
+    </div>
+    <div class="option-item">
+      <label>出力テンプレート</label>
+      <input type="text" id="output" value="%(playlist)s/%(playlist_index)03d - %(title)s.%(ext)s">
+    </div>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">メタデータ埋め込み</div>
+        <div class="toggle-sub">--embed-metadata --add-metadata</div>
+      </div>
+      <div class="toggle on" id="t-metadata" onclick="toggleSwitch('t-metadata')"></div>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">サムネイル埋め込み</div>
+        <div class="toggle-sub">--embed-thumbnail</div>
+      </div>
+      <div class="toggle on" id="t-thumb" onclick="toggleSwitch('t-thumb')"></div>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">ダウンロード履歴</div>
+        <div class="toggle-sub">--download-archive</div>
+      </div>
+      <div class="toggle on" id="t-archive" onclick="toggleSwitch('t-archive')"></div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- COMMAND TAB -->
+
+  <div class="tab-content" id="tab-command">
+    <div class="card">
+      <div class="card-title">💻 生成されたコマンド</div>
+      <div style="position: relative;">
+        <div class="command-preview" id="commandPreview">URLを入力してコマンドを生成してください</div>
+        <button class="copy-btn" onclick="copyCommand()">コピー</button>
+      </div>
+      <div class="status-bar">
+        <div class="status-dot ready"></div>
+        <span>コマンド生成済み — ターミナルにペーストして実行できます</span>
+      </div>
+    </div>
+
+```
+<div class="card" style="border-color: rgba(255,170,0,0.2);">
+  <div class="card-title">⚠ 注意事項</div>
+  <p style="font-size: 13px; color: var(--muted); line-height: 1.7; font-family: 'Space Mono', monospace;">
+    • cookies.txt は YouTube の認証に必要です<br>
+    • ダウンロード済みURLはアーカイブで管理されます<br>
+    • 著作権法に従いご利用ください<br>
+    • yt-dlp は事前にインストールが必要です
+  </p>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+// ===== AUTH =====
+const USERS = {
+  admin: 'yt-dlp2024',
+  user: 'password123'
+};
+
+let currentUser = null;
+
+function handleLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('errorMsg');
+
+  if (USERS[u] && USERS[u] === p) {
+    currentUser = u;
+    err.style.display = 'none';
+    showApp();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('password').value = '';
+    document.getElementById('password').style.borderColor = 'var(--danger)';
+    setTimeout(() => document.getElementById('password').style.borderColor = '', 1500);
+  }
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('userLabel').textContent = currentUser;
+  document.getElementById('userAvatar').textContent = currentUser[0].toUpperCase();
+  generateCommand();
+}
+
+function handleLogout() {
+  currentUser = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.animation = 'none';
+  setTimeout(() => document.getElementById('loginScreen').style.animation = '', 10);
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+    handleLogin();
+  }
+});
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['download','command'][i] === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'command') generateCommand();
+}
+
+// ===== TOGGLES =====
+function toggleSwitch(id) {
+  document.getElementById(id).classList.toggle('on');
+}
+
+function isOn(id) {
+  return document.getElementById(id).classList.contains('on');
+}
+
+// ===== COMMAND GENERATION =====
+function generateCommand() {
+  const url = document.getElementById('ytUrl').value.trim() || 'YOUR_URL_HERE';
+  const quality = document.getElementById('quality').value;
+  const format = document.getElementById('format').value;
+  const cookies = document.getElementById('cookies').value.trim();
+  const archive = document.getElementById('archive').value.trim();
+  const output = document.getElementById('output').value.trim();
+
+  let cmd = 'yt-dlp';
+  if (cookies) cmd += ` \\\n  --cookies ${cookies}`;
+  cmd += ' \\\n  -f bestaudio';
+  cmd += ' \\\n  --extract-audio';
+  cmd += ` \\\n  --audio-format ${format}`;
+  cmd += ` \\\n  --audio-quality ${quality}`;
+  if (output) cmd += ` \\\n  -o "${output}"`;
+  if (isOn('t-metadata')) cmd += ' \\\n  --embed-metadata \\\n  --add-metadata';
+  if (isOn('t-thumb')) cmd += ' \\\n  --embed-thumbnail';
+  if (isOn('t-archive') && archive) cmd += ` \\\n  --download-archive ${archive}`;
+  cmd += ` \\\n  "${url}"`;
+
+  document.getElementById('commandPreview').textContent = cmd;
+}
+
+function copyCommand() {
+  const text = document.getElementById('commandPreview').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ コピー済';
+    btn.style.color = 'var(--accent)';
+    setTimeout(() => { btn.textContent = 'コピー'; btn.style.color = ''; }, 2000);
+  });
+}
+
+// Auto-regenerate on input change
+['ytUrl','quality','format','cookies','archive','output'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', generateCommand);
+});
+</script>
+
+</body>
+</html>
