@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.31.09-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.31.10-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -440,7 +440,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     </div>
   </div>
   <div id="cc-phase-btns" style="display:none;width:100%;max-width:700px;margin:6px auto 0;text-align:center;">
-    <button id="cc-next-phase" style="padding:12px 32px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;border-radius:10px;color:#1a0a00;font-family:Cinzel,serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:2px;">次のフェーズへ</button>
+    <button id="cc-next-phase" style="padding:12px 32px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;border-radius:10px;color:#1a0a00;font-family:Cinzel,serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:2px;">FLOP へ</button>
   </div>
   <div id="cc-showdown" style="display:none;width:100%;max-width:700px;margin:6px auto 0;">
     <div class="panel" style="text-align:center;">
@@ -454,10 +454,12 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <div class="panel" style="text-align:center;">
       <div class="ptitle">RESULT</div>
       <div id="cc-result-body" style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.8;"></div>
-      <button id="cc-next-round" class="btn">次のラウンド</button>
-      <button id="cc-end-game" style="width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.25);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">ゲームを終了</button>
+      <button id="cc-next-round" class="btn">NEXT HAND</button>
+      <button id="cc-end-game" style="width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.25);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">ゲームを終了 → 精算</button>
     </div>
   </div>
+  <!-- リバイ確認 -->
+  <div id="cc-rebuy-panel" style="display:none;width:100%;max-width:700px;margin:6px auto 0;padding:12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,165,0,.3);border-radius:10px;"></div>
   <!-- 精算サマリー -->
   <div id="cc-summary" style="display:none;width:100%;max-width:700px;margin:6px auto 0;">
     <div class="panel" style="text-align:center;">
@@ -3120,7 +3122,7 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
     var nameEl=document.querySelector('.cc-name-inp[data-i="'+i+'"]');
     var name=nameEl?nameEl.value.trim():'';
     if(!name) name='プレイヤー'+(i+1);
-    cc.players.push({name:name,chips:chips,startChips:chips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false});
+    cc.players.push({name:name,chips:chips,startChips:chips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0});
   }
   cc.dealerIdx=0;
   cc.roundNum=0;
@@ -3198,8 +3200,9 @@ function ccRenderAll(){
     var badge='';
     if(i===sbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#4af;"> SB</span>';
     if(i===bbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#fa0;"> BB</span>';
+    var rebuyBadge=p.rebuyCount>0?'<span style="font-size:8px;color:#fa0;background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.3);border-radius:4px;padding:0 3px;margin-left:4px;">×'+p.rebuyCount+'</span>':'';
     html+='<div class="'+cls+'">';
-    html+='<div class="sname">'+esc(p.name)+badge+'</div>';
+    html+='<div class="sname">'+esc(p.name)+badge+rebuyBadge+'</div>';
     html+='<div class="schips">'+chipsHTML(p.chips)+'</div>';
     if(p.bet>0) html+='<div class="sbet">BET: '+p.bet+'</div>';
     else if(p.folded) html+='<div class="sst" style="color:#f88;">FOLD</div>';
@@ -3233,6 +3236,7 @@ function ccShowAP(){
   var turnInfo=document.getElementById('cc-turn-info');
   var summary=document.getElementById('cc-summary');
   ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';summary.style.display='none';
+  document.getElementById('cc-rebuy-panel').style.display='none';
   document.getElementById('cc-raise-panel').style.display='none';
 
   if(!cc.roundActive) return;
@@ -3253,7 +3257,9 @@ function ccShowAP(){
       cc.phase=4;ccRenderAll();ccShowShowdown();return;
     }
     phBtns.style.display='block';
-    turnInfo.textContent='ベッティング完了 - 次のフェーズへ進んでください';
+    var nextPhaseName=PHASE_NAMES[cc.phase+1]||'SHOWDOWN';
+    document.getElementById('cc-next-phase').textContent=nextPhaseName+' へ';
+    turnInfo.textContent='ベッティング完了 - '+nextPhaseName+' へ進んでください';
     turnInfo.style.display='block';
     return;
   }
@@ -3509,22 +3515,60 @@ document.getElementById('cc-award-btn').addEventListener('click',function(){
 });
 
 function ccCheckEliminated(){
-  cc.players.forEach(function(p){
-    if(!p.eliminated&&p.chips<=0) p.eliminated=true;
+  // チップ0のプレイヤーを検出（まだeliminatedにしない→リバイ判定）
+  var busted=[];
+  cc.players.forEach(function(p,i){
+    if(!p.eliminated&&p.chips<=0) busted.push(i);
   });
-  var alive=cc.players.filter(function(p){return !p.eliminated;});
-  if(alive.length<=1){
-    document.getElementById('cc-next-round').style.display='none';
-    if(alive.length===1){
-      var body=document.getElementById('cc-result-body');
-      body.innerHTML+='<div style="margin-top:12px;font-size:16px;color:var(--gold-light);font-weight:700;">'+esc(alive[0].name)+' の勝利!</div>';
-    }
+  // リバイUI表示
+  if(busted.length>0){
+    var rebuyEl=document.getElementById('cc-rebuy-panel');
+    var html='<div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">チップ不足 - リバイ確認</div>';
+    busted.forEach(function(idx){
+      var p=cc.players[idx];
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:6px;">';
+      html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+'</span>';
+      html+='<div style="display:flex;gap:6px;">';
+      html+='<button class="cc-rebuy-btn" data-idx="'+idx+'" data-action="rebuy" style="padding:6px 14px;background:rgba(40,170,80,.25);border:1px solid rgba(60,200,100,.4);border-radius:6px;color:#afd;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">リバイ ('+cc.initialChips+')</button>';
+      html+='<button class="cc-rebuy-btn" data-idx="'+idx+'" data-action="out" style="padding:6px 14px;background:rgba(200,50,50,.25);border:1px solid rgba(220,80,80,.4);border-radius:6px;color:#f88;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">脱落</button>';
+      html+='</div></div>';
+    });
+    rebuyEl.innerHTML=html;
+    rebuyEl.style.display='block';
+    // リバイボタンのイベント
+    document.querySelectorAll('.cc-rebuy-btn').forEach(function(b){
+      b.addEventListener('click',function(){
+        var idx=+this.dataset.idx;
+        var action=this.dataset.action;
+        var p=cc.players[idx];
+        if(action==='rebuy'){
+          p.chips=cc.initialChips;
+          p.rebuyCount++;
+          p.startChips+=cc.initialChips; // 精算用：投入総額を加算
+        }else{
+          p.eliminated=true;
+        }
+        // このプレイヤーの行を非表示
+        this.parentElement.parentElement.style.display='none';
+        // 全員処理済みか確認
+        var remaining=document.querySelectorAll('.cc-rebuy-btn[data-action="rebuy"]');
+        var allDone=true;
+        remaining.forEach(function(btn){
+          if(btn.parentElement.parentElement.style.display!=='none') allDone=false;
+        });
+        if(allDone){
+          rebuyEl.style.display='none';
+          ccRenderAll();
+        }
+      });
+    });
   }
   ccRenderAll();
 }
 
 document.getElementById('cc-next-round').addEventListener('click',function(){
   document.getElementById('cc-result').style.display='none';
+  document.getElementById('cc-rebuy-panel').style.display='none';
   ccStartRound();
 });
 
@@ -3541,6 +3585,7 @@ function ccEndGame(){
   document.getElementById('cc-showdown').style.display='none';
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-turn-info').style.display='none';
+  document.getElementById('cc-rebuy-panel').style.display='none';
   ccRenderAll();
   // 精算計算
   var transfers=ccCalcSettlement();
