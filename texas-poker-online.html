@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.31.10-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.31.11-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -415,6 +415,9 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <div id="cc-pot" style="font-family:Cinzel,serif;font-size:12px;color:var(--gold-light);background:rgba(0,0,0,.4);padding:4px 16px;border-radius:20px;border:1px solid rgba(201,168,76,.3);">POT: 0</div>
   </div>
   <div id="cc-turn-info" style="width:100%;max-width:700px;margin:0 auto 6px;text-align:center;font-family:Cinzel,serif;font-size:12px;color:#4af;letter-spacing:1px;padding:6px;background:rgba(0,0,0,.4);border:1px solid rgba(0,150,255,.3);border-radius:8px;"></div>
+  <div style="width:100%;max-width:700px;margin:0 auto 6px;text-align:right;">
+    <button id="cc-undo-btn" style="display:none;padding:6px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">↩ UNDO</button>
+  </div>
   <div id="cc-ap" style="display:none;width:100%;max-width:700px;margin:0 auto;">
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;" id="cc-action-btns">
       <button class="cc-act-btn" data-act="fold" style="flex:1;min-width:60px;padding:10px 4px;background:rgba(200,50,50,.25);border:1px solid rgba(220,80,80,.5);border-radius:8px;color:#f88;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">FOLD</button>
@@ -3084,6 +3087,48 @@ var cc={
   initialChips:0
 };
 var PHASE_NAMES=['PRE-FLOP','FLOP','TURN','RIVER','SHOWDOWN'];
+var ccHistory=[];
+var CC_MAX_HISTORY=30;
+
+function ccSaveState(){
+  ccHistory.push(JSON.parse(JSON.stringify(cc)));
+  if(ccHistory.length>CC_MAX_HISTORY) ccHistory.shift();
+  ccUpdateUndoBtn();
+}
+
+function ccUndo(){
+  if(ccHistory.length===0) return;
+  var prev=ccHistory.pop();
+  // restore cc state
+  cc.phase=prev.phase;cc.pot=prev.pot;cc.curIdx=prev.curIdx;cc.curBet=prev.curBet;
+  cc.acts=prev.acts;cc.roundNum=prev.roundNum;cc.roundActive=prev.roundActive;
+  cc.lastRaise=prev.lastRaise;cc.dealerIdx=prev.dealerIdx;
+  cc.players.forEach(function(p,i){
+    var s=prev.players[i];
+    p.chips=s.chips;p.bet=s.bet;p.totalBet=s.totalBet;
+    p.folded=s.folded;p.allIn=s.allIn;p.eliminated=s.eliminated;
+    p.rebuyCount=s.rebuyCount;p.startChips=s.startChips;
+  });
+  ccUpdateUndoBtn();
+  ccRenderAll();
+  // re-evaluate UI
+  document.getElementById('cc-ap').style.display='none';
+  document.getElementById('cc-phase-btns').style.display='none';
+  document.getElementById('cc-showdown').style.display='none';
+  document.getElementById('cc-result').style.display='none';
+  document.getElementById('cc-summary').style.display='none';
+  document.getElementById('cc-rebuy-panel').style.display='none';
+  document.getElementById('cc-raise-panel').style.display='none';
+  if(cc.roundActive) ccShowAP();
+}
+
+function ccUpdateUndoBtn(){
+  var btn=document.getElementById('cc-undo-btn');
+  btn.style.display=ccHistory.length>0?'inline-block':'none';
+}
+
+document.getElementById('cc-undo-btn').addEventListener('click',function(){ ccUndo(); });
+
 var ccPlayerCount=2;
 var ccDefaultNames=['プレイヤー1','プレイヤー2','プレイヤー3','プレイヤー4','プレイヤー5','プレイヤー6','プレイヤー7','プレイヤー8'];
 
@@ -3131,6 +3176,7 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
 });
 
 function ccStartRound(){
+  ccHistory=[];ccUpdateUndoBtn();
   cc.roundNum++;
   cc.phase=0;cc.pot=0;cc.curBet=0;cc.lastRaise=0;cc.streetPot=0;
   cc.roundActive=true;
@@ -3292,6 +3338,7 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
   b.addEventListener('click',function(){
     var act=this.dataset.act;
     if(!cc.roundActive||cc.curIdx<0) return;
+    ccSaveState();
     var p=cc.players[cc.curIdx];
     if(act==='fold'){
       p.folded=true;
@@ -3345,6 +3392,7 @@ document.getElementById('cc-raise-ok').addEventListener('click',function(){
   var p=cc.players[cc.curIdx];
   var totalRaise=snap5(cc.raiseAmount);
   if(totalRaise<=0) return;
+  ccSaveState();
   var additional=totalRaise-p.bet;
   if(additional<=0) return;
   if(additional>p.chips) additional=p.chips;
@@ -3383,6 +3431,7 @@ function ccAdvance(){
 
 // 次のフェーズへ
 document.getElementById('cc-next-phase').addEventListener('click',function(){
+  ccSaveState();
   cc.phase++;
   cc.players.forEach(function(p){p.bet=0;});
   cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];
