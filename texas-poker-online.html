@@ -196,13 +196,14 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.02.07-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.31.08-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
-    <div style="display:flex;gap:8px;">
-      <button id="btn-mode-online" style="flex:1;padding:12px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🌐 オンライン<br><span style="font-size:9px;opacity:.7;">ルームコード対戦</span></button>
-      <button id="btn-mode-offline" style="flex:1;padding:12px 4px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:10px;color:var(--gold-light);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🤖 オフライン<br><span style="font-size:9px;opacity:.7;">CPU対戦</span></button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="btn-mode-online" style="flex:1;min-width:0;padding:12px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🌐 オンライン<br><span style="font-size:9px;opacity:.7;">ルームコード対戦</span></button>
+      <button id="btn-mode-offline" style="flex:1;min-width:0;padding:12px 4px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:10px;color:var(--gold-light);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🤖 オフライン<br><span style="font-size:9px;opacity:.7;">CPU対戦</span></button>
+      <button id="btn-mode-chipcalc" style="flex:1;min-width:0;padding:12px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🎰 チップ計算<br><span style="font-size:9px;opacity:.7;">リアルカード用</span></button>
     </div>
   </div>
 
@@ -232,6 +233,28 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="off-sb" value="5"></div>
     <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="off-bb" value="10"></div>
     <button class="btn" id="btn-start-offline">ゲーム開始</button>
+  </div>
+
+  <!-- チップ計算モード設定パネル -->
+  <div id="panel-chipcalc" style="display:none;">
+  <div class="panel">
+    <div class="ptitle">🎰 チップ計算設定</div>
+    <label class="flabel">プレイヤー人数</label>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="cc-cnt-btn" data-n="2" style="padding:6px 12px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:6px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">2</button>
+      <button class="cc-cnt-btn" data-n="3" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">3</button>
+      <button class="cc-cnt-btn" data-n="4" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">4</button>
+      <button class="cc-cnt-btn" data-n="5" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">5</button>
+      <button class="cc-cnt-btn" data-n="6" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">6</button>
+      <button class="cc-cnt-btn" data-n="7" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">7</button>
+      <button class="cc-cnt-btn" data-n="8" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">8</button>
+    </div>
+    <div id="cc-names"></div>
+    <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">開始チップ</span><input class="num-inp" id="cc-chips" value="500"></div>
+    <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="cc-sb" value="5"></div>
+    <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="cc-bb" value="10"></div>
+    <button class="btn" id="btn-start-chipcalc">開始</button>
+  </div>
   </div>
 
   <div id="panel-online" style="display:none;">
@@ -377,6 +400,63 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <button class="mnext" id="mnext">次のラウンド</button>
     <button id="mnext-end" style="display:none;width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.25);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">🏁 ゲームを終了する</button>
     <button id="mnext-lobby" style="display:none;width:100%;margin-top:8px;padding:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">✕ ロビーへ戻る</button>
+  </div>
+</div>
+
+<!-- チップ計算モード画面 -->
+<div id="screen-chipcalc" class="screen">
+  <div style="width:100%;max-width:700px;margin:0 auto 6px;display:flex;justify-content:space-between;align-items:center;">
+    <button id="cc-btn-lobby" style="background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 14px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">✕ ロビーへ</button>
+    <div id="cc-round-info" style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;">ROUND 1</div>
+  </div>
+  <div id="cc-seats" style="display:flex;flex-wrap:wrap;gap:6px;width:100%;max-width:700px;margin:0 auto 8px;justify-content:center;"></div>
+  <div class="felt" style="min-height:auto;padding:14px 20px;">
+    <div id="cc-phase" style="font-family:Cinzel,serif;font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.35);">PRE-FLOP</div>
+    <div id="cc-pot" style="font-family:Cinzel,serif;font-size:12px;color:var(--gold-light);background:rgba(0,0,0,.4);padding:4px 16px;border-radius:20px;border:1px solid rgba(201,168,76,.3);">POT: 0</div>
+  </div>
+  <div id="cc-turn-info" style="width:100%;max-width:700px;margin:0 auto 6px;text-align:center;font-family:Cinzel,serif;font-size:12px;color:#4af;letter-spacing:1px;padding:6px;background:rgba(0,0,0,.4);border:1px solid rgba(0,150,255,.3);border-radius:8px;"></div>
+  <div id="cc-ap" style="display:none;width:100%;max-width:700px;margin:0 auto;">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;" id="cc-action-btns">
+      <button class="cc-act-btn" data-act="fold" style="flex:1;min-width:60px;padding:10px 4px;background:rgba(200,50,50,.25);border:1px solid rgba(220,80,80,.5);border-radius:8px;color:#f88;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">FOLD</button>
+      <button class="cc-act-btn" data-act="check" style="flex:1;min-width:60px;padding:10px 4px;background:rgba(50,130,200,.2);border:1px solid rgba(80,160,230,.4);border-radius:8px;color:#adf;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">CHECK</button>
+      <button class="cc-act-btn" data-act="call" style="flex:1;min-width:60px;padding:10px 4px;background:rgba(40,170,80,.2);border:1px solid rgba(60,200,100,.4);border-radius:8px;color:#afd;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">CALL</button>
+      <button class="cc-act-btn" data-act="raise" style="flex:1;min-width:60px;padding:10px 4px;background:rgba(201,168,76,.2);border:1px solid rgba(201,168,76,.5);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:11px;cursor:pointer;">RAISE</button>
+      <button class="cc-act-btn" data-act="allin" style="flex:1;min-width:60px;padding:10px 4px;background:rgba(200,30,30,.3);border:1px solid rgba(255,60,60,.5);border-radius:8px;color:#f66;font-family:Cinzel,serif;font-size:11px;font-weight:700;cursor:pointer;">ALL IN</button>
+    </div>
+    <div id="cc-raise-panel" style="display:none;">
+      <div id="cc-bet-display" style="font-family:Cinzel,serif;font-size:22px;color:var(--gold-light);text-align:center;background:rgba(0,0,0,.5);border:1px solid rgba(201,168,76,.4);border-radius:10px;padding:8px 16px;margin-bottom:8px;letter-spacing:2px;">0</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="cc-chip-btn chip-sel-btn chip-sel-500" data-v="500" style="width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-weight:700;font-size:11px;box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.25);">500</button>
+        <button class="cc-chip-btn chip-sel-btn chip-sel-100" data-v="100" style="width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-weight:700;font-size:11px;box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.25);">100</button>
+        <button class="cc-chip-btn chip-sel-btn chip-sel-25" data-v="25" style="width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-weight:700;font-size:11px;box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.25);">25</button>
+        <button class="cc-chip-btn chip-sel-btn chip-sel-10" data-v="10" style="width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-weight:700;font-size:11px;box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.25);">10</button>
+        <button class="cc-chip-btn chip-sel-btn chip-sel-5" data-v="5" style="width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-weight:700;font-size:11px;box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.25);">5</button>
+        <button class="cc-chip-clr" data-v="clear" style="width:46px;height:46px;border-radius:50%;background:rgba(100,0,0,.6);border:3px solid rgba(255,80,80,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#f88;font-size:14px;box-shadow:0 3px 8px rgba(0,0,0,.5);">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button id="cc-raise-ok" style="padding:10px 28px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;border-radius:8px;color:#1a0a00;font-family:Cinzel,serif;font-size:12px;font-weight:700;cursor:pointer;">確定</button>
+        <button id="cc-raise-cancel" style="padding:10px 28px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.7);font-family:Cinzel,serif;font-size:11px;cursor:pointer;">戻る</button>
+      </div>
+    </div>
+  </div>
+  <div id="cc-phase-btns" style="display:none;width:100%;max-width:700px;margin:6px auto 0;text-align:center;">
+    <button id="cc-next-phase" style="padding:12px 32px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;border-radius:10px;color:#1a0a00;font-family:Cinzel,serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:2px;">次のフェーズへ</button>
+  </div>
+  <div id="cc-showdown" style="display:none;width:100%;max-width:700px;margin:6px auto 0;">
+    <div class="panel" style="text-align:center;">
+      <div class="ptitle">SHOWDOWN - 勝者を選択</div>
+      <div id="cc-winner-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
+      <div id="cc-sidepot-info" style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:8px;"></div>
+      <button id="cc-award-btn" class="btn">チップを配分</button>
+    </div>
+  </div>
+  <div id="cc-result" style="display:none;width:100%;max-width:700px;margin:6px auto 0;">
+    <div class="panel" style="text-align:center;">
+      <div class="ptitle">RESULT</div>
+      <div id="cc-result-body" style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.8;"></div>
+      <button id="cc-next-round" class="btn">次のラウンド</button>
+      <button id="cc-end-game" style="width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.25);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">ゲームを終了</button>
+    </div>
   </div>
 </div>
 
@@ -843,21 +923,23 @@ var cpuDifficulty='normal', cpuCount=1;
 function setMode(mode){
   var onBtn=document.getElementById('btn-mode-online');
   var offBtn=document.getElementById('btn-mode-offline');
+  var ccBtn=document.getElementById('btn-mode-chipcalc');
   var onPanel=document.getElementById('panel-online');
   var offPanel=document.getElementById('panel-offline');
-  if(mode==='online'){
-    onBtn.style.background='rgba(201,168,76,.15)';onBtn.style.borderColor='var(--gold)';onBtn.style.color='var(--gold-light)';
-    offBtn.style.background='rgba(0,0,0,.3)';offBtn.style.borderColor='rgba(255,255,255,.2)';offBtn.style.color='rgba(255,255,255,.6)';
-    onPanel.style.display='block'; offPanel.style.display='none';
-  } else {
-    offBtn.style.background='rgba(201,168,76,.15)';offBtn.style.borderColor='var(--gold)';offBtn.style.color='var(--gold-light)';
-    onBtn.style.background='rgba(0,0,0,.3)';onBtn.style.borderColor='rgba(255,255,255,.2)';onBtn.style.color='rgba(255,255,255,.6)';
-    offPanel.style.display='block'; onPanel.style.display='none';
-  }
+  var ccPanel=document.getElementById('panel-chipcalc');
+  var allBtns=[onBtn,offBtn,ccBtn];
+  var allPanels=[onPanel,offPanel,ccPanel];
+  allBtns.forEach(function(b){b.style.background='rgba(0,0,0,.3)';b.style.borderColor='rgba(255,255,255,.2)';b.style.color='rgba(255,255,255,.5)';});
+  allPanels.forEach(function(p){p.style.display='none';});
+  var active=mode==='online'?onBtn:mode==='chipcalc'?ccBtn:offBtn;
+  var panel=mode==='online'?onPanel:mode==='chipcalc'?ccPanel:offPanel;
+  active.style.background='rgba(201,168,76,.15)';active.style.borderColor='var(--gold)';active.style.color='var(--gold-light)';
+  panel.style.display='block';
 }
 
 // モードボタン設定
 document.getElementById('btn-mode-offline').onclick = function(){ setMode('offline'); };
+document.getElementById('btn-mode-chipcalc').onclick = function(){ setMode('chipcalc'); };
 
 // オンラインCPU設定（HOST SETTINGSパネルで管理）
 var onlineCpuCount=0, onlineCpuDifficulty='normal';
@@ -2979,6 +3061,493 @@ window._pokerGoLobby = function(){
   players=[]; myHole=[]; _initialChips=0;
   showScreen('screen-lobby');
 };
+
+// ════════════════════════════════════════
+// チップ計算モード (Chip Calculator)
+// ════════════════════════════════════════
+(function(){
+var cc={
+  players:[],dealerIdx:0,sbAmt:5,bbAmt:10,
+  phase:0,pot:0,curIdx:0,curBet:0,
+  acts:[],roundNum:0,roundActive:false,
+  raiseAmount:0,streetPot:0,lastRaise:0
+};
+var PHASE_NAMES=['PRE-FLOP','FLOP','TURN','RIVER','SHOWDOWN'];
+var ccPlayerCount=2;
+var ccDefaultNames=['プレイヤー1','プレイヤー2','プレイヤー3','プレイヤー4','プレイヤー5','プレイヤー6','プレイヤー7','プレイヤー8'];
+
+function snap5(v){return Math.round(v/5)*5;}
+
+// 人数ボタン
+document.querySelectorAll('.cc-cnt-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    ccPlayerCount=+this.dataset.n;
+    document.querySelectorAll('.cc-cnt-btn').forEach(function(x){
+      x.style.background='rgba(0,0,0,.4)';x.style.borderColor='rgba(255,255,255,.2)';x.style.color='rgba(255,255,255,.5)';
+    });
+    this.style.background='rgba(201,168,76,.15)';this.style.borderColor='var(--gold)';this.style.color='var(--gold-light)';
+    renderCcNames();
+  });
+});
+
+function renderCcNames(){
+  var el=document.getElementById('cc-names');
+  var html='<label class="flabel">プレイヤー名</label>';
+  for(var i=0;i<ccPlayerCount;i++){
+    html+='<input class="inp cc-name-inp" data-i="'+i+'" value="'+ccDefaultNames[i]+'" placeholder="プレイヤー'+(i+1)+'" style="margin-bottom:6px;">';
+  }
+  el.innerHTML=html;
+}
+renderCcNames();
+
+// ゲーム開始
+document.getElementById('btn-start-chipcalc').addEventListener('click',function(){
+  var chips=snap5(+document.getElementById('cc-chips').value)||500;
+  cc.sbAmt=snap5(+document.getElementById('cc-sb').value)||5;
+  cc.bbAmt=snap5(+document.getElementById('cc-bb').value)||10;
+  cc.players=[];
+  for(var i=0;i<ccPlayerCount;i++){
+    var nameEl=document.querySelector('.cc-name-inp[data-i="'+i+'"]');
+    var name=nameEl?nameEl.value.trim():'';
+    if(!name) name='プレイヤー'+(i+1);
+    cc.players.push({name:name,chips:chips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false});
+  }
+  cc.dealerIdx=0;
+  cc.roundNum=0;
+  showScreen('screen-chipcalc');
+  ccStartRound();
+});
+
+function ccStartRound(){
+  cc.roundNum++;
+  cc.phase=0;cc.pot=0;cc.curBet=0;cc.lastRaise=0;cc.streetPot=0;
+  cc.roundActive=true;
+  // reset per-round state
+  cc.players.forEach(function(p){p.bet=0;p.totalBet=0;p.folded=false;p.allIn=false;});
+  // rotate dealer
+  if(cc.roundNum>1){
+    do{cc.dealerIdx=(cc.dealerIdx+1)%cc.players.length;}
+    while(cc.players[cc.dealerIdx].eliminated);
+  }
+  // find active player count
+  var active=cc.players.filter(function(p){return !p.eliminated;});
+  if(active.length<2){ccEndGame();return;}
+  // post blinds
+  var sbIdx=ccNextActive(cc.dealerIdx);
+  var bbIdx=ccNextActive(sbIdx);
+  var sbP=cc.players[sbIdx],bbP=cc.players[bbIdx];
+  var sbPost=Math.min(cc.sbAmt,sbP.chips);
+  sbP.chips-=sbPost;sbP.bet=sbPost;sbP.totalBet=sbPost;
+  if(sbP.chips===0)sbP.allIn=true;
+  var bbPost=Math.min(cc.bbAmt,bbP.chips);
+  bbP.chips-=bbPost;bbP.bet=bbPost;bbP.totalBet=bbPost;
+  if(bbP.chips===0)bbP.allIn=true;
+  cc.pot=sbPost+bbPost;
+  cc.curBet=bbPost;
+  cc.lastRaise=cc.bbAmt;
+  // acts: BB has acted (but still gets option if no raise)
+  cc.acts=[bbIdx];
+  // first to act is after BB in preflop
+  cc.curIdx=ccNextActive(bbIdx);
+  // if only BB is left to act (heads up special), curIdx could be sbIdx
+  ccRenderAll();
+  ccShowAP();
+}
+
+function ccNextActive(fromIdx){
+  var n=cc.players.length;
+  for(var i=1;i<=n;i++){
+    var idx=(fromIdx+i)%n;
+    if(!cc.players[idx].eliminated&&!cc.players[idx].folded&&!cc.players[idx].allIn) return idx;
+  }
+  return -1;
+}
+
+function ccNextNotFolded(fromIdx){
+  var n=cc.players.length;
+  for(var i=1;i<=n;i++){
+    var idx=(fromIdx+i)%n;
+    if(!cc.players[idx].eliminated&&!cc.players[idx].folded) return idx;
+  }
+  return -1;
+}
+
+function ccActivePlayers(){
+  return cc.players.filter(function(p){return !p.eliminated&&!p.folded;});
+}
+
+function ccCanActPlayers(){
+  return cc.players.filter(function(p){return !p.eliminated&&!p.folded&&!p.allIn;});
+}
+
+function ccRenderAll(){
+  var seatsEl=document.getElementById('cc-seats');
+  var html='';
+  var sbIdx=ccNextActive2(cc.dealerIdx);
+  var bbIdx=ccNextActive2(sbIdx);
+  cc.players.forEach(function(p,i){
+    if(p.eliminated){html+='<div class="seat folded" style="opacity:.25;"><div class="sname">'+esc(p.name)+'</div><div class="schips" style="color:#f88;">脱落</div></div>';return;}
+    var cls='seat';
+    if(i===cc.curIdx&&cc.roundActive&&cc.phase<4) cls+=' myturn';
+    if(p.folded) cls+=' folded';
+    if(p.allIn) cls+=' allin';
+    if(i===cc.dealerIdx) cls+=' dealer';
+    var badge='';
+    if(i===sbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#4af;"> SB</span>';
+    if(i===bbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#fa0;"> BB</span>';
+    html+='<div class="'+cls+'">';
+    html+='<div class="sname">'+esc(p.name)+badge+'</div>';
+    html+='<div class="schips">'+p.chips+'</div>';
+    if(p.bet>0) html+='<div class="sbet">BET: '+p.bet+'</div>';
+    else if(p.folded) html+='<div class="sst" style="color:#f88;">FOLD</div>';
+    else if(p.allIn) html+='<div class="sst-allin">ALL IN</div>';
+    else html+='<div class="sst"></div>';
+    html+='</div>';
+  });
+  seatsEl.innerHTML=html;
+  document.getElementById('cc-phase').textContent=PHASE_NAMES[cc.phase];
+  document.getElementById('cc-pot').textContent='POT: '+cc.pot;
+  document.getElementById('cc-round-info').textContent='ROUND '+cc.roundNum;
+}
+
+// active including allIn
+function ccNextActive2(fromIdx){
+  var n=cc.players.length;
+  for(var i=1;i<=n;i++){
+    var idx=(fromIdx+i)%n;
+    if(!cc.players[idx].eliminated&&!cc.players[idx].folded) return idx;
+  }
+  return -1;
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function ccShowAP(){
+  var ap=document.getElementById('cc-ap');
+  var phBtns=document.getElementById('cc-phase-btns');
+  var sd=document.getElementById('cc-showdown');
+  var result=document.getElementById('cc-result');
+  var turnInfo=document.getElementById('cc-turn-info');
+  ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';
+  document.getElementById('cc-raise-panel').style.display='none';
+
+  if(!cc.roundActive) return;
+
+  // check if round should end (only 1 non-folded)
+  var notFolded=ccActivePlayers();
+  if(notFolded.length===1){
+    ccAwardLastStanding(notFolded[0]);return;
+  }
+  // check if street is complete
+  var canAct=ccCanActPlayers();
+  var allActed=canAct.every(function(p){return cc.acts.indexOf(cc.players.indexOf(p))>=0;});
+  var allMatched=canAct.every(function(p){return p.bet===cc.curBet||p.allIn;});
+  if(canAct.length===0||(allActed&&allMatched)){
+    // street complete
+    if(cc.phase>=3||canAct.length===0){
+      // showdown
+      cc.phase=4;ccRenderAll();ccShowShowdown();return;
+    }
+    phBtns.style.display='block';
+    turnInfo.textContent='ベッティング完了 - 次のフェーズへ進んでください';
+    turnInfo.style.display='block';
+    return;
+  }
+  // find next player to act
+  if(cc.curIdx<0){cc.phase=4;ccRenderAll();ccShowShowdown();return;}
+  var p=cc.players[cc.curIdx];
+  turnInfo.textContent=p.name+' のアクション';
+  turnInfo.style.display='block';
+  ap.style.display='block';
+  // update button states
+  var checkBtn=document.querySelector('.cc-act-btn[data-act="check"]');
+  var callBtn=document.querySelector('.cc-act-btn[data-act="call"]');
+  var raiseBtn=document.querySelector('.cc-act-btn[data-act="raise"]');
+  if(p.bet>=cc.curBet){
+    checkBtn.style.display='';callBtn.style.display='none';
+  }else{
+    checkBtn.style.display='none';callBtn.style.display='';
+    var callAmt=Math.min(cc.curBet-p.bet,p.chips);
+    callBtn.textContent='CALL '+callAmt;
+  }
+  if(p.chips<=cc.curBet-p.bet){
+    raiseBtn.style.display='none';
+  }else{
+    raiseBtn.style.display='';
+  }
+}
+
+// アクションボタン
+document.querySelectorAll('.cc-act-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    var act=this.dataset.act;
+    if(!cc.roundActive||cc.curIdx<0) return;
+    var p=cc.players[cc.curIdx];
+    if(act==='fold'){
+      p.folded=true;
+      ccAdvance();
+    }else if(act==='check'){
+      cc.acts.push(cc.curIdx);
+      ccAdvance();
+    }else if(act==='call'){
+      var callAmt=Math.min(cc.curBet-p.bet,p.chips);
+      p.chips-=callAmt;p.bet+=callAmt;p.totalBet+=callAmt;cc.pot+=callAmt;
+      if(p.chips===0)p.allIn=true;
+      cc.acts.push(cc.curIdx);
+      ccAdvance();
+    }else if(act==='raise'){
+      cc.raiseAmount=0;
+      document.getElementById('cc-bet-display').textContent='0';
+      document.getElementById('cc-raise-panel').style.display='block';
+      document.getElementById('cc-action-btns').style.display='none';
+    }else if(act==='allin'){
+      var allAmt=p.chips;
+      cc.pot+=allAmt;p.totalBet+=allAmt;p.bet+=allAmt;p.chips=0;p.allIn=true;
+      // determine if this is a full raise
+      if(p.bet>cc.curBet&&(p.bet-cc.curBet)>=cc.lastRaise){
+        cc.lastRaise=p.bet-cc.curBet;
+        cc.curBet=p.bet;
+        // everyone needs to re-act
+        cc.acts=[cc.curIdx];
+      }else{
+        if(p.bet>cc.curBet) cc.curBet=p.bet;
+        cc.acts.push(cc.curIdx);
+      }
+      ccAdvance();
+    }
+  });
+});
+
+// チップボタン（レイズ額）
+document.querySelectorAll('.cc-chip-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    var v=+this.dataset.v;
+    cc.raiseAmount+=v;
+    document.getElementById('cc-bet-display').textContent=cc.raiseAmount;
+  });
+});
+document.querySelector('.cc-chip-clr').addEventListener('click',function(){
+  cc.raiseAmount=0;
+  document.getElementById('cc-bet-display').textContent='0';
+});
+
+// レイズ確定
+document.getElementById('cc-raise-ok').addEventListener('click',function(){
+  var p=cc.players[cc.curIdx];
+  var totalRaise=snap5(cc.raiseAmount);
+  if(totalRaise<=0) return;
+  // totalRaise is the total bet amount (not additional)
+  var additional=totalRaise-p.bet;
+  if(additional<=0) return;
+  if(additional>p.chips) additional=p.chips;
+  var newBet=p.bet+additional;
+  if(newBet<=cc.curBet){
+    // not enough to raise, treat as call
+    p.chips-=additional;p.bet=newBet;p.totalBet+=additional;cc.pot+=additional;
+    if(p.chips===0)p.allIn=true;
+    cc.acts.push(cc.curIdx);
+  }else{
+    cc.lastRaise=Math.max(cc.lastRaise,newBet-cc.curBet);
+    p.chips-=additional;p.bet=newBet;p.totalBet+=additional;cc.pot+=additional;
+    cc.curBet=newBet;
+    if(p.chips===0)p.allIn=true;
+    // everyone re-acts
+    cc.acts=[cc.curIdx];
+  }
+  document.getElementById('cc-action-btns').style.display='flex';
+  document.getElementById('cc-raise-panel').style.display='none';
+  ccAdvance();
+});
+
+document.getElementById('cc-raise-cancel').addEventListener('click',function(){
+  document.getElementById('cc-action-btns').style.display='flex';
+  document.getElementById('cc-raise-panel').style.display='none';
+});
+
+function ccAdvance(){
+  var next=ccNextActive(cc.curIdx);
+  if(next<0||ccActivePlayers().length<=1){
+    cc.curIdx=-1;
+  }else{
+    cc.curIdx=next;
+  }
+  ccRenderAll();
+  ccShowAP();
+}
+
+// 次のフェーズへ
+document.getElementById('cc-next-phase').addEventListener('click',function(){
+  cc.phase++;
+  // collect bets into pot (already accumulated), reset street bets
+  cc.players.forEach(function(p){p.bet=0;});
+  cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];
+  // first to act: first active after dealer
+  cc.curIdx=ccNextActive(cc.dealerIdx);
+  if(cc.curIdx<0||cc.phase>=4){
+    cc.phase=4;ccRenderAll();ccShowShowdown();return;
+  }
+  ccRenderAll();
+  ccShowAP();
+});
+
+function ccAwardLastStanding(winner){
+  cc.roundActive=false;
+  var idx=cc.players.indexOf(winner);
+  winner.chips+=cc.pot;
+  ccRenderAll();
+  var resultEl=document.getElementById('cc-result');
+  var body=document.getElementById('cc-result-body');
+  body.innerHTML='<div style="font-size:16px;color:var(--gold-light);margin-bottom:8px;">'+esc(winner.name)+' が獲得!</div><div style="font-size:14px;">+'+cc.pot+' チップ</div>';
+  resultEl.style.display='block';
+  document.getElementById('cc-turn-info').style.display='none';
+  ccCheckEliminated();
+}
+
+function ccShowShowdown(){
+  cc.roundActive=false;
+  var sd=document.getElementById('cc-showdown');
+  var list=document.getElementById('cc-winner-list');
+  document.getElementById('cc-turn-info').style.display='none';
+  // calculate side pots
+  var sidePots=ccCalcSidePots();
+  var html='';
+  var infoHtml='';
+  if(sidePots.length>1){
+    infoHtml='<div style="margin-bottom:8px;">';
+    sidePots.forEach(function(sp,i){
+      var names=sp.eligible.map(function(idx){return esc(cc.players[idx].name);}).join(', ');
+      infoHtml+='<div style="margin-bottom:4px;">ポット'+(i+1)+': '+sp.amount+' ('+names+')</div>';
+    });
+    infoHtml+='</div>';
+  }
+  document.getElementById('cc-sidepot-info').innerHTML=infoHtml;
+  // for each side pot, let user pick winner(s)
+  sidePots.forEach(function(sp,pi){
+    html+='<div style="margin-bottom:10px;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(201,168,76,.2);">';
+    html+='<div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);margin-bottom:6px;">'+(sidePots.length>1?'ポット'+(pi+1)+' ('+sp.amount+')':'POT: '+sp.amount)+'</div>';
+    sp.eligible.forEach(function(idx){
+      var p=cc.players[idx];
+      html+='<label style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:6px;background:rgba(0,0,0,.2);margin-bottom:4px;">';
+      html+='<input type="checkbox" class="cc-winner-cb" data-pot="'+pi+'" data-idx="'+idx+'" style="width:18px;height:18px;">';
+      html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+'</span>';
+      html+='<span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);">'+p.chips+' chips</span>';
+      html+='</label>';
+    });
+    html+='</div>';
+  });
+  list.innerHTML=html;
+  sd.style.display='block';
+  // store sidePots for award
+  cc._sidePots=sidePots;
+}
+
+function ccCalcSidePots(){
+  var contenders=[];
+  cc.players.forEach(function(p,i){
+    if(!p.eliminated&&!p.folded) contenders.push({idx:i,totalBet:p.totalBet});
+  });
+  contenders.sort(function(a,b){return a.totalBet-b.totalBet;});
+  var pots=[];
+  var processed=0;
+  for(var i=0;i<contenders.length;i++){
+    var level=contenders[i].totalBet;
+    if(level<=processed) continue;
+    var diff=level-processed;
+    var amount=0;
+    // everyone who bet at least this level contributes
+    cc.players.forEach(function(p){
+      if(p.eliminated) return;
+      var contrib=Math.min(p.totalBet-processed,diff);
+      if(contrib>0) amount+=contrib;
+    });
+    var eligible=contenders.filter(function(c){return c.totalBet>=level;}).map(function(c){return c.idx;});
+    if(amount>0) pots.push({amount:amount,eligible:eligible});
+    processed=level;
+  }
+  // add folded player contributions that aren't covered
+  if(pots.length===0&&cc.pot>0){
+    var elig=contenders.map(function(c){return c.idx;});
+    pots.push({amount:cc.pot,eligible:elig});
+  }else{
+    // adjust: total of pots should equal cc.pot
+    var totalPots=pots.reduce(function(s,p){return s+p.amount;},0);
+    if(totalPots<cc.pot&&pots.length>0){
+      pots[pots.length-1].amount+=cc.pot-totalPots;
+    }
+  }
+  return pots;
+}
+
+// チップ配分
+document.getElementById('cc-award-btn').addEventListener('click',function(){
+  var sidePots=cc._sidePots||[];
+  var awards={};
+  var valid=true;
+  sidePots.forEach(function(sp,pi){
+    var winners=[];
+    document.querySelectorAll('.cc-winner-cb[data-pot="'+pi+'"]').forEach(function(cb){
+      if(cb.checked) winners.push(+cb.dataset.idx);
+    });
+    if(winners.length===0){valid=false;return;}
+    var share=Math.floor(sp.amount/winners.length);
+    var remainder=sp.amount-share*winners.length;
+    winners.forEach(function(idx,wi){
+      if(!awards[idx]) awards[idx]=0;
+      awards[idx]+=share+(wi===0?remainder:0);
+    });
+  });
+  if(!valid){
+    alert('各ポットの勝者を1人以上選んでください');return;
+  }
+  var resultLines=[];
+  Object.keys(awards).forEach(function(idx){
+    var i=+idx;
+    cc.players[i].chips+=awards[idx];
+    resultLines.push(esc(cc.players[i].name)+': +'+awards[idx]);
+  });
+  document.getElementById('cc-showdown').style.display='none';
+  var resultEl=document.getElementById('cc-result');
+  var body=document.getElementById('cc-result-body');
+  body.innerHTML=resultLines.map(function(l){return '<div style="margin-bottom:4px;">'+l+'</div>';}).join('');
+  resultEl.style.display='block';
+  ccRenderAll();
+  ccCheckEliminated();
+});
+
+function ccCheckEliminated(){
+  cc.players.forEach(function(p){
+    if(!p.eliminated&&p.chips<=0) p.eliminated=true;
+  });
+  var alive=cc.players.filter(function(p){return !p.eliminated;});
+  if(alive.length<=1){
+    document.getElementById('cc-next-round').style.display='none';
+    if(alive.length===1){
+      var body=document.getElementById('cc-result-body');
+      body.innerHTML+='<div style="margin-top:12px;font-size:16px;color:var(--gold-light);font-weight:700;">🏆 '+esc(alive[0].name)+' の勝利!</div>';
+    }
+  }else{
+    document.getElementById('cc-next-round').style.display='';
+  }
+  ccRenderAll();
+}
+
+document.getElementById('cc-next-round').addEventListener('click',function(){
+  document.getElementById('cc-result').style.display='none';
+  ccStartRound();
+});
+
+document.getElementById('cc-end-game').addEventListener('click',function(){
+  showScreen('screen-lobby');
+});
+
+document.getElementById('cc-btn-lobby').addEventListener('click',function(){
+  if(cc.roundActive){
+    if(!confirm('ゲームを中断してロビーに戻りますか？')) return;
+  }
+  showScreen('screen-lobby');
+});
+
+})();
 
 })();
 </script>
