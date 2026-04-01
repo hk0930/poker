@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.20-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.21-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3200,6 +3200,8 @@ function ccStartRound(){
     p.bet=0;p.totalBet=0;p.folded=false;p.allIn=false;
     // 安全チェック: 0チップで未脱落のプレイヤーを自動脱落
     if(!p.eliminated&&p.chips<=0) p.eliminated=true;
+    // ラウンド開始時のチップを記録（リザルト増減表示用）
+    p._roundStartChips=p.chips;
   });
   // rotate dealer
   if(cc.roundNum>1){
@@ -3570,9 +3572,23 @@ function ccShowResult(html){
   document.getElementById('cc-turn-info').style.display='none';
   var resultEl=document.getElementById('cc-result');
   var body=document.getElementById('cc-result-body');
-  body.innerHTML=html;
+  // 全プレイヤーの増減サマリーを追加
+  var summaryHtml='<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(201,168,76,.2);">';
+  summaryHtml+='<div style="font-family:Cinzel,serif;font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;margin-bottom:6px;">ROUND '+cc.roundNum+' SUMMARY</div>';
+  cc.players.forEach(function(p){
+    if(p.eliminated&&typeof p._roundStartChips==='undefined') return;
+    var startC=p._roundStartChips||0;
+    var diff=p.chips-startC;
+    var diffStr=diff>0?'+'+diff:diff===0?'±0':''+diff;
+    var diffColor=diff>0?'#afd':diff<0?'#f88':'rgba(255,255,255,.4)';
+    summaryHtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin-bottom:2px;border-radius:4px;background:rgba(0,0,0,.15);">';
+    summaryHtml+='<span style="font-size:11px;color:rgba(255,255,255,.7);">'+esc(p.name)+'</span>';
+    summaryHtml+='<span style="font-size:11px;font-weight:700;color:'+diffColor+';">'+diffStr+'</span>';
+    summaryHtml+='</div>';
+  });
+  summaryHtml+='</div>';
+  body.innerHTML=html+summaryHtml;
   resultEl.style.display='block';
-  // 常に次のラウンドとゲーム終了ボタンを表示
   document.getElementById('cc-next-round').style.display='';
   document.getElementById('cc-end-game').style.display='';
   ccCheckEliminated();
