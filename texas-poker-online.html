@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.14-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.15-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -409,12 +409,16 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <button id="cc-btn-lobby" style="background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 14px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">✕ ロビーへ</button>
     <div id="cc-round-info" style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;">ROUND 1</div>
   </div>
-  <div id="cc-seats" style="display:flex;flex-wrap:wrap;gap:6px;width:100%;max-width:700px;margin:0 auto 8px;justify-content:center;"></div>
-  <div class="felt" style="min-height:auto;padding:14px 20px;">
-    <div id="cc-phase" style="font-family:Cinzel,serif;font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.35);">PRE-FLOP</div>
-    <div id="cc-pot" style="font-family:Cinzel,serif;font-size:14px;color:var(--gold-light);background:rgba(0,0,0,.4);padding:6px 18px;border-radius:20px;border:1px solid rgba(201,168,76,.3);display:inline-block;">POT: 0</div>
-    <div id="cc-pot-chips" style="margin-top:4px;display:flex;justify-content:center;"></div>
-    <div id="cc-street-bets" style="margin-top:4px;font-family:Cinzel,serif;font-size:9px;color:rgba(255,255,255,.35);"></div>
+  <div id="cc-table-wrap" style="width:100%;max-width:700px;margin:0 auto 8px;position:relative;min-height:360px;">
+    <!-- 円卓（中央の楕円） -->
+    <div id="cc-table-felt" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:55%;height:55%;background:radial-gradient(ellipse,#1a3a18 0%,#0d2a0b 70%,#091a07 100%);border:3px solid rgba(201,168,76,.5);border-radius:50%;box-shadow:0 0 30px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;">
+      <div id="cc-phase" style="font-family:Cinzel,serif;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.3);">PRE-FLOP</div>
+      <div id="cc-pot" style="font-family:Cinzel,serif;font-size:13px;color:var(--gold-light);background:rgba(0,0,0,.4);padding:4px 14px;border-radius:20px;border:1px solid rgba(201,168,76,.3);display:inline-block;margin:2px 0;">POT: 0</div>
+      <div id="cc-pot-chips" style="margin-top:2px;display:flex;justify-content:center;transform:scale(.8);"></div>
+      <div id="cc-street-bets" style="font-family:Cinzel,serif;font-size:8px;color:rgba(255,255,255,.3);"></div>
+    </div>
+    <!-- プレイヤーシート（円形配置） -->
+    <div id="cc-seats"></div>
   </div>
   <div id="cc-turn-info" style="width:100%;max-width:700px;margin:0 auto 6px;text-align:center;font-family:Cinzel,serif;font-size:12px;color:#4af;letter-spacing:1px;padding:6px;background:rgba(0,0,0,.4);border:1px solid rgba(0,150,255,.3);border-radius:8px;"></div>
   <div style="width:100%;max-width:700px;margin:0 auto 6px;text-align:right;">
@@ -3239,12 +3243,27 @@ function ccCanActPlayers(){
 
 function ccRenderAll(){
   var seatsEl=document.getElementById('cc-seats');
+  var wrap=document.getElementById('cc-table-wrap');
+  var n=cc.players.length;
+  // テーブルサイズを人数に応じて調整
+  var tableH=Math.max(320, n<=3?320:n<=4?350:400);
+  wrap.style.minHeight=tableH+'px';
   var html='';
   var sbIdx=ccNextActive2(cc.dealerIdx);
   var bbIdx=ccNextActive2(sbIdx);
+  // 円形配置の座標計算（時計回り、12時位置=Player1）
+  // 楕円の半径（コンテナに対する%）
+  var rx=44,ry=42;
+  var cx=50,cy=50;
   cc.players.forEach(function(p,i){
+    // 時計回り: 12時(top)から開始、角度 = -90 + i*(360/n)
+    var angleDeg=-90+(i*(360/n));
+    var angleRad=angleDeg*Math.PI/180;
+    var xPct=cx+rx*Math.cos(angleRad);
+    var yPct=cy+ry*Math.sin(angleRad);
+    var posStyle='position:absolute;left:'+xPct.toFixed(1)+'%;top:'+yPct.toFixed(1)+'%;transform:translate(-50%,-50%);width:110px;max-width:130px;min-width:unset;flex:none;z-index:2;';
     if(p.eliminated){
-      html+='<div class="seat folded" style="opacity:.25;"><div class="sname">'+esc(p.name)+'</div><div class="schips" style="color:#f88;">脱落</div></div>';
+      html+='<div class="seat folded" style="'+posStyle+'opacity:.25;"><div class="sname">'+esc(p.name)+'</div><div class="schips" style="color:#f88;">脱落</div></div>';
       return;
     }
     var cls='seat';
@@ -3256,7 +3275,7 @@ function ccRenderAll(){
     if(i===sbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#4af;"> SB</span>';
     if(i===bbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#fa0;"> BB</span>';
     var rebuyBadge=p.rebuyCount>0?'<span style="font-size:8px;color:#fa0;background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.3);border-radius:4px;padding:0 3px;margin-left:4px;">×'+p.rebuyCount+'</span>':'';
-    html+='<div class="'+cls+'">';
+    html+='<div class="'+cls+'" style="'+posStyle+'">';
     html+='<div class="sname">'+esc(p.name)+badge+rebuyBadge+'</div>';
     html+='<div class="schips">'+chipsHTML(p.chips)+'</div>';
     if(p.bet>0) html+='<div class="sbet">BET: '+p.bet+'</div>';
