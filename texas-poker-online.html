@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.25-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.26-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3635,9 +3635,11 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
 
 function ccAwardLastStanding(winner){
   cc.roundActive=false;
-  winner.chips+=cc.pot;
+  var wonAmount=cc.pot;
+  winner.chips+=wonAmount;
+  cc.pot=0;
   ccRenderAll();
-  ccShowResult('<div style="font-size:16px;color:var(--gold-light);margin-bottom:8px;">'+esc(winner.name)+' が獲得!</div><div style="font-size:14px;">+'+cc.pot+' チップ</div>');
+  ccShowResult('<div style="font-size:16px;color:var(--gold-light);margin-bottom:8px;">'+esc(winner.name)+' が獲得!</div><div style="font-size:14px;">+'+wonAmount+' チップ</div>');
 }
 
 function ccShowResult(html){
@@ -3659,6 +3661,11 @@ function ccShowResult(html){
     summaryHtml+='</div>';
   });
   summaryHtml+='</div>';
+  // チップ保存検証: 全チップ合計 + pot = 総投入額
+  var totalChips=0;cc.players.forEach(function(p){totalChips+=p.chips;});
+  totalChips+=cc.pot;
+  var totalStart=0;cc.players.forEach(function(p){totalStart+=p.startChips;});
+  if(totalChips!==totalStart) console.warn('チップ保存エラー: 現在合計='+totalChips+' 投入合計='+totalStart+' 差分='+(totalChips-totalStart));
   body.innerHTML=html+summaryHtml;
   resultEl.style.display='block';
   document.getElementById('cc-next-round').style.display=ccIsOnline&&!ccIsHost?'none':'';
@@ -3715,6 +3722,14 @@ function ccShowShowdown(){
   document.querySelectorAll('.cc-winner-cb').forEach(function(cb){
     cb.addEventListener('change',ccUpdateSplitPreview);
   });
+  // 単独eligibleポットは自動選択
+  sidePots.forEach(function(sp,pi){
+    if(sp.eligible.length===1){
+      var cb=document.querySelector('.cc-winner-cb[data-pot="'+pi+'"][data-idx="'+sp.eligible[0]+'"]');
+      if(cb) cb.checked=true;
+    }
+  });
+  ccUpdateSplitPreview();
   sd.style.display='block';
   cc._sidePots=sidePots;
   if(ccIsOnline&&ccIsHost) ccPushState('showdown');
@@ -3810,6 +3825,7 @@ document.getElementById('cc-award-btn').addEventListener('click',function(){
   });
   var splitLabel='';
   if(totalWinners>1) splitLabel='<div style="color:#adf;font-size:11px;margin-bottom:6px;">SPLIT POT ('+totalWinners+'人で分配)</div>';
+  cc.pot=0;
   document.getElementById('cc-showdown').style.display='none';
   ccRenderAll();
   ccShowResult(splitLabel+resultLines.map(function(l){return '<div style="margin-bottom:4px;">'+l+'</div>';}).join(''));
