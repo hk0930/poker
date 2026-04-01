@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.18-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.19-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3550,18 +3550,8 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
   cc.phase++;
   cc.players.forEach(function(p){p.bet=0;});
   cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];
-  // フロップ以降: SBから（ヘッズアップではBB=非ディーラーから）
-  // ccNextActive2はallIn含む、ccNextActiveはallIn除外
-  // ディーラーの次のアクティブプレイヤー（allIn除外）を探す
-  if(cc._isHeadsUp){
-    // ヘッズアップ: ディーラー(=SB)が先にアクション
-    cc.curIdx=ccNextActive(cc._bbIdx);
-    // SBがallInの場合はBBへ
-    if(cc.curIdx<0) cc.curIdx=ccNextActive(cc.dealerIdx);
-  }else{
-    // 3人以上: SB(ディーラーの次)から
-    cc.curIdx=ccNextActive(cc.dealerIdx);
-  }
+  // フロップ以降: ディーラーの次のアクティブプレイヤーから開始（全人数共通）
+  cc.curIdx=ccNextActive(cc.dealerIdx);
   if(cc.curIdx<0||cc.phase>=4){
     cc.phase=4;ccRenderAll();ccShowShowdown();return;
   }
