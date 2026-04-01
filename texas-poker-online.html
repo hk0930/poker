@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.26-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.27-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3148,6 +3148,19 @@ var ccIsOnline=false,ccIsHost=false,ccMyIdx=-1,ccMyPid='';
 var ccRoomPath='',ccGamePath='',ccRoomCode='';
 var ccLastActTs=0,ccRoundId='';
 
+// セッション保存・復元（ブラウザリフレッシュ対応）
+function ccSaveSession(){
+  if(!ccIsOnline) return;
+  var sess={roomCode:ccRoomCode,isHost:ccIsHost,myPid:ccMyPid,myIdx:ccMyIdx};
+  sessionStorage.setItem('cc_session',JSON.stringify(sess));
+}
+function ccClearSession(){
+  sessionStorage.removeItem('cc_session');
+}
+function ccGetSavedSession(){
+  try{var s=sessionStorage.getItem('cc_session');return s?JSON.parse(s):null;}catch(e){return null;}
+}
+
 function ccSaveState(){
   ccHistory.push(JSON.parse(JSON.stringify(cc)));
   if(ccHistory.length>CC_MAX_HISTORY) ccHistory.shift();
@@ -4090,15 +4103,49 @@ function ccWatchLobbyPlayers(){
     var list=document.getElementById('cc-ol-plist');
     var html='';var pids=Object.keys(data);
     pids.sort(function(a,b){return (data[a].idx||0)-(data[b].idx||0);});
+    var total=pids.length;
     pids.forEach(function(pid,i){
       var p=data[pid];var isMe=pid===myId;
       html+='<div style="padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">';
       html+='<span style="color:'+(isMe?'var(--gold-light)':'rgba(255,255,255,.7)')+';font-size:12px;">'+esc(p.name)+(isMe?' (あなた)':'')+'</span>';
-      html+='<span style="font-size:10px;color:rgba(255,255,255,.3);">P'+(i+1)+'</span></div>';
+      html+='<span style="display:flex;align-items:center;gap:4px;">';
+      if(ccIsHost&&total>1){
+        var upDis=i===0?'opacity:.2;pointer-events:none;':'cursor:pointer;';
+        var dnDis=i===total-1?'opacity:.2;pointer-events:none;':'cursor:pointer;';
+        html+='<span class="cc-reorder-btn" data-pid="'+pid+'" data-dir="up" style="font-size:14px;color:var(--gold);'+upDis+'">&#9650;</span>';
+        html+='<span class="cc-reorder-btn" data-pid="'+pid+'" data-dir="down" style="font-size:14px;color:var(--gold);'+dnDis+'">&#9660;</span>';
+      }
+      html+='<span style="font-size:10px;color:rgba(255,255,255,.3);margin-left:4px;">P'+(i+1)+'</span>';
+      html+='</span></div>';
     });
     list.innerHTML=html;
     if(ccIsHost) document.getElementById('cc-ol-start').style.display=pids.length>=2?'block':'none';
+    // ホスト: 並び替えボタンのイベント登録
+    if(ccIsHost){
+      list.querySelectorAll('.cc-reorder-btn').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          var pid=this.getAttribute('data-pid');
+          var dir=this.getAttribute('data-dir');
+          ccReorderPlayer(pid,dir,pids,data);
+        });
+      });
+    }
   });
+}
+
+// ホスト: プレイヤー順序変更
+function ccReorderPlayer(pid,dir,pids,data){
+  var curIdx=-1;
+  for(var i=0;i<pids.length;i++){if(pids[i]===pid){curIdx=i;break;}}
+  if(curIdx<0) return;
+  var swapIdx=dir==='up'?curIdx-1:curIdx+1;
+  if(swapIdx<0||swapIdx>=pids.length) return;
+  var swapPid=pids[swapIdx];
+  // swap idx values in Firebase
+  var patch={};
+  patch['players/'+pid+'/idx']=swapIdx;
+  patch['players/'+swapPid+'/idx']=curIdx;
+  fbPatch(ccRoomPath,patch);
 }
 
 // 非ホスト: ゲーム開始監視
@@ -4121,6 +4168,7 @@ function ccWatchForStart(){
           if(pid===myId) ccMyIdx=i;
         });
         cc.dealerIdx=0;cc.roundNum=0;
+        ccSaveSession();
         showScreen('screen-chipcalc');
         ccRenderAll(); // 初期テーブル描画
         fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
@@ -4163,6 +4211,7 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     cc.dealerIdx=0;cc.roundNum=0;
     fbOff(ccRoomPath+'/players');
     fbSet(ccRoomPath+'/status','started',function(){
+      ccSaveSession();
       showScreen('screen-chipcalc');
       ccStartRound();
       ccStartWatchAction();
@@ -4341,6 +4390,7 @@ function ccStopDepartureWatch(){
 
 // オンラインクリーンアップ
 function ccOnlineCleanup(){
+  ccClearSession();
   ccStopDepartureWatch();
   if(ccIsOnline){
     fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath+'/status');fbOff(ccRoomPath);
@@ -4361,8 +4411,97 @@ function ccOnlineCleanup(){
   document.getElementById('cc-ol-start').style.display='none';
 }
 
+// ブラウザリフレッシュ時のセッション復元
+(function(){
+  var sess=ccGetSavedSession();
+  if(!sess||!sess.roomCode) return;
+  offlineMode=false;
+  ccRoomCode=sess.roomCode;
+  ccRoomPath='ccrooms/'+ccRoomCode;
+  ccGamePath=ccRoomPath+'/game';
+  ccMyPid=sess.myPid||myId;
+  ccIsHost=!!sess.isHost;
+  // Firebaseからルーム状態を確認
+  fbGet(ccRoomPath,function(data){
+    if(!data||data.status==='ended'){
+      // ルームが存在しない or 終了済み→セッション破棄
+      ccClearSession();
+      return;
+    }
+    ccIsOnline=true;
+    var s=data.settings||{};
+    cc.sbAmt=s.sb||5;cc.bbAmt=s.bb||10;cc.initialChips=s.chips||500;
+    // プレイヤーリスト復元
+    var pdata=data.players||{};
+    var pids=Object.keys(pdata);
+    pids.sort(function(a,b){return (pdata[a].idx||0)-(pdata[b].idx||0);});
+    cc.players=[];
+    pids.forEach(function(pid,i){
+      var p=pdata[pid];
+      cc.players.push({name:p.name,chips:cc.initialChips,startChips:cc.initialChips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:cc.initialChips});
+      if(pid===myId) ccMyIdx=i;
+    });
+    cc.dealerIdx=0;cc.roundNum=0;
+    showScreen('screen-chipcalc');
+    if(ccIsHost){
+      // ホスト: Firebaseから最新ゲーム状態を取得して復元
+      fbGet(ccGamePath+'/state',function(st){
+        if(st){
+          // 状態を復元
+          var sp=st.players;
+          if(sp&&typeof sp==='object'&&!Array.isArray(sp)){
+            var keys=Object.keys(sp).sort(function(a,b){return (+a)-(+b);});
+            sp=keys.map(function(k){return sp[k];});
+          }
+          if(sp) sp.forEach(function(d,i){
+            if(!cc.players[i]) return;
+            var p=cc.players[i];
+            p.chips=d.chips;p.bet=d.bet;p.totalBet=d.totalBet;p.folded=d.folded;p.allIn=d.allIn;p.eliminated=d.eliminated;p.rebuyCount=d.rebuyCount;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
+          });
+          cc.phase=st.phase;cc.pot=st.pot;cc.curBet=st.curBet;cc.curIdx=st.curIdx;cc.dealerIdx=st.dealerIdx;
+          cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;
+          var acts=st.acts;
+          if(acts&&typeof acts==='object'&&!Array.isArray(acts)) acts=Object.keys(acts).map(function(k){return acts[k];});
+          cc.acts=acts||[];
+          cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
+          cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
+          ccRoundId=st.rid||'';
+          ccRenderAll();
+          // UIモード復元
+          if(cc.roundActive){
+            ccStartWatchAction();
+            ccShowAP();
+          }
+          ccStartDepartureWatch();
+        }else{
+          // ゲーム状態がない→新しいラウンド開始
+          ccRenderAll();
+          ccStartRound();
+          ccStartWatchAction();
+          ccStartDepartureWatch();
+        }
+      });
+    }else{
+      // 非ホスト: 状態リスナー登録して受信待ち
+      ccRenderAll();
+      fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+      // ホスト退出監視
+      fbListen(ccRoomPath+'/status',function(s){
+        if(s==='ended'){
+          fbOff(ccRoomPath+'/status');
+          alert('ホストがゲームを終了しました');
+          ccOnlineCleanup();
+          showScreen('screen-lobby');
+        }
+      });
+    }
+  });
+})();
+
 // URLパラメータでルームコード自動入力
 (function(){
+  var sess=ccGetSavedSession();
+  if(sess&&sess.roomCode) return; // セッション復元中はスキップ
   var params=new URLSearchParams(location.search);
   var ccroom=params.get('ccroom');
   if(ccroom){
