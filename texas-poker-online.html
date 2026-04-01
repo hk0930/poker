@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.17-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.18-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -412,8 +412,10 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
   </div>
   <!-- 円卓エリア -->
   <div id="cc-table-wrap" style="width:100%;max-width:700px;margin:0 auto 6px;position:relative;">
-    <!-- テーブルフェルト（楕円） -->
-    <div id="cc-table-felt" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52%;min-width:180px;aspect-ratio:1.3/1;background:radial-gradient(ellipse,#1d4020 0%,#143518 50%,#0d2a0b 80%,#091a07 100%);border:3px solid rgba(201,168,76,.45);border-radius:50%;box-shadow:0 0 40px rgba(0,0,0,.5),0 0 0 8px rgba(0,0,0,.25),inset 0 0 30px rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;z-index:1;">
+    <!-- テーブル外枠（木目リム） -->
+    <div id="cc-table-rim" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62%;min-width:220px;aspect-ratio:1.4/1;background:linear-gradient(145deg,#5a3a1a,#3d2510,#6b4420,#3d2510);border-radius:50%;box-shadow:0 6px 30px rgba(0,0,0,.6),0 0 0 3px rgba(201,168,76,.5),0 0 0 6px rgba(0,0,0,.3);z-index:0;"></div>
+    <!-- テーブルフェルト（内側の緑部分） -->
+    <div id="cc-table-felt" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:55%;min-width:196px;aspect-ratio:1.4/1;background:radial-gradient(ellipse at 40% 40%,#2a5e35 0%,#1d4a28 30%,#164020 55%,#0f3018 75%,#0a2210 100%);border:2px solid rgba(201,168,76,.35);border-radius:50%;box-shadow:inset 0 0 40px rgba(0,0,0,.4),inset 0 2px 8px rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;z-index:1;">
       <div id="cc-phase" style="font-family:Cinzel,serif;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.3);">PRE-FLOP</div>
       <div id="cc-pot" style="font-family:Cinzel,serif;font-size:14px;color:var(--gold-light);background:rgba(0,0,0,.35);padding:4px 16px;border-radius:20px;border:1px solid rgba(201,168,76,.25);display:inline-block;margin:3px 0;">POT: 0</div>
       <div id="cc-pot-chips" style="margin-top:2px;display:flex;justify-content:center;transform:scale(.75);"></div>
@@ -3265,8 +3267,8 @@ function ccRenderAll(){
   var seatsEl=document.getElementById('cc-seats');
   var wrap=document.getElementById('cc-table-wrap');
   var n=cc.players.length;
-  // テーブルサイズを人数に応じて調整（コンパクトでも被らない）
-  var tableH=n<=2?280:n<=3?310:n<=4?340:n<=5?370:400;
+  // テーブルサイズを人数に応じて調整（シートが下のUIに被らない様に余裕を持たせる）
+  var tableH=n<=2?300:n<=3?340:n<=4?380:n<=5?410:440;
   wrap.style.height=tableH+'px';
   var html='';
   // SB/BBはラウンド開始時に保存した値を使用（全フェーズで表示）
@@ -3457,20 +3459,18 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
       ccAdvance();
     }else if(act==='allin'){
       var allAmt=p.chips;
-      if(allAmt<=0){ccAdvance();return;} // 0チップの場合は何もしない
+      if(allAmt<=0){ccAdvance();return;}
       cc.pot+=allAmt;p.totalBet+=allAmt;p.bet+=allAmt;p.chips=0;p.allIn=true;
-      // determine if this is a full raise
       if(p.bet>cc.curBet&&(p.bet-cc.curBet)>=cc.lastRaise){
         cc.lastRaise=p.bet-cc.curBet;
         cc.curBet=p.bet;
-        // フルレイズ: 全員再アクション（自分以外）
         cc.acts=[cc.curIdx];
       }else{
         if(p.bet>cc.curBet) cc.curBet=p.bet;
-        // acts重複防止
         if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
       }
-      ccAdvance();
+      ccRenderAll();
+      ccShowAllinEffect(p.name,allAmt,function(){ ccAdvance(); });
     }
   });
 });
@@ -3488,7 +3488,40 @@ document.querySelector('.cc-chip-clr').addEventListener('click',function(){
   document.getElementById('cc-bet-display').textContent='0';
 });
 
-// (raise confirm/cancel removed - chip selector is always visible, RAISE button uses selected amount directly)
+// ALL INエフェクト（オンライン版と同様の演出）
+function ccShowAllinEffect(name,amount,cb){
+  var ov=document.getElementById('cc-allin-overlay');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='cc-allin-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;opacity:0;transition:opacity .3s;';
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML=[
+    '<div style="font-family:Cinzel,serif;font-size:11px;letter-spacing:4px;color:rgba(255,255,255,.4);">— ALL IN —</div>',
+    '<div style="font-family:Cinzel,serif;font-size:28px;font-weight:900;color:#ff4444;letter-spacing:4px;text-shadow:0 0 20px rgba(255,60,60,.6),0 0 40px rgba(255,30,30,.3);animation:cc-allin-pulse 0.6s ease-in-out infinite alternate;">ALL IN</div>',
+    '<div style="font-family:Cinzel,serif;font-size:18px;color:var(--gold-light);margin-top:4px;text-shadow:0 0 12px rgba(201,168,76,.5);">'+esc(name)+'</div>',
+    '<div style="font-family:Cinzel,serif;font-size:24px;color:#fff;letter-spacing:3px;">'+amount+' chips</div>',
+  ].join('');
+  // アニメーションCSS追加（一度だけ）
+  if(!document.getElementById('cc-allin-style')){
+    var st=document.createElement('style');
+    st.id='cc-allin-style';
+    st.textContent='@keyframes cc-allin-pulse{from{transform:scale(1);text-shadow:0 0 20px rgba(255,60,60,.6),0 0 40px rgba(255,30,30,.3);}to{transform:scale(1.08);text-shadow:0 0 30px rgba(255,60,60,.8),0 0 60px rgba(255,30,30,.5);}}';
+    document.head.appendChild(st);
+  }
+  ov.style.display='flex';
+  ov.style.opacity='0';
+  setTimeout(function(){ov.style.opacity='1';},30);
+  setTimeout(function(){
+    ov.style.opacity='0';
+    setTimeout(function(){
+      ov.style.display='none';
+      ov.innerHTML='';
+      cb();
+    },350);
+  },1800);
+}
 
 function ccAdvance(){
   // 非フォールドプレイヤー（allIn含む）が1人以下→即終了
