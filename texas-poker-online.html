@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.22-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.23-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3176,12 +3176,12 @@ function ccUndo(){
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-summary').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
-  document.getElementById('cc-raise-panel').style.display='none';
   if(cc.roundActive) ccShowAP();
 }
 
 function ccUpdateUndoBtn(){
   var btn=document.getElementById('cc-undo-btn');
+  if(ccIsOnline){btn.style.display='none';return;}
   btn.style.display=ccHistory.length>0?'inline-block':'none';
 }
 
@@ -3435,8 +3435,23 @@ function ccShowAP(){
     turnInfo.textContent=p.name+' のアクションを待っています...';
     turnInfo.style.display='block';
     ccPushState('action');
+    // 非ホスト退出チェック（5秒ごと）
+    if(cc._departCheckTimer) clearInterval(cc._departCheckTimer);
+    cc._departCheckTimer=setInterval(function(){
+      if(!cc.roundActive||cc.curIdx<0){clearInterval(cc._departCheckTimer);return;}
+      var cp=cc.players[cc.curIdx];
+      if(!cp||!cp.pid) return;
+      fbGet(ccRoomPath+'/players/'+cp.pid+'/departed',function(v){
+        if(v){
+          clearInterval(cc._departCheckTimer);
+          cp.folded=true;
+          ccAdvance();
+        }
+      });
+    },5000);
     return;
   }
+  if(ccIsOnline&&ccIsHost) ccPushState('action');
   turnInfo.textContent=p.name+' のアクション';
   turnInfo.style.display='block';
   ap.style.display='block';
@@ -3472,7 +3487,16 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
   b.addEventListener('click',function(){
     var act=this.dataset.act;
     if(!cc.roundActive||cc.curIdx<0) return;
-    if(ccIsOnline&&!ccIsHost){ccSend(act,act==='raise'?cc.raiseAmount:0);return;}
+    if(ccIsOnline&&!ccIsHost){
+      if(act==='raise'){
+        var trV=snap5(cc.raiseAmount);
+        if(trV<=0) return;
+        var minR=cc.curBet+cc.lastRaise;
+        var myP=cc.players[ccMyIdx];
+        if(trV<minR&&trV<myP.bet+myP.chips){alert('最小レイズ額は '+minR+' です');return;}
+      }
+      ccSend(act,act==='raise'?cc.raiseAmount:0);return;
+    }
     ccSaveState();
     var p=cc.players[cc.curIdx];
     // BBオプション追跡: BBがアクションしたらフラグ設定
@@ -3604,6 +3628,7 @@ function ccAdvance(){
 
 // 次のフェーズへ
 document.getElementById('cc-next-phase').addEventListener('click',function(){
+  if(ccIsOnline&&!ccIsHost) return;
   ccSaveState();
   cc.phase++;
   cc.players.forEach(function(p){p.bet=0;});
@@ -3765,6 +3790,7 @@ function ccCalcSidePots(){
 
 // チップ配分
 document.getElementById('cc-award-btn').addEventListener('click',function(){
+  if(ccIsOnline&&!ccIsHost) return;
   var sidePots=cc._sidePots||[];
   var awards={};
   var valid=true;
@@ -4091,6 +4117,15 @@ function ccWatchForStart(){
         showScreen('screen-chipcalc');
         ccRenderAll(); // 初期テーブル描画
         fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+        // ホスト退出監視
+        fbListen(ccRoomPath+'/status',function(s){
+          if(s==='ended'){
+            fbOff(ccRoomPath+'/status');
+            alert('ホストがゲームを終了しました');
+            ccOnlineCleanup();
+            showScreen('screen-lobby');
+          }
+        });
         // フォールバック: リスナーが作動しない場合に手動で状態取得
         setTimeout(function(){
           if(!cc.roundActive){
@@ -4272,8 +4307,15 @@ function ccProcessAction(type,amount){
 
 // オンラインクリーンアップ
 function ccOnlineCleanup(){
+  if(cc._departCheckTimer){clearInterval(cc._departCheckTimer);cc._departCheckTimer=null;}
   if(ccIsOnline){
-    fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath);
+    fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath+'/status');fbOff(ccRoomPath);
+    if(ccIsHost){
+      fbSet(ccRoomPath+'/status','ended');
+    }else{
+      var patch={};patch['players/'+ccMyPid+'/departed']=true;
+      fbPatch(ccRoomPath,patch);
+    }
   }
   ccIsOnline=false;ccIsHost=false;ccMyIdx=-1;ccRoomPath='';ccGamePath='';
   // ロビーUI復帰
