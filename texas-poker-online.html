@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.19-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.20-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3402,7 +3402,7 @@ function ccShowAP(){
   }else{
     checkBtn.style.display='none';callBtn.style.display='';
     var callAmt=Math.min(cc.curBet-p.bet,p.chips);
-    callBtn.textContent='CALL '+callAmt;
+    callBtn.textContent='CALL '+callAmt+(callAmt<cc.curBet?' (→'+Math.min(p.bet+callAmt,cc.curBet)+')':'');
   }
   if(p.chips<=cc.curBet-p.bet){
     raiseBtn.style.display='none';
