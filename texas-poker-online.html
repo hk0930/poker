@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.15-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.16-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3203,9 +3203,19 @@ function ccStartRound(){
   // find active player count
   var active=cc.players.filter(function(p){return !p.eliminated;});
   if(active.length<2){ccEndGame();return;}
-  // post blinds
-  var sbIdx=ccNextActive(cc.dealerIdx);
-  var bbIdx=ccNextActive(sbIdx);
+  // ヘッズアップ判定（アクティブ2人）
+  var isHeadsUp=(active.length===2);
+  var sbIdx,bbIdx;
+  if(isHeadsUp){
+    // ヘッズアップ: ディーラー=SB、相手=BB
+    sbIdx=cc.dealerIdx;
+    bbIdx=ccNextActive(cc.dealerIdx);
+  }else{
+    // 3人以上: ディーラーの次=SB、その次=BB
+    sbIdx=ccNextActive(cc.dealerIdx);
+    bbIdx=ccNextActive(sbIdx);
+  }
+  cc._sbIdx=sbIdx;cc._bbIdx=bbIdx;cc._isHeadsUp=isHeadsUp;
   var sbP=cc.players[sbIdx],bbP=cc.players[bbIdx];
   var sbPost=Math.min(cc.sbAmt,sbP.chips);
   sbP.chips-=sbPost;sbP.bet=sbPost;sbP.totalBet=sbPost;
@@ -3216,10 +3226,16 @@ function ccStartRound(){
   cc.pot=sbPost+bbPost;
   cc.curBet=bbPost;
   cc.lastRaise=cc.bbAmt;
-  // acts: BB has acted (but still gets option if no raise)
-  cc.acts=[bbIdx];
-  // first to act is after BB in preflop
-  cc.curIdx=ccNextActive(bbIdx);
+  // acts: BBオプション用 - BBは未アクション扱いにする（プリフロップで最後にチェック/レイズの機会）
+  cc.acts=[];
+  cc._bbActed=false; // BBオプション追跡フラグ
+  // first to act: ヘッズアップではSB(=ディーラー)がプリフロップで先にアクション
+  // 3人以上ではBBの次から
+  if(isHeadsUp){
+    cc.curIdx=sbIdx;
+  }else{
+    cc.curIdx=ccNextActive(bbIdx);
+  }
   ccRenderAll();
   ccShowAP();
 }
@@ -3249,8 +3265,9 @@ function ccRenderAll(){
   var tableH=Math.max(320, n<=3?320:n<=4?350:400);
   wrap.style.minHeight=tableH+'px';
   var html='';
-  var sbIdx=ccNextActive2(cc.dealerIdx);
-  var bbIdx=ccNextActive2(sbIdx);
+  // SB/BBはラウンド開始時に保存した値を使用（全フェーズで表示）
+  var sbIdx=(typeof cc._sbIdx!=='undefined')?cc._sbIdx:ccNextActive2(cc.dealerIdx);
+  var bbIdx=(typeof cc._bbIdx!=='undefined')?cc._bbIdx:ccNextActive2(sbIdx);
   // 円形配置の座標計算（時計回り、12時位置=Player1）
   // 楕円の半径（コンテナに対する%）
   var rx=44,ry=42;
@@ -3272,8 +3289,8 @@ function ccRenderAll(){
     if(p.allIn) cls+=' allin';
     if(i===cc.dealerIdx) cls+=' dealer';
     var badge='';
-    if(i===sbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#4af;"> SB</span>';
-    if(i===bbIdx&&cc.phase===0) badge='<span style="font-size:8px;color:#fa0;"> BB</span>';
+    if(i===sbIdx) badge='<span style="font-size:8px;color:#4af;"> SB</span>';
+    if(i===bbIdx) badge='<span style="font-size:8px;color:#fa0;"> BB</span>';
     var rebuyBadge=p.rebuyCount>0?'<span style="font-size:8px;color:#fa0;background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.3);border-radius:4px;padding:0 3px;margin-left:4px;">×'+p.rebuyCount+'</span>':'';
     html+='<div class="'+cls+'" style="'+posStyle+'">';
     html+='<div class="sname">'+esc(p.name)+badge+rebuyBadge+'</div>';
@@ -3332,7 +3349,15 @@ function ccShowAP(){
   var canAct=ccCanActPlayers();
   var allActed=canAct.every(function(p){return cc.acts.indexOf(cc.players.indexOf(p))>=0;});
   var allMatched=canAct.every(function(p){return p.bet===cc.curBet||p.allIn;});
-  if(canAct.length===0||(allActed&&allMatched)){
+  // BBオプション: プリフロップでレイズなしの場合、BBにアクション機会を与える
+  var bbNeedsOption=false;
+  if(cc.phase===0&&!cc._bbActed&&typeof cc._bbIdx!=='undefined'){
+    var bbP=cc.players[cc._bbIdx];
+    if(!bbP.eliminated&&!bbP.folded&&!bbP.allIn&&cc.curBet===bbP.bet){
+      bbNeedsOption=true;
+    }
+  }
+  if(canAct.length===0||(!bbNeedsOption&&allActed&&allMatched)){
     // street complete
     if(cc.phase>=3||canAct.length===0){
       // showdown
@@ -3385,6 +3410,8 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
     if(!cc.roundActive||cc.curIdx<0) return;
     ccSaveState();
     var p=cc.players[cc.curIdx];
+    // BBオプション追跡: BBがアクションしたらフラグ設定
+    if(cc.phase===0&&cc.curIdx===cc._bbIdx) cc._bbActed=true;
     if(act==='fold'){
       p.folded=true;
       ccAdvance();
@@ -3400,6 +3427,12 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
     }else if(act==='raise'){
       var totalRaise=snap5(cc.raiseAmount);
       if(totalRaise<=0) return;
+      var minRaise=cc.curBet+cc.lastRaise;
+      // 最小レイズ額チェック（オールインの場合は免除）
+      if(totalRaise<minRaise&&totalRaise<p.bet+p.chips){
+        alert('最小レイズ額は '+minRaise+' です（現在のベット+前回レイズ額以上）');
+        return;
+      }
       var additional=totalRaise-p.bet;
       if(additional<=0) return;
       if(additional>p.chips) additional=p.chips;
@@ -3478,7 +3511,18 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
   cc.phase++;
   cc.players.forEach(function(p){p.bet=0;});
   cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];
-  cc.curIdx=ccNextActive(cc.dealerIdx);
+  // フロップ以降: SBから（ヘッズアップではBB=非ディーラーから）
+  // ccNextActive2はallIn含む、ccNextActiveはallIn除外
+  // ディーラーの次のアクティブプレイヤー（allIn除外）を探す
+  if(cc._isHeadsUp){
+    // ヘッズアップ: ディーラー(=SB)が先にアクション
+    cc.curIdx=ccNextActive(cc._bbIdx);
+    // SBがallInの場合はBBへ
+    if(cc.curIdx<0) cc.curIdx=ccNextActive(cc.dealerIdx);
+  }else{
+    // 3人以上: SB(ディーラーの次)から
+    cc.curIdx=ccNextActive(cc.dealerIdx);
+  }
   if(cc.curIdx<0||cc.phase>=4){
     cc.phase=4;ccRenderAll();ccShowShowdown();return;
   }
