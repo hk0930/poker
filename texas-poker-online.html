@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.13-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.14-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3504,8 +3504,12 @@ function ccShowShowdown(){
   }
   document.getElementById('cc-sidepot-info').innerHTML=infoHtml;
   sidePots.forEach(function(sp,pi){
-    html+='<div style="margin-bottom:10px;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(201,168,76,.2);">';
-    html+='<div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);margin-bottom:6px;">'+(sidePots.length>1?'ポット'+(pi+1)+' ('+sp.amount+')':'POT: '+sp.amount)+'</div>';
+    html+='<div class="cc-pot-block" data-pot="'+pi+'" style="margin-bottom:10px;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(201,168,76,.2);">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    html+='<div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);">'+(sidePots.length>1?'ポット'+(pi+1)+' ('+sp.amount+')':'POT: '+sp.amount)+'</div>';
+    html+='<button class="cc-split-all-btn" data-pot="'+pi+'" style="padding:3px 10px;background:rgba(80,160,230,.2);border:1px solid rgba(80,160,230,.4);border-radius:6px;color:#adf;font-family:Cinzel,serif;font-size:9px;cursor:pointer;letter-spacing:1px;">SPLIT (全員)</button>';
+    html+='</div>';
+    html+='<div style="font-size:9px;color:rgba(255,255,255,.3);margin-bottom:4px;">勝者を選択（複数選択で引き分け分配）</div>';
     sp.eligible.forEach(function(idx){
       var p=cc.players[idx];
       html+='<label style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:6px;background:rgba(0,0,0,.2);margin-bottom:4px;">';
@@ -3514,11 +3518,49 @@ function ccShowShowdown(){
       html+='<span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5);">'+p.chips+' chips</span>';
       html+='</label>';
     });
+    html+='<div class="cc-split-preview" data-pot="'+pi+'" style="font-size:10px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;min-height:16px;"></div>';
     html+='</div>';
   });
   list.innerHTML=html;
+  // SPLIT全員ボタン
+  document.querySelectorAll('.cc-split-all-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var pi=this.dataset.pot;
+      document.querySelectorAll('.cc-winner-cb[data-pot="'+pi+'"]').forEach(function(cb){cb.checked=true;});
+      ccUpdateSplitPreview();
+    });
+  });
+  // チェックボックス変更時にプレビュー更新
+  document.querySelectorAll('.cc-winner-cb').forEach(function(cb){
+    cb.addEventListener('change',ccUpdateSplitPreview);
+  });
   sd.style.display='block';
   cc._sidePots=sidePots;
+}
+
+function ccUpdateSplitPreview(){
+  var sidePots=cc._sidePots||[];
+  sidePots.forEach(function(sp,pi){
+    var winners=[];
+    document.querySelectorAll('.cc-winner-cb[data-pot="'+pi+'"]').forEach(function(cb){
+      if(cb.checked) winners.push(+cb.dataset.idx);
+    });
+    var previewEl=document.querySelector('.cc-split-preview[data-pot="'+pi+'"]');
+    if(!previewEl) return;
+    if(winners.length===0){
+      previewEl.textContent='';
+    }else if(winners.length===1){
+      previewEl.textContent=esc(cc.players[winners[0]].name)+' が '+sp.amount+' 獲得';
+    }else{
+      var share=Math.floor(sp.amount/winners.length);
+      var remainder=sp.amount-share*winners.length;
+      var parts=winners.map(function(idx,wi){
+        var amt=share+(wi===0?remainder:0);
+        return esc(cc.players[idx].name)+': +'+amt;
+      });
+      previewEl.innerHTML='<span style="color:#adf;">SPLIT '+winners.length+'人</span> → '+parts.join(', ');
+    }
+  });
 }
 
 function ccCalcSidePots(){
@@ -3577,14 +3619,17 @@ document.getElementById('cc-award-btn').addEventListener('click',function(){
     alert('各ポットの勝者を1人以上選んでください');return;
   }
   var resultLines=[];
+  var totalWinners=Object.keys(awards).length;
   Object.keys(awards).forEach(function(idx){
     var i=+idx;
     cc.players[i].chips+=awards[idx];
     resultLines.push(esc(cc.players[i].name)+': +'+awards[idx]);
   });
+  var splitLabel='';
+  if(totalWinners>1) splitLabel='<div style="color:#adf;font-size:11px;margin-bottom:6px;">SPLIT POT ('+totalWinners+'人で分配)</div>';
   document.getElementById('cc-showdown').style.display='none';
   ccRenderAll();
-  ccShowResult(resultLines.map(function(l){return '<div style="margin-bottom:4px;">'+l+'</div>';}).join(''));
+  ccShowResult(splitLabel+resultLines.map(function(l){return '<div style="margin-bottom:4px;">'+l+'</div>';}).join(''));
 });
 
 function ccCheckEliminated(){
