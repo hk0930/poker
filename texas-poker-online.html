@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.03.31.11-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.12-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3177,11 +3177,16 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
 
 function ccStartRound(){
   ccHistory=[];ccUpdateUndoBtn();
+  cc._pendingRebuy=0;
   cc.roundNum++;
   cc.phase=0;cc.pot=0;cc.curBet=0;cc.lastRaise=0;cc.streetPot=0;
   cc.roundActive=true;
   // reset per-round state
-  cc.players.forEach(function(p){p.bet=0;p.totalBet=0;p.folded=false;p.allIn=false;});
+  cc.players.forEach(function(p){
+    p.bet=0;p.totalBet=0;p.folded=false;p.allIn=false;
+    // 安全チェック: 0チップで未脱落のプレイヤーを自動脱落
+    if(!p.eliminated&&p.chips<=0) p.eliminated=true;
+  });
   // rotate dealer
   if(cc.roundNum>1){
     do{cc.dealerIdx=(cc.dealerIdx+1)%cc.players.length;}
@@ -3344,13 +3349,13 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
       p.folded=true;
       ccAdvance();
     }else if(act==='check'){
-      cc.acts.push(cc.curIdx);
+      if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
       ccAdvance();
     }else if(act==='call'){
       var callAmt=Math.min(cc.curBet-p.bet,p.chips);
       p.chips-=callAmt;p.bet+=callAmt;p.totalBet+=callAmt;cc.pot+=callAmt;
       if(p.chips===0)p.allIn=true;
-      cc.acts.push(cc.curIdx);
+      if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
       ccAdvance();
     }else if(act==='raise'){
       cc.raiseAmount=0;
@@ -3359,15 +3364,18 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
       document.getElementById('cc-action-btns').style.display='none';
     }else if(act==='allin'){
       var allAmt=p.chips;
+      if(allAmt<=0){ccAdvance();return;} // 0チップの場合は何もしない
       cc.pot+=allAmt;p.totalBet+=allAmt;p.bet+=allAmt;p.chips=0;p.allIn=true;
       // determine if this is a full raise
       if(p.bet>cc.curBet&&(p.bet-cc.curBet)>=cc.lastRaise){
         cc.lastRaise=p.bet-cc.curBet;
         cc.curBet=p.bet;
+        // フルレイズ: 全員再アクション（自分以外）
         cc.acts=[cc.curIdx];
       }else{
         if(p.bet>cc.curBet) cc.curBet=p.bet;
-        cc.acts.push(cc.curIdx);
+        // acts重複防止
+        if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
       }
       ccAdvance();
     }
@@ -3400,7 +3408,7 @@ document.getElementById('cc-raise-ok').addEventListener('click',function(){
   if(newBet<=cc.curBet){
     p.chips-=additional;p.bet=newBet;p.totalBet+=additional;cc.pot+=additional;
     if(p.chips===0)p.allIn=true;
-    cc.acts.push(cc.curIdx);
+    if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
   }else{
     cc.lastRaise=Math.max(cc.lastRaise,newBet-cc.curBet);
     p.chips-=additional;p.bet=newBet;p.totalBet+=additional;cc.pot+=additional;
@@ -3419,8 +3427,18 @@ document.getElementById('cc-raise-cancel').addEventListener('click',function(){
 });
 
 function ccAdvance(){
+  // 非フォールドプレイヤー（allIn含む）が1人以下→即終了
+  var notFolded=ccActivePlayers();
+  if(notFolded.length<=1){
+    cc.curIdx=-1;
+    ccRenderAll();
+    ccShowAP();
+    return;
+  }
+  // 次にアクション可能なプレイヤーを探す
   var next=ccNextActive(cc.curIdx);
-  if(next<0||ccActivePlayers().length<=1){
+  if(next<0){
+    // アクション可能な人がいない（全員allInかfolded）
     cc.curIdx=-1;
   }else{
     cc.curIdx=next;
@@ -3571,11 +3589,15 @@ function ccCheckEliminated(){
   });
   // リバイUI表示
   if(busted.length>0){
+    cc._pendingRebuy=busted.length;
+    // リバイ確認中はNEXT HANDを無効化
+    var nextBtn=document.getElementById('cc-next-round');
+    nextBtn.disabled=true;nextBtn.style.opacity='.4';
     var rebuyEl=document.getElementById('cc-rebuy-panel');
     var html='<div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">チップ不足 - リバイ確認</div>';
     busted.forEach(function(idx){
       var p=cc.players[idx];
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:6px;">';
+      html+='<div class="cc-rebuy-row" style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:6px;">';
       html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+'</span>';
       html+='<div style="display:flex;gap:6px;">';
       html+='<button class="cc-rebuy-btn" data-idx="'+idx+'" data-action="rebuy" style="padding:6px 14px;background:rgba(40,170,80,.25);border:1px solid rgba(60,200,100,.4);border-radius:6px;color:#afd;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">リバイ ('+cc.initialChips+')</button>';
@@ -3599,23 +3621,24 @@ function ccCheckEliminated(){
         }
         // このプレイヤーの行を非表示
         this.parentElement.parentElement.style.display='none';
+        cc._pendingRebuy--;
         // 全員処理済みか確認
-        var remaining=document.querySelectorAll('.cc-rebuy-btn[data-action="rebuy"]');
-        var allDone=true;
-        remaining.forEach(function(btn){
-          if(btn.parentElement.parentElement.style.display!=='none') allDone=false;
-        });
-        if(allDone){
+        if(cc._pendingRebuy<=0){
           rebuyEl.style.display='none';
+          var nb=document.getElementById('cc-next-round');
+          nb.disabled=false;nb.style.opacity='';
           ccRenderAll();
         }
       });
     });
+  }else{
+    cc._pendingRebuy=0;
   }
   ccRenderAll();
 }
 
 document.getElementById('cc-next-round').addEventListener('click',function(){
+  if(cc._pendingRebuy>0) return; // リバイ確認中は進めない
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
   ccStartRound();
