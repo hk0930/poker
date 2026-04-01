@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.24-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.25-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3162,7 +3162,7 @@ function ccUndo(){
   cc.phase=prev.phase;cc.pot=prev.pot;cc.curIdx=prev.curIdx;cc.curBet=prev.curBet;
   cc.acts=prev.acts;cc.roundNum=prev.roundNum;cc.roundActive=prev.roundActive;
   cc.lastRaise=prev.lastRaise;cc.dealerIdx=prev.dealerIdx;
-  cc._bbActed=prev._bbActed;
+  cc._bbActed=prev._bbActed;cc._sbIdx=prev._sbIdx;cc._bbIdx=prev._bbIdx;cc._isHeadsUp=prev._isHeadsUp;
   cc.players.forEach(function(p,i){
     var s=prev.players[i];
     p.chips=s.chips;p.bet=s.bet;p.totalBet=s.totalBet;
@@ -3178,7 +3178,10 @@ function ccUndo(){
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-summary').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
-  if(cc.roundActive) ccShowAP();
+  if(cc.roundActive){
+    if(ccIsOnline&&ccIsHost) ccStartWatchAction();
+    ccShowAP();
+  }
 }
 
 function ccUpdateUndoBtn(){
@@ -3437,20 +3440,6 @@ function ccShowAP(){
     turnInfo.textContent=p.name+' のアクションを待っています...';
     turnInfo.style.display='block';
     ccPushState('action');
-    // 非ホスト退出チェック（5秒ごと）
-    if(cc._departCheckTimer) clearInterval(cc._departCheckTimer);
-    cc._departCheckTimer=setInterval(function(){
-      if(!cc.roundActive||cc.curIdx<0){clearInterval(cc._departCheckTimer);return;}
-      var cp=cc.players[cc.curIdx];
-      if(!cp||!cp.pid) return;
-      fbGet(ccRoomPath+'/players/'+cp.pid+'/departed',function(v){
-        if(v){
-          clearInterval(cc._departCheckTimer);
-          cp.folded=true;
-          ccAdvance();
-        }
-      });
-    },5000);
     return;
   }
   if(ccIsOnline&&ccIsHost) ccPushState('action');
@@ -3889,7 +3878,7 @@ document.getElementById('cc-next-round').addEventListener('click',function(){
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
   ccStartRound();
-  if(ccIsOnline&&ccIsHost){ccPushState('action');ccStartWatchAction();}
+  if(ccIsOnline&&ccIsHost) ccStartWatchAction();
 });
 
 // ゲーム終了 → 精算サマリー表示
@@ -4160,8 +4149,8 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     fbSet(ccRoomPath+'/status','started',function(){
       showScreen('screen-chipcalc');
       ccStartRound();
-      ccPushState('action');
       ccStartWatchAction();
+      ccStartDepartureWatch();
     });
   });
 });
@@ -4274,6 +4263,8 @@ function ccStartWatchAction(){
     fbListen(ccGamePath+'/action',function(d){
       if(!d||!d.ts||d.ts<=ccLastActTs) return;
       if(!d.rid||d.rid!==ccRoundId) return;
+      // 送信者pidが現在のプレイヤーと一致するか検証
+      if(d.pid&&cc.curIdx>=0&&cc.players[cc.curIdx]&&d.pid!==cc.players[cc.curIdx].pid) return;
       ccLastActTs=d.ts;
       ccProcessAction(d.type,d.amount);
     },true);
@@ -4307,9 +4298,34 @@ function ccProcessAction(type,amount){
   }
 }
 
+// ホスト: 非ホスト退出の常時監視
+function ccStartDepartureWatch(){
+  ccStopDepartureWatch();
+  if(!ccIsOnline||!ccIsHost) return;
+  cc._departWatchTimer=setInterval(function(){
+    if(!ccIsOnline||!ccIsHost){ccStopDepartureWatch();return;}
+    cc.players.forEach(function(p){
+      if(!p.pid||p.pid===myId||p.eliminated||p.folded||p._departed) return;
+      fbGet(ccRoomPath+'/players/'+p.pid+'/departed',function(v){
+        if(!v) return;
+        p._departed=true;
+        // 退出プレイヤーが現在のアクションプレイヤーなら即フォールド
+        var idx=cc.players.indexOf(p);
+        if(cc.roundActive&&cc.curIdx===idx&&!p.folded){
+          p.folded=true;
+          ccAdvance();
+        }
+      });
+    });
+  },5000);
+}
+function ccStopDepartureWatch(){
+  if(cc._departWatchTimer){clearInterval(cc._departWatchTimer);cc._departWatchTimer=null;}
+}
+
 // オンラインクリーンアップ
 function ccOnlineCleanup(){
-  if(cc._departCheckTimer){clearInterval(cc._departCheckTimer);cc._departCheckTimer=null;}
+  ccStopDepartureWatch();
   if(ccIsOnline){
     fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath+'/status');fbOff(ccRoomPath);
     if(ccIsHost){
