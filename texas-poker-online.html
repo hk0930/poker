@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.21-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.22-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -239,21 +239,62 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
   <div id="panel-chipcalc" style="display:none;">
   <div class="panel">
     <div class="ptitle">🎰 チップ計算設定</div>
-    <label class="flabel">プレイヤー人数</label>
-    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-      <button class="cc-cnt-btn" data-n="2" style="padding:6px 12px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:6px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">2</button>
-      <button class="cc-cnt-btn" data-n="3" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">3</button>
-      <button class="cc-cnt-btn" data-n="4" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">4</button>
-      <button class="cc-cnt-btn" data-n="5" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">5</button>
-      <button class="cc-cnt-btn" data-n="6" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">6</button>
-      <button class="cc-cnt-btn" data-n="7" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">7</button>
-      <button class="cc-cnt-btn" data-n="8" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">8</button>
+    <!-- オフライン/オンライン切替 -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;justify-content:center;">
+      <button id="cc-sub-offline" style="flex:1;padding:8px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold-light);font-family:Cinzel,serif;font-size:11px;cursor:pointer;letter-spacing:1px;">1台で操作</button>
+      <button id="cc-sub-online" style="flex:1;padding:8px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:11px;cursor:pointer;letter-spacing:1px;">各自の端末で操作</button>
     </div>
-    <div id="cc-names"></div>
-    <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">開始チップ</span><input class="num-inp" id="cc-chips" value="500"></div>
-    <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="cc-sb" value="5"></div>
-    <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="cc-bb" value="10"></div>
-    <button class="btn" id="btn-start-chipcalc">開始</button>
+    <!-- オフラインモード設定 -->
+    <div id="cc-offline-settings">
+      <label class="flabel">プレイヤー人数</label>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="cc-cnt-btn" data-n="2" style="padding:6px 12px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:6px;color:var(--gold-light);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">2</button>
+        <button class="cc-cnt-btn" data-n="3" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">3</button>
+        <button class="cc-cnt-btn" data-n="4" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">4</button>
+        <button class="cc-cnt-btn" data-n="5" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">5</button>
+        <button class="cc-cnt-btn" data-n="6" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">6</button>
+        <button class="cc-cnt-btn" data-n="7" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">7</button>
+        <button class="cc-cnt-btn" data-n="8" style="padding:6px 12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">8</button>
+      </div>
+      <div id="cc-names"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">開始チップ</span><input class="num-inp" id="cc-chips" value="500"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="cc-sb" value="5"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="cc-bb" value="10"></div>
+      <button class="btn" id="btn-start-chipcalc">開始</button>
+    </div>
+    <!-- オンラインモード設定 -->
+    <div id="cc-online-settings" style="display:none;">
+      <label class="flabel">あなたの名前</label>
+      <input class="inp" id="cc-my-name" value="" placeholder="プレイヤー名">
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">開始チップ</span><input class="num-inp" id="cc-ol-chips" value="500"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="cc-ol-sb" value="5"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="cc-ol-bb" value="10"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn" id="cc-ol-create" style="flex:1;">ルームを作成</button>
+        <button class="btn" id="cc-ol-join-toggle" style="flex:1;background:rgba(201,168,76,.2);color:var(--gold-light);border:1px solid var(--gold);">ルームに参加</button>
+      </div>
+      <!-- 参加パネル -->
+      <div id="cc-ol-join-panel" style="display:none;margin-top:10px;">
+        <label class="flabel">ルームコード</label>
+        <div style="display:flex;gap:8px;">
+          <input class="inp" id="cc-ol-join-code" placeholder="ABCDEF" style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-size:18px;flex:1;">
+          <button class="btn-sm" id="cc-ol-join-btn">参加</button>
+        </div>
+      </div>
+      <!-- ルーム情報パネル -->
+      <div id="cc-ol-room-panel" style="display:none;margin-top:10px;">
+        <div style="text-align:center;margin-bottom:8px;">
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:4px;">ルームコード</div>
+          <div id="cc-ol-code-disp" class="code-big"></div>
+          <div id="cc-ol-invite-url" class="code-hint"></div>
+        </div>
+        <div class="slabel">参加者</div>
+        <div id="cc-ol-plist" class="plist"></div>
+        <div id="cc-ol-status" class="smsg" style="margin-top:6px;"></div>
+        <button class="btn" id="cc-ol-start" style="display:none;margin-top:8px;">ゲーム開始</button>
+        <div id="cc-ol-wait" style="display:none;text-align:center;margin-top:8px;font-size:11px;color:rgba(255,255,255,.4);">ホストがゲームを開始するのを待っています...</div>
+      </div>
+    </div>
   </div>
   </div>
 
@@ -3103,6 +3144,9 @@ var cc={
 var PHASE_NAMES=['PRE-FLOP','FLOP','TURN','RIVER','SHOWDOWN'];
 var ccHistory=[];
 var CC_MAX_HISTORY=30;
+var ccIsOnline=false,ccIsHost=false,ccMyIdx=-1,ccMyPid='';
+var ccRoomPath='',ccGamePath='',ccRoomCode='';
+var ccLastActTs=0,ccRoundId='';
 
 function ccSaveState(){
   ccHistory.push(JSON.parse(JSON.stringify(cc)));
@@ -3172,6 +3216,7 @@ renderCcNames();
 
 // ゲーム開始
 document.getElementById('btn-start-chipcalc').addEventListener('click',function(){
+  ccIsOnline=false;ccIsHost=false;
   var chips=snap5(+document.getElementById('cc-chips').value)||500;
   cc.sbAmt=snap5(+document.getElementById('cc-sb').value)||5;
   cc.bbAmt=snap5(+document.getElementById('cc-bb').value)||10;
@@ -3193,6 +3238,7 @@ function ccStartRound(){
   ccHistory=[];ccUpdateUndoBtn();
   cc._pendingRebuy=0;
   cc.roundNum++;
+  if(ccIsOnline) ccRoundId=Math.random().toString(36).slice(2,10);
   cc.phase=0;cc.pot=0;cc.curBet=0;cc.lastRaise=0;cc.streetPot=0;
   cc.roundActive=true;
   // reset per-round state
@@ -3349,6 +3395,7 @@ function ccShowAP(){
   document.getElementById('cc-rebuy-panel').style.display='none';
 
   if(!cc.roundActive) return;
+  if(ccIsOnline&&!ccIsHost) return;
 
   // check if round should end (only 1 non-folded)
   var notFolded=ccActivePlayers();
@@ -3378,11 +3425,18 @@ function ccShowAP(){
     document.getElementById('cc-next-phase').textContent=nextPhaseName+' へ';
     turnInfo.textContent='ベッティング完了 - '+nextPhaseName+' へ進んでください';
     turnInfo.style.display='block';
+    if(ccIsOnline&&ccIsHost) ccPushState('phaseDone');
     return;
   }
   // find next player to act
   if(cc.curIdx<0){cc.phase=4;ccRenderAll();ccShowShowdown();return;}
   var p=cc.players[cc.curIdx];
+  if(ccIsOnline&&ccIsHost&&cc.curIdx!==ccMyIdx){
+    turnInfo.textContent=p.name+' のアクションを待っています...';
+    turnInfo.style.display='block';
+    ccPushState('action');
+    return;
+  }
   turnInfo.textContent=p.name+' のアクション';
   turnInfo.style.display='block';
   ap.style.display='block';
@@ -3418,6 +3472,7 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
   b.addEventListener('click',function(){
     var act=this.dataset.act;
     if(!cc.roundActive||cc.curIdx<0) return;
+    if(ccIsOnline&&!ccIsHost){ccSend(act,act==='raise'?cc.raiseAmount:0);return;}
     ccSaveState();
     var p=cc.players[cc.curIdx];
     // BBオプション追跡: BBがアクションしたらフラグ設定
@@ -3472,6 +3527,7 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
         if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
       }
       ccRenderAll();
+      if(ccIsOnline&&ccIsHost) ccPushState('allin',{allinName:p.name,allinAmount:allAmt});
       ccShowAllinEffect(p.name,allAmt,function(){ ccAdvance(); });
     }
   });
@@ -3589,8 +3645,9 @@ function ccShowResult(html){
   summaryHtml+='</div>';
   body.innerHTML=html+summaryHtml;
   resultEl.style.display='block';
-  document.getElementById('cc-next-round').style.display='';
-  document.getElementById('cc-end-game').style.display='';
+  document.getElementById('cc-next-round').style.display=ccIsOnline&&!ccIsHost?'none':'';
+  document.getElementById('cc-end-game').style.display=ccIsOnline&&!ccIsHost?'none':'';
+  if(ccIsOnline&&ccIsHost) ccPushState('result',{resultHtml:body.innerHTML});
   ccCheckEliminated();
 }
 
@@ -3644,6 +3701,7 @@ function ccShowShowdown(){
   });
   sd.style.display='block';
   cc._sidePots=sidePots;
+  if(ccIsOnline&&ccIsHost) ccPushState('showdown');
 }
 
 function ccUpdateSplitPreview(){
@@ -3765,6 +3823,7 @@ function ccCheckEliminated(){
     });
     rebuyEl.innerHTML=html;
     rebuyEl.style.display='block';
+    if(ccIsOnline&&ccIsHost) ccPushState('rebuy',{resultHtml:document.getElementById('cc-result-body').innerHTML});
     // リバイボタンのイベント
     document.querySelectorAll('.cc-rebuy-btn').forEach(function(b){
       b.addEventListener('click',function(){
@@ -3787,6 +3846,7 @@ function ccCheckEliminated(){
           var nb=document.getElementById('cc-next-round');
           nb.disabled=false;nb.style.opacity='';
           ccRenderAll();
+          if(ccIsOnline&&ccIsHost) ccPushState('result',{resultHtml:document.getElementById('cc-result-body').innerHTML});
         }
       });
     });
@@ -3801,6 +3861,7 @@ document.getElementById('cc-next-round').addEventListener('click',function(){
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
   ccStartRound();
+  if(ccIsOnline&&ccIsHost){ccPushState('action');ccStartWatchAction();}
 });
 
 // ゲーム終了 → 精算サマリー表示
@@ -3852,6 +3913,7 @@ function ccEndGame(){
   }
   bodyEl.innerHTML=html;
   summaryEl.style.display='block';
+  if(ccIsOnline&&ccIsHost) ccPushState('summary',{summaryHtml:bodyEl.innerHTML});
 }
 
 function ccCalcSettlement(){
@@ -3884,6 +3946,7 @@ function ccCalcSettlement(){
 }
 
 document.getElementById('cc-summary-lobby').addEventListener('click',function(){
+  ccOnlineCleanup();
   showScreen('screen-lobby');
 });
 
@@ -3891,8 +3954,329 @@ document.getElementById('cc-btn-lobby').addEventListener('click',function(){
   if(cc.roundActive){
     if(!confirm('ゲームを中断してロビーに戻りますか？')) return;
   }
+  ccOnlineCleanup();
   showScreen('screen-lobby');
 });
+
+// ════════════════════════════════════════
+// チップ計算モード - オンライン対応
+// ════════════════════════════════════════
+
+// サブモード切替
+(function(){
+  var offBtn=document.getElementById('cc-sub-offline');
+  var onBtn=document.getElementById('cc-sub-online');
+  offBtn.addEventListener('click',function(){ ccSetSubMode('offline'); });
+  onBtn.addEventListener('click',function(){ ccSetSubMode('online'); });
+})();
+
+function ccSetSubMode(mode){
+  var offBtn=document.getElementById('cc-sub-offline');
+  var onBtn=document.getElementById('cc-sub-online');
+  var offS=document.getElementById('cc-offline-settings');
+  var onS=document.getElementById('cc-online-settings');
+  var active=mode==='online'?onBtn:offBtn;
+  var inactive=mode==='online'?offBtn:onBtn;
+  active.style.background='rgba(201,168,76,.15)';active.style.borderColor='var(--gold)';active.style.color='var(--gold-light)';
+  inactive.style.background='rgba(0,0,0,.4)';inactive.style.borderColor='rgba(255,255,255,.2)';inactive.style.color='rgba(255,255,255,.5)';
+  offS.style.display=mode==='online'?'none':'block';
+  onS.style.display=mode==='online'?'block':'none';
+}
+
+// ルーム作成
+document.getElementById('cc-ol-create').addEventListener('click',function(){
+  var name=document.getElementById('cc-my-name').value.trim();
+  if(!name){alert('名前を入力してください');return;}
+  ccRoomCode=genCode();
+  ccRoomPath='ccrooms/'+ccRoomCode;
+  ccGamePath=ccRoomPath+'/game';
+  ccMyPid=myId;
+  ccIsHost=true;
+  var chips=snap5(+document.getElementById('cc-ol-chips').value)||500;
+  var sb=snap5(+document.getElementById('cc-ol-sb').value)||5;
+  var bb=snap5(+document.getElementById('cc-ol-bb').value)||10;
+  var roomData={hostId:myId,status:'waiting',settings:{chips:chips,sb:sb,bb:bb},players:{}};
+  roomData.players[myId]={name:name,idx:0};
+  fbSet(ccRoomPath,roomData,function(){
+    document.getElementById('cc-ol-create').style.display='none';
+    document.getElementById('cc-ol-join-toggle').style.display='none';
+    document.getElementById('cc-ol-join-panel').style.display='none';
+    document.getElementById('cc-ol-room-panel').style.display='block';
+    document.getElementById('cc-ol-code-disp').textContent=ccRoomCode;
+    var invEl=document.getElementById('cc-ol-invite-url');
+    if(invEl){
+      var url=location.origin+location.pathname+'?ccroom='+ccRoomCode;
+      invEl.textContent=url;invEl.style.cursor='pointer';
+      invEl.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(url);};
+    }
+    document.getElementById('cc-ol-start').style.display='block';
+    ccWatchLobbyPlayers();
+  });
+});
+
+// ルーム参加トグル
+document.getElementById('cc-ol-join-toggle').addEventListener('click',function(){
+  var jp=document.getElementById('cc-ol-join-panel');
+  jp.style.display=jp.style.display==='none'?'block':'none';
+});
+
+// ルーム参加
+document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
+  var name=document.getElementById('cc-my-name').value.trim();
+  if(!name){alert('名前を入力してください');return;}
+  var code=document.getElementById('cc-ol-join-code').value.trim().toUpperCase();
+  if(!code||code.length!==6){alert('6文字のルームコードを入力してください');return;}
+  ccRoomCode=code;ccRoomPath='ccrooms/'+ccRoomCode;ccGamePath=ccRoomPath+'/game';ccMyPid=myId;ccIsHost=false;
+  fbGet(ccRoomPath,function(data){
+    if(!data){alert('ルームが見つかりません');return;}
+    if(data.status!=='waiting'){alert('ゲームは既に開始されています');return;}
+    var pdata=data.players||{};
+    var count=Object.keys(pdata).length;
+    if(count>=8){alert('ルームが満員です');return;}
+    var patch={};patch['players/'+myId]={name:name,idx:count};
+    fbPatch(ccRoomPath,patch,function(){
+      document.getElementById('cc-ol-create').style.display='none';
+      document.getElementById('cc-ol-join-toggle').style.display='none';
+      document.getElementById('cc-ol-join-panel').style.display='none';
+      document.getElementById('cc-ol-room-panel').style.display='block';
+      document.getElementById('cc-ol-code-disp').textContent=ccRoomCode;
+      document.getElementById('cc-ol-start').style.display='none';
+      document.getElementById('cc-ol-wait').style.display='block';
+      ccWatchLobbyPlayers();
+      ccWatchForStart();
+    });
+  });
+});
+
+// ロビープレイヤーリスト監視
+function ccWatchLobbyPlayers(){
+  fbListen(ccRoomPath+'/players',function(data){
+    if(!data) return;
+    var list=document.getElementById('cc-ol-plist');
+    var html='';var pids=Object.keys(data);
+    pids.sort(function(a,b){return (data[a].idx||0)-(data[b].idx||0);});
+    pids.forEach(function(pid,i){
+      var p=data[pid];var isMe=pid===myId;
+      html+='<div style="padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">';
+      html+='<span style="color:'+(isMe?'var(--gold-light)':'rgba(255,255,255,.7)')+';font-size:12px;">'+esc(p.name)+(isMe?' (あなた)':'')+'</span>';
+      html+='<span style="font-size:10px;color:rgba(255,255,255,.3);">P'+(i+1)+'</span></div>';
+    });
+    list.innerHTML=html;
+    if(ccIsHost) document.getElementById('cc-ol-start').style.display=pids.length>=2?'block':'none';
+  });
+}
+
+// 非ホスト: ゲーム開始監視
+function ccWatchForStart(){
+  fbListen(ccRoomPath+'/status',function(status){
+    if(status==='started'){
+      fbOff(ccRoomPath+'/status');
+      fbOff(ccRoomPath+'/players');
+      fbGet(ccRoomPath,function(data){
+        if(!data) return;
+        ccIsOnline=true;
+        var s=data.settings||{};
+        cc.sbAmt=s.sb||5;cc.bbAmt=s.bb||10;cc.initialChips=s.chips||500;
+        var pdata=data.players||{};
+        var pids=Object.keys(pdata);
+        pids.sort(function(a,b){return (pdata[a].idx||0)-(pdata[b].idx||0);});
+        cc.players=[];
+        pids.forEach(function(pid,i){
+          cc.players.push({name:pdata[pid].name,chips:cc.initialChips,startChips:cc.initialChips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:cc.initialChips});
+          if(pid===myId) ccMyIdx=i;
+        });
+        cc.dealerIdx=0;cc.roundNum=0;
+        showScreen('screen-chipcalc');
+        fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+      });
+    }
+  });
+}
+
+// ホスト: オンラインゲーム開始
+document.getElementById('cc-ol-start').addEventListener('click',function(){
+  fbGet(ccRoomPath+'/players',function(pdata){
+    if(!pdata) return;
+    ccIsOnline=true;
+    var chips=snap5(+document.getElementById('cc-ol-chips').value)||500;
+    cc.sbAmt=snap5(+document.getElementById('cc-ol-sb').value)||5;
+    cc.bbAmt=snap5(+document.getElementById('cc-ol-bb').value)||10;
+    cc.initialChips=chips;
+    var pids=Object.keys(pdata);
+    pids.sort(function(a,b){return (pdata[a].idx||0)-(pdata[b].idx||0);});
+    cc.players=[];
+    pids.forEach(function(pid,i){
+      cc.players.push({name:pdata[pid].name,chips:chips,startChips:chips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:chips});
+      if(pid===myId) ccMyIdx=i;
+    });
+    cc.dealerIdx=0;cc.roundNum=0;
+    fbOff(ccRoomPath+'/players');
+    fbSet(ccRoomPath+'/status','started',function(){
+      showScreen('screen-chipcalc');
+      ccStartRound();
+      ccPushState('action');
+      ccStartWatchAction();
+    });
+  });
+});
+
+// ホスト: 状態プッシュ
+function ccPushState(uiMode,extra){
+  if(!ccIsOnline||!ccIsHost) return;
+  var ps=cc.players.map(function(p){
+    return {name:p.name,chips:p.chips,bet:p.bet,totalBet:p.totalBet,folded:p.folded,allIn:p.allIn,eliminated:p.eliminated,rebuyCount:p.rebuyCount,startChips:p.startChips,_roundStartChips:p._roundStartChips,pid:p.pid};
+  });
+  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null};
+  if(extra){Object.keys(extra).forEach(function(k){st[k]=extra[k];});}
+  fbSet(ccGamePath+'/state',st);
+}
+
+// 非ホスト: 状態受信
+function ccOnState(st){
+  if(ccIsHost) return;
+  ccRoundId=st.rid||'';
+  if(st.players) st.players.forEach(function(sp,i){
+    if(!cc.players[i]) return;
+    var p=cc.players[i];
+    p.chips=sp.chips;p.bet=sp.bet;p.totalBet=sp.totalBet;p.folded=sp.folded;p.allIn=sp.allIn;p.eliminated=sp.eliminated;p.rebuyCount=sp.rebuyCount;p.startChips=sp.startChips;p._roundStartChips=sp._roundStartChips;
+  });
+  cc.phase=st.phase;cc.pot=st.pot;cc.curBet=st.curBet;cc.curIdx=st.curIdx;cc.dealerIdx=st.dealerIdx;
+  cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;cc.acts=st.acts||[];
+  cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
+  cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
+  ccRenderAll();
+  // UI制御
+  var ap=document.getElementById('cc-ap');
+  var phBtns=document.getElementById('cc-phase-btns');
+  var sd=document.getElementById('cc-showdown');
+  var result=document.getElementById('cc-result');
+  var summary=document.getElementById('cc-summary');
+  var turnInfo=document.getElementById('cc-turn-info');
+  var rebuyP=document.getElementById('cc-rebuy-panel');
+  ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';summary.style.display='none';rebuyP.style.display='none';turnInfo.style.display='none';
+  var mode=st.uiMode||'action';
+  if(mode==='action'){
+    if(st.waitFor===ccMyPid&&cc.roundActive){
+      turnInfo.textContent=cc.players[ccMyIdx].name+' のアクション（あなた）';turnInfo.style.display='block';
+      ccShowAP_online();
+    }else if(cc.curIdx>=0&&cc.players[cc.curIdx]){
+      turnInfo.textContent=cc.players[cc.curIdx].name+' のアクション...';turnInfo.style.display='block';
+    }
+  }else if(mode==='phaseDone'){
+    turnInfo.textContent='ホストが次のフェーズへ進めるのを待っています...';turnInfo.style.display='block';
+  }else if(mode==='showdown'){
+    turnInfo.textContent='ホストが勝者を選択中...';turnInfo.style.display='block';
+  }else if(mode==='result'){
+    result.style.display='block';document.getElementById('cc-result-body').innerHTML=st.resultHtml||'';
+    document.getElementById('cc-next-round').style.display='none';document.getElementById('cc-end-game').style.display='none';
+  }else if(mode==='rebuy'){
+    if(st.resultHtml){result.style.display='block';document.getElementById('cc-result-body').innerHTML=st.resultHtml||'';document.getElementById('cc-next-round').style.display='none';document.getElementById('cc-end-game').style.display='none';}
+    turnInfo.textContent='リバイ確認中...（ホストが決定します）';turnInfo.style.display='block';
+  }else if(mode==='summary'){
+    summary.style.display='block';document.getElementById('cc-summary-body').innerHTML=st.summaryHtml||'';
+  }else if(mode==='allin'&&st.allinName){
+    ccShowAllinEffect(st.allinName,st.allinAmount||0,function(){});
+    if(cc.curIdx>=0&&cc.players[cc.curIdx]){turnInfo.textContent=cc.players[cc.curIdx].name+' ALL IN';turnInfo.style.display='block';}
+  }
+}
+
+// 非ホスト用アクションパネル表示
+function ccShowAP_online(){
+  var ap=document.getElementById('cc-ap');
+  ap.style.display='block';
+  document.getElementById('cc-action-btns').style.display='flex';
+  cc.raiseAmount=0;document.getElementById('cc-bet-display').textContent='0';
+  var p=cc.players[ccMyIdx];
+  var minRaise=cc.curBet+cc.lastRaise;
+  var infoEl=document.getElementById('cc-min-raise-info');
+  if(infoEl) infoEl.textContent='MIN: '+minRaise;
+  var checkBtn=document.querySelector('.cc-act-btn[data-act="check"]');
+  var callBtn=document.querySelector('.cc-act-btn[data-act="call"]');
+  var raiseBtn=document.querySelector('.cc-act-btn[data-act="raise"]');
+  if(p.bet>=cc.curBet){checkBtn.style.display='';callBtn.style.display='none';}
+  else{checkBtn.style.display='none';callBtn.style.display='';var callAmt=Math.min(cc.curBet-p.bet,p.chips);callBtn.textContent='CALL '+callAmt+(callAmt<cc.curBet?' (→'+Math.min(p.bet+callAmt,cc.curBet)+')':'');}
+  if(p.chips<=cc.curBet-p.bet){raiseBtn.style.display='none';}else{raiseBtn.style.display='';}
+}
+
+// アクション送信
+function ccSend(type,amount){
+  if(!ccIsOnline) return;
+  if(ccIsHost){ccProcessAction(type,amount);return;}
+  document.getElementById('cc-ap').style.display='none';
+  document.getElementById('cc-turn-info').textContent='送信中...';
+  fbSet(ccGamePath+'/action',{type:type,amount:amount||0,ts:Date.now(),rid:ccRoundId,pid:ccMyPid});
+}
+
+// ホスト: アクション監視
+function ccStartWatchAction(){
+  if(!ccIsOnline||!ccIsHost) return;
+  fbOff(ccGamePath+'/action');
+  fbSet(ccGamePath+'/action',null,function(){
+    ccLastActTs=Date.now();
+    fbListen(ccGamePath+'/action',function(d){
+      if(!d||!d.ts||d.ts<=ccLastActTs) return;
+      if(!d.rid||d.rid!==ccRoundId) return;
+      ccLastActTs=d.ts;
+      ccProcessAction(d.type,d.amount);
+    },true);
+  });
+}
+
+// ホスト: 受信アクション処理
+function ccProcessAction(type,amount){
+  if(!cc.roundActive||cc.curIdx<0) return;
+  ccSaveState();
+  var p=cc.players[cc.curIdx];
+  if(cc.phase===0&&cc.curIdx===cc._bbIdx) cc._bbActed=true;
+  if(type==='fold'){p.folded=true;ccAdvance();}
+  else if(type==='check'){if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);ccAdvance();}
+  else if(type==='call'){var ca=Math.min(cc.curBet-p.bet,p.chips);p.chips-=ca;p.bet+=ca;p.totalBet+=ca;cc.pot+=ca;if(p.chips===0)p.allIn=true;if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);ccAdvance();}
+  else if(type==='raise'){
+    var tr=snap5(amount);if(tr<=0)return;var mr=cc.curBet+cc.lastRaise;if(tr<mr&&tr<p.bet+p.chips)return;
+    var add=tr-p.bet;if(add<=0)return;if(add>p.chips)add=p.chips;var nb=p.bet+add;
+    if(nb<=cc.curBet){p.chips-=add;p.bet=nb;p.totalBet+=add;cc.pot+=add;if(p.chips===0)p.allIn=true;if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);}
+    else{cc.lastRaise=Math.max(cc.lastRaise,nb-cc.curBet);p.chips-=add;p.bet=nb;p.totalBet+=add;cc.pot+=add;cc.curBet=nb;if(p.chips===0)p.allIn=true;cc.acts=[cc.curIdx];}
+    ccAdvance();
+  }
+  else if(type==='allin'){
+    var aa=p.chips;if(aa<=0){ccAdvance();return;}
+    cc.pot+=aa;p.totalBet+=aa;p.bet+=aa;p.chips=0;p.allIn=true;
+    if(p.bet>cc.curBet&&(p.bet-cc.curBet)>=cc.lastRaise){cc.lastRaise=p.bet-cc.curBet;cc.curBet=p.bet;cc.acts=[cc.curIdx];}
+    else{if(p.bet>cc.curBet)cc.curBet=p.bet;if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);}
+    ccRenderAll();
+    ccPushState('allin',{allinName:p.name,allinAmount:aa});
+    ccShowAllinEffect(p.name,aa,function(){ccAdvance();});
+  }
+}
+
+// オンラインクリーンアップ
+function ccOnlineCleanup(){
+  if(ccIsOnline){
+    fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath);
+  }
+  ccIsOnline=false;ccIsHost=false;ccMyIdx=-1;ccRoomPath='';ccGamePath='';
+  // ロビーUI復帰
+  document.getElementById('cc-ol-room-panel').style.display='none';
+  document.getElementById('cc-ol-join-panel').style.display='none';
+  document.getElementById('cc-ol-create').style.display='';
+  document.getElementById('cc-ol-join-toggle').style.display='';
+  document.getElementById('cc-ol-wait').style.display='none';
+  document.getElementById('cc-ol-start').style.display='none';
+}
+
+// URLパラメータでルームコード自動入力
+(function(){
+  var params=new URLSearchParams(location.search);
+  var ccroom=params.get('ccroom');
+  if(ccroom){
+    setTimeout(function(){
+      setMode('chipcalc');
+      ccSetSubMode('online');
+      document.getElementById('cc-ol-join-code').value=ccroom;
+      document.getElementById('cc-ol-join-panel').style.display='block';
+    },100);
+  }
+})();
 
 })();
 
