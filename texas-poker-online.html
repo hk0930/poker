@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.23-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.24-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3155,12 +3155,14 @@ function ccSaveState(){
 }
 
 function ccUndo(){
+  if(ccIsOnline&&!ccIsHost) return;
   if(ccHistory.length===0) return;
   var prev=ccHistory.pop();
   // restore cc state
   cc.phase=prev.phase;cc.pot=prev.pot;cc.curIdx=prev.curIdx;cc.curBet=prev.curBet;
   cc.acts=prev.acts;cc.roundNum=prev.roundNum;cc.roundActive=prev.roundActive;
   cc.lastRaise=prev.lastRaise;cc.dealerIdx=prev.dealerIdx;
+  cc._bbActed=prev._bbActed;
   cc.players.forEach(function(p,i){
     var s=prev.players[i];
     p.chips=s.chips;p.bet=s.bet;p.totalBet=s.totalBet;
@@ -3181,7 +3183,7 @@ function ccUndo(){
 
 function ccUpdateUndoBtn(){
   var btn=document.getElementById('cc-undo-btn');
-  if(ccIsOnline){btn.style.display='none';return;}
+  if(ccIsOnline&&!ccIsHost){btn.style.display='none';return;}
   btn.style.display=ccHistory.length>0?'inline-block':'none';
 }
 
