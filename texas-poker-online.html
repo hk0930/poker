@@ -3985,6 +3985,7 @@ function ccSetSubMode(mode){
 
 // ルーム作成
 document.getElementById('cc-ol-create').addEventListener('click',function(){
+  offlineMode=false; // Firebase操作を確実に有効化
   var name=document.getElementById('cc-my-name').value.trim();
   if(!name){alert('名前を入力してください');return;}
   ccRoomCode=genCode();
@@ -4022,6 +4023,7 @@ document.getElementById('cc-ol-join-toggle').addEventListener('click',function()
 
 // ルーム参加
 document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
+  offlineMode=false; // Firebase操作を確実に有効化
   var name=document.getElementById('cc-my-name').value.trim();
   if(!name){alert('名前を入力してください');return;}
   var code=document.getElementById('cc-ol-join-code').value.trim().toUpperCase();
@@ -4087,7 +4089,14 @@ function ccWatchForStart(){
         });
         cc.dealerIdx=0;cc.roundNum=0;
         showScreen('screen-chipcalc');
+        ccRenderAll(); // 初期テーブル描画
         fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+        // フォールバック: リスナーが作動しない場合に手動で状態取得
+        setTimeout(function(){
+          if(!cc.roundActive){
+            fbGet(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+          }
+        },3000);
       });
     }
   });
@@ -4134,14 +4143,25 @@ function ccPushState(uiMode,extra){
 // 非ホスト: 状態受信
 function ccOnState(st){
   if(ccIsHost) return;
+  try{
   ccRoundId=st.rid||'';
-  if(st.players) st.players.forEach(function(sp,i){
+  // Firebaseは配列をオブジェクトで返す場合がある→配列に変換
+  var sp=st.players;
+  if(sp&&typeof sp==='object'&&!Array.isArray(sp)){
+    var keys=Object.keys(sp).sort(function(a,b){return (+a)-(+b);});
+    sp=keys.map(function(k){return sp[k];});
+  }
+  if(sp) sp.forEach(function(d,i){
     if(!cc.players[i]) return;
     var p=cc.players[i];
-    p.chips=sp.chips;p.bet=sp.bet;p.totalBet=sp.totalBet;p.folded=sp.folded;p.allIn=sp.allIn;p.eliminated=sp.eliminated;p.rebuyCount=sp.rebuyCount;p.startChips=sp.startChips;p._roundStartChips=sp._roundStartChips;
+    p.chips=d.chips;p.bet=d.bet;p.totalBet=d.totalBet;p.folded=d.folded;p.allIn=d.allIn;p.eliminated=d.eliminated;p.rebuyCount=d.rebuyCount;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
   });
   cc.phase=st.phase;cc.pot=st.pot;cc.curBet=st.curBet;cc.curIdx=st.curIdx;cc.dealerIdx=st.dealerIdx;
-  cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;cc.acts=st.acts||[];
+  cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;
+  // Firebaseは空配列をnullで返す→ガード
+  var acts=st.acts;
+  if(acts&&typeof acts==='object'&&!Array.isArray(acts)) acts=Object.keys(acts).map(function(k){return acts[k];});
+  cc.acts=acts||[];
   cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
   cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
   ccRenderAll();
@@ -4178,6 +4198,7 @@ function ccOnState(st){
     ccShowAllinEffect(st.allinName,st.allinAmount||0,function(){});
     if(cc.curIdx>=0&&cc.players[cc.curIdx]){turnInfo.textContent=cc.players[cc.curIdx].name+' ALL IN';turnInfo.style.display='block';}
   }
+  }catch(e){console.error('ccOnState error:',e);}
 }
 
 // 非ホスト用アクションパネル表示
