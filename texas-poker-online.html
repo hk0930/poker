@@ -202,7 +202,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.36-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.37-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3556,6 +3556,7 @@ function ccShowAP(){
   var summary=document.getElementById('cc-summary');
   ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';summary.style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
+  turnInfo.style.display='none';
 
   if(!cc.roundActive) return;
   if(ccIsOnline&&!ccIsHost) return;
@@ -3609,6 +3610,7 @@ function ccShowAP(){
       // showdown
       cc.phase=4;ccRenderAll();ccDoShowdown();return;
     }
+    // カードモードOFFでもフェーズボタンを必ず表示
     phBtns.style.display='block';
     var nextPhaseName=PHASE_NAMES[cc.phase+1]||'SHOWDOWN';
     document.getElementById('cc-next-phase').textContent=nextPhaseName+' へ';
@@ -3617,8 +3619,14 @@ function ccShowAP(){
     if(ccIsOnline&&ccIsHost) ccPushState('phaseDone');
     return;
   }
-  // find next player to act
-  if(cc.curIdx<0||!cc.players[cc.curIdx]){cc.phase=4;ccRenderAll();ccDoShowdown();return;}
+  // アクション可能プレイヤーがいるがcurIdxが無効→次を探す
+  if(cc.curIdx<0||!cc.players[cc.curIdx]){
+    if(canAct.length>0){
+      cc.curIdx=cc.players.indexOf(canAct[0]);
+    }else{
+      cc.phase=4;ccRenderAll();ccDoShowdown();return;
+    }
+  }
   var p=cc.players[cc.curIdx];
   if(ccIsOnline&&ccIsHost&&cc.curIdx!==ccMyIdx){
     turnInfo.textContent=p.name+' のアクションを待っています...';
@@ -4344,7 +4352,7 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
   cc.phase++;
   ccPlayCardSound();
   cc.players.forEach(function(p){p.bet=0;});
-  cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];cc._streetActions=[];
+  cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];cc._streetActions=[];cc._bbActed=true;
   // フロップ以降: ディーラーの次のアクティブプレイヤーから開始（全人数共通）
   cc.curIdx=ccNextActive(cc.dealerIdx);
   if(cc.curIdx<0||cc.phase>=4){
