@@ -12,7 +12,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
 :root{--gold:#c9a84c;--gold-light:#f0d080;--gold-dark:#8a6820;--felt:#1a4a2e;--felt-dark:#0d2e1c;--felt-light:#235c39;--red:#c0392b;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-height:100vh;font-family:serif;color:#fff;overflow-x:hidden;}
+body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-height:100vh;font-family:serif;color:#fff;overflow-x:hidden;touch-action:pan-x pan-y;}
 .screen{display:none;min-height:100vh;flex-direction:column;align-items:center;padding:20px 16px 40px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .screen.active{display:flex;}
 .logo{font-family:Cinzel,serif;font-size:clamp(20px,6vw,44px);font-weight:900;background:linear-gradient(135deg,#8a6820,#f0d080,#c9a84c,#f0d080,#8a6820);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;text-align:center;margin:16px 0 4px;}
@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.28-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.29-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -529,6 +529,13 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 </div>
 
 <script>
+// ズーム操作防止（ピンチ・ダブルタップ・Ctrl+ホイール）
+document.addEventListener('gesturestart',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('gesturechange',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault();},{passive:false});
+document.addEventListener('dblclick',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault();},{passive:false});
+
 (function(){
 
 // ════════════════════════════════════════
