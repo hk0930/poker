@@ -202,7 +202,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.38-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.39-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3578,9 +3578,23 @@ function ccShowAP(){
       bbNeedsOption=true;
     }
   }
-  // オールイン対決: アクション可能が1人以下で、対戦相手が全員オールインの場合→自動進行
+  // オールイン対決: アクション可能プレイヤーが全員対応済みの場合のみ自動進行
   var allinCount=notFolded.filter(function(p){return p.allIn;}).length;
-  if(canAct.length<=1&&allinCount>0&&notFolded.length>=2){
+  if(allinCount>0&&notFolded.length>=2){
+    // canAct=0: 全員allInかfolded→自動進行
+    // canAct=1: 残り1人がまだアクション未完了なら選択肢を表示
+    var autoResolve=false;
+    if(canAct.length===0){
+      autoResolve=true;
+    }else if(canAct.length===1){
+      var soleP=canAct[0];
+      var soleIdx=cc.players.indexOf(soleP);
+      // 残り1人がbet==curBetかつ既にactsに含まれている→対応済み
+      if(soleP.bet>=cc.curBet&&cc.acts.indexOf(soleIdx)>=0){
+        autoResolve=true;
+      }
+    }
+    if(autoResolve){
     var soleP=canAct.length===1?canAct[0]:null;
     // 残り1人がcall必要→自動コール処理
     if(soleP&&soleP.bet<cc.curBet){
@@ -3603,7 +3617,7 @@ function ccShowAP(){
       return;
     }
     cc.phase=4;ccRenderAll();ccDoShowdown();return;
-  }
+  }}
   if(canAct.length===0||(!bbNeedsOption&&allActed&&allMatched)){
     // street complete
     if(cc.phase>=3||canAct.length===0){
