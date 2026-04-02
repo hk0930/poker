@@ -199,7 +199,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.33-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.34-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3455,8 +3455,10 @@ function ccRenderAll(){
     else html+='<div style="min-height:10px;"></div>';
     // カードモード: 手札表示
     if(cc.cardMode&&p.hole&&p.hole.length===2&&!p.folded){
-      var showFace=(ccIsOnline&&i===ccMyIdx)||(cc.phase===4);
-      if(!ccIsOnline) showFace=false; // オフラインは常に裏面（他プレイヤーに見えるため）
+      var showFace=false;
+      if(ccIsOnline&&i===ccMyIdx) showFace=true; // オンライン: 自分のカードのみ表示
+      if(ccIsOnline&&cc.phase===4&&p.hole[0]&&p.hole[0].r) showFace=true; // ショーダウンで公開済み
+      // オフラインは常に裏面（他プレイヤーに見えるため）
       if(showFace){
         html+='<div style="display:flex;gap:1px;justify-content:center;margin-top:2px;transform:scale(.55);margin-bottom:-10px;">'+cH(p.hole[0],true)+cH(p.hole[1],true)+'</div>';
       }else{
@@ -3581,7 +3583,7 @@ function ccShowAP(){
     return;
   }
   // find next player to act
-  if(cc.curIdx<0){cc.phase=4;ccRenderAll();ccDoShowdown();return;}
+  if(cc.curIdx<0||!cc.players[cc.curIdx]){cc.phase=4;ccRenderAll();ccDoShowdown();return;}
   var p=cc.players[cc.curIdx];
   if(ccIsOnline&&ccIsHost&&cc.curIdx!==ccMyIdx){
     turnInfo.textContent=p.name+' のアクションを待っています...';
@@ -3831,7 +3833,7 @@ function ccShowCardPicker(title,subtitle,count,cb,opts){
     SUITS.forEach(function(s){
       html+='<div style="margin-bottom:6px;">';
       html+='<div style="font-size:14px;color:'+suitColors[s]+';margin-bottom:2px;text-align:center;">'+s+'</div>';
-      html+='<div style="display:grid;grid-template-columns:repeat(13,1fr);gap:1px;">';
+      html+='<div style="display:grid;grid-template-columns:repeat(13,minmax(22px,1fr));gap:1px;overflow-x:auto;">';
       RANKS.forEach(function(r){
         var card={r:r,s:s};
         var key=ccCardKey(card);
@@ -3859,13 +3861,14 @@ function ccShowCardPicker(title,subtitle,count,cb,opts){
       el.addEventListener('click',function(){
         var r=this.dataset.r,s=this.dataset.s;
         var key=r+':'+s;
+        var isSel=selected.some(function(c){return ccCardKey(c)===key;});
         // 既に使用済みで未選択の場合は無視
-        if(ccUsedCards[key]&&!selected.some(function(c){return ccCardKey(c)===key;})) return;
+        if(ccUsedCards[key]&&!isSel) return;
         // 既に選択済みなら解除
-        var existIdx=-1;
-        selected.forEach(function(c,i){if(ccCardKey(c)===key)existIdx=i;});
-        if(existIdx>=0){
-          selected.splice(existIdx,1);
+        if(isSel){
+          var existIdx=-1;
+          selected.forEach(function(c,i){if(ccCardKey(c)===key)existIdx=i;});
+          if(existIdx>=0) selected.splice(existIdx,1);
           renderGrid();return;
         }
         // 上限チェック
@@ -3882,6 +3885,9 @@ function ccShowCardPicker(title,subtitle,count,cb,opts){
   // 確定ボタン
   confirmBtn.onclick=function(){
     if(selected.length!==count) return;
+    // 確認ダイアログ
+    var names=selected.map(function(c){return c.r+c.s;}).join(', ');
+    if(!confirm('選択したカード: '+names+'\nこれでよろしいですか？')) return;
     // 使用済みに登録
     selected.forEach(function(c){ccUsedCards[ccCardKey(c)]=true;});
     picker.style.display='none';
@@ -4020,7 +4026,14 @@ function ccAutoShowdownEval(notFolded){
   var cont=[];
   notFolded.forEach(function(p){
     var idx=cc.players.indexOf(p);
-    var best=evalHand((p.hole||[]).concat(ccCommunity));
+    var cards=(p.hole||[]).concat(ccCommunity);
+    var best;
+    if(cards.length>=5){
+      best=evalHand(cards);
+    }else{
+      // カード不足時のフォールバック（ランク最低）
+      best={score:{rank:0,hi:[0,0,0,0,0]},cards:cards,name:'ハイカード'};
+    }
     cont.push({idx:idx,name:p.name,hole:p.hole||[],best:best,totalBet:p.totalBet,chips:p.chips,allIn:p.allIn});
   });
   // ハンド強さでソート
@@ -4035,6 +4048,8 @@ function ccAutoShowdownEval(notFolded){
   sidePots.forEach(function(sp,pi){
     // このポットのeligibleプレイヤーからベストハンドを探す
     var eligible=cont.filter(function(c){return sp.eligible.indexOf(c.idx)>=0;});
+    // eligibleが空の場合（全員フォールド等）→ 残存プレイヤー全員に分配
+    if(eligible.length===0) eligible=cont.slice();
     if(eligible.length===0) return;
     var topSc=eligible[0].best.score;
     var winners=eligible.filter(function(c){return cmpSc(c.best.score,topSc)===0;});
@@ -4902,7 +4917,7 @@ function ccPushState(uiMode,extra){
   var ps=cc.players.map(function(p){
     return {name:p.name,chips:p.chips,bet:p.bet,totalBet:p.totalBet,folded:p.folded,allIn:p.allIn,eliminated:p.eliminated,rebuyCount:p.rebuyCount,startChips:p.startChips,_roundStartChips:p._roundStartChips,pid:p.pid};
   });
-  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[]};
+  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[],usedCards:ccUsedCards||{}};
   // カードモードの結果時: 全プレイヤーの手札を公開
   if(cc.cardMode&&(uiMode==='result'||uiMode==='showdown')){
     var reveal={};
@@ -4964,6 +4979,8 @@ function ccOnState(st){
   var sa=st.streetActions;
   if(sa&&typeof sa==='object'&&!Array.isArray(sa)) sa=Object.keys(sa).sort(function(a,b){return (+a)-(+b);}).map(function(k){return sa[k];});
   cc._streetActions=sa||[];
+  // 使用済みカード同期
+  if(st.usedCards) ccUsedCards=st.usedCards;
   // コミュニティカード同期
   var comm=st.community;
   if(comm&&typeof comm==='object'&&!Array.isArray(comm)) comm=Object.keys(comm).sort(function(a,b){return (+a)-(+b);}).map(function(k){return comm[k];});
@@ -5003,7 +5020,7 @@ function ccOnState(st){
     if(cc.curIdx>=0&&cc.players[cc.curIdx]){turnInfo.textContent=cc.players[cc.curIdx].name+' ALL IN';turnInfo.style.display='block';}
   }else if(mode==='deal'&&cc.cardMode){
     // カード選択モード: 非ホストがまだカードを選んでいない場合のみ表示
-    if(!cc._dealSent){
+    if(!cc._dealSent&&ccMyIdx>=0&&cc.players[ccMyIdx]){
       var myP=cc.players[ccMyIdx];
       if(!myP.eliminated){
         // カードピッカーが既に表示されている場合は再表示しない
@@ -5034,6 +5051,7 @@ function ccOnState(st){
 
 // 非ホスト用アクションパネル表示
 function ccShowAP_online(){
+  if(ccMyIdx<0||!cc.players[ccMyIdx]) return;
   var ap=document.getElementById('cc-ap');
   ap.style.display='block';
   document.getElementById('cc-action-btns').style.display='flex';
@@ -5212,6 +5230,8 @@ function ccOnlineCleanup(){
           var comm=st.community;
           if(comm&&typeof comm==='object'&&!Array.isArray(comm)) comm=Object.keys(comm).sort(function(a,b){return (+a)-(+b);}).map(function(k){return comm[k];});
           ccCommunity=comm||[];
+          // 使用済みカード復元
+          if(st.usedCards) ccUsedCards=st.usedCards;
           // ストリートアクション復元
           var sa=st.streetActions;
           if(sa&&typeof sa==='object'&&!Array.isArray(sa)) sa=Object.keys(sa).sort(function(a,b){return (+a)-(+b);}).map(function(k){return sa[k];});
