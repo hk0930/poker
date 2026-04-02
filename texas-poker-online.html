@@ -196,7 +196,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.01.27-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.28-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -452,7 +452,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <button id="cc-undo-btn" style="display:none;padding:6px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">↩ UNDO</button>
   </div>
   <!-- 円卓エリア -->
-  <div id="cc-table-wrap" style="width:100%;max-width:700px;margin:0 auto 6px;position:relative;">
+  <div id="cc-table-wrap" style="width:100%;max-width:700px;margin:0 auto 6px;position:relative;overflow:visible;padding:0 8px;box-sizing:border-box;">
     <!-- テーブル外枠（木目リム） -->
     <div id="cc-table-rim" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62%;min-width:220px;aspect-ratio:1.4/1;background:linear-gradient(145deg,#5a3a1a,#3d2510,#6b4420,#3d2510);border-radius:50%;box-shadow:0 6px 30px rgba(0,0,0,.6),0 0 0 3px rgba(201,168,76,.5),0 0 0 6px rgba(0,0,0,.3);z-index:0;"></div>
     <!-- テーブルフェルト（内側の緑部分） -->
@@ -466,7 +466,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <div id="cc-seats"></div>
   </div>
   <!-- ターン情報 -->
-  <div id="cc-turn-info" style="width:100%;max-width:700px;margin:0 auto 6px;text-align:center;font-family:Cinzel,serif;font-size:12px;color:#4af;letter-spacing:1px;padding:8px 12px;background:linear-gradient(135deg,rgba(0,40,80,.4),rgba(0,20,60,.5));border:1px solid rgba(0,150,255,.25);border-radius:10px;"></div>
+  <div id="cc-turn-info" style="width:100%;max-width:700px;margin:8px auto 6px;text-align:center;font-family:Cinzel,serif;font-size:12px;color:#4af;letter-spacing:1px;padding:8px 12px;background:linear-gradient(135deg,rgba(0,40,80,.4),rgba(0,20,60,.5));border:1px solid rgba(0,150,255,.25);border-radius:10px;position:relative;z-index:3;"></div>
   <!-- アクションパネル -->
   <div id="cc-ap" style="display:none;width:100%;max-width:700px;margin:0 auto;background:rgba(0,0,0,.45);border:1px solid rgba(201,168,76,.2);border-radius:14px;padding:12px;">
     <!-- チップセレクター -->
@@ -3308,6 +3308,7 @@ function ccStartRound(){
   }else{
     cc.curIdx=ccNextActive(bbIdx);
   }
+  ccPlayCardSound();
   ccRenderAll();
   ccShowAP();
 }
@@ -3334,18 +3335,18 @@ function ccRenderAll(){
   var wrap=document.getElementById('cc-table-wrap');
   var n=cc.players.length;
   // テーブルサイズを人数に応じて調整（シートが下のUIに被らない様に余裕を持たせる）
-  var tableH=n<=2?300:n<=3?340:n<=4?380:n<=5?410:440;
+  var tableH=n<=2?310:n<=3?350:n<=4?390:n<=5?420:450;
   wrap.style.height=tableH+'px';
   var html='';
   // SB/BBはラウンド開始時に保存した値を使用（全フェーズで表示）
   var sbIdx=(typeof cc._sbIdx!=='undefined')?cc._sbIdx:ccNextActive2(cc.dealerIdx);
   var bbIdx=(typeof cc._bbIdx!=='undefined')?cc._bbIdx:ccNextActive2(sbIdx);
-  // 楕円の半径（人数に応じて調整）
-  var rx=n<=3?40:44;
+  // 楕円の半径（人数に応じて調整、左右が見切れないよう制限）
+  var rx=n<=3?38:n<=4?40:42;
   var ry=n<=3?38:42;
   var cx=50,cy=50;
   // シートの幅を人数に応じて調整
-  var seatW=n<=3?108:n<=4?100:92;
+  var seatW=n<=3?104:n<=4?96:88;
   cc.players.forEach(function(p,i){
     // 時計回り: 12時(top)から開始
     var angleDeg=-90+(i*(360/n));
@@ -3432,6 +3433,15 @@ function ccShowAP(){
       bbNeedsOption=true;
     }
   }
+  // オールイン対決: アクション可能が1人以下で、対戦相手が全員オールインの場合→自動進行
+  var allinCount=notFolded.filter(function(p){return p.allIn;}).length;
+  if(canAct.length<=1&&allinCount>0&&notFolded.length>=2){
+    // 残り1人もベットが合っている or 全員オールイン→ショーダウンまで自動進行
+    var soleP=canAct.length===1?canAct[0]:null;
+    if(!soleP||soleP.bet>=cc.curBet||canAct.length===0){
+      cc.phase=4;ccRenderAll();ccShowShowdown();return;
+    }
+  }
   if(canAct.length===0||(!bbNeedsOption&&allActed&&allMatched)){
     // street complete
     if(cc.phase>=3||canAct.length===0){
@@ -3507,15 +3517,18 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
     if(cc.phase===0&&cc.curIdx===cc._bbIdx) cc._bbActed=true;
     if(act==='fold'){
       p.folded=true;
+      ccShowActionToast(p.name,'fold',0);
       ccAdvance();
     }else if(act==='check'){
       if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
+      ccShowActionToast(p.name,'check',0);
       ccAdvance();
     }else if(act==='call'){
       var callAmt=Math.min(cc.curBet-p.bet,p.chips);
       p.chips-=callAmt;p.bet+=callAmt;p.totalBet+=callAmt;cc.pot+=callAmt;
       if(p.chips===0)p.allIn=true;
       if(cc.acts.indexOf(cc.curIdx)<0) cc.acts.push(cc.curIdx);
+      ccShowActionToast(p.name,'call',callAmt);
       ccAdvance();
     }else if(act==='raise'){
       var totalRaise=snap5(cc.raiseAmount);
@@ -3541,6 +3554,7 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
         if(p.chips===0)p.allIn=true;
         cc.acts=[cc.curIdx];
       }
+      ccShowActionToast(p.name,'raise',newBet);
       ccAdvance();
     }else if(act==='allin'){
       var allAmt=p.chips;
@@ -3573,6 +3587,56 @@ document.querySelector('.cc-chip-clr').addEventListener('click',function(){
   cc.raiseAmount=0;
   document.getElementById('cc-bet-display').textContent='0';
 });
+
+// カードオープン音（Web Audio API）
+var _ccAudioCtx=null;
+function ccPlayCardSound(){
+  try{
+    if(!_ccAudioCtx) _ccAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    var ctx=_ccAudioCtx;
+    var t=ctx.currentTime;
+    // カードめくり音: 短いノイズバースト + 軽いクリック
+    var dur=0.08;
+    var buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+    var data=buf.getChannelData(0);
+    for(var i=0;i<data.length;i++){
+      var env=1-i/data.length;
+      data[i]=(Math.random()*2-1)*env*env*0.3;
+    }
+    var src=ctx.createBufferSource();
+    src.buffer=buf;
+    var filt=ctx.createBiquadFilter();
+    filt.type='bandpass';filt.frequency.value=3000;filt.Q.value=1.5;
+    var gain=ctx.createGain();
+    gain.gain.setValueAtTime(0.4,t);
+    gain.gain.exponentialRampToValueAtTime(0.01,t+dur);
+    src.connect(filt);filt.connect(gain);gain.connect(ctx.destination);
+    src.start(t);src.stop(t+dur);
+  }catch(e){}
+}
+
+// 最後のアクション情報（オンライン同期用）
+var ccLastAction=null;
+
+// アクション通知トースト
+function ccShowActionToast(name,action,amount){
+  ccLastAction={name:name,action:action,amount:amount||0};
+  var msg=name+': ';
+  var color='#4af';
+  if(action==='fold'){msg+='FOLD';color='#f88';}
+  else if(action==='check'){msg+='CHECK ✓';color='#adf';}
+  else if(action==='call'){msg+='CALL '+amount;color='#afd';}
+  else if(action==='raise'){msg+='RAISE → '+amount;color='var(--gold-light)';}
+  else if(action==='allin'){msg+='ALL IN '+amount;color='#ff6060';}
+  else{msg+=action;}
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1100;padding:8px 20px;background:rgba(0,0,0,.85);border:1px solid '+color+';border-radius:10px;font-family:Cinzel,serif;font-size:13px;color:'+color+';letter-spacing:2px;pointer-events:none;opacity:0;transition:opacity .3s,top .3s;white-space:nowrap;text-shadow:0 0 8px '+color+';';
+  toast.textContent=msg;
+  document.body.appendChild(toast);
+  setTimeout(function(){toast.style.opacity='1';toast.style.top='20px';},30);
+  setTimeout(function(){toast.style.opacity='0';toast.style.top='8px';},1800);
+  setTimeout(function(){if(toast.parentNode)toast.parentNode.removeChild(toast);},2200);
+}
 
 // ALL INエフェクト（オンライン版と同様の演出）
 function ccShowAllinEffect(name,amount,cb){
@@ -3635,6 +3699,7 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
   if(ccIsOnline&&!ccIsHost) return;
   ccSaveState();
   cc.phase++;
+  ccPlayCardSound();
   cc.players.forEach(function(p){p.bet=0;});
   cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];
   // フロップ以降: ディーラーの次のアクティブプレイヤーから開始（全人数共通）
@@ -3689,6 +3754,7 @@ function ccShowResult(html){
 
 function ccShowShowdown(){
   cc.roundActive=false;
+  ccPlayCardSound();
   var sd=document.getElementById('cc-showdown');
   var list=document.getElementById('cc-winner-list');
   document.getElementById('cc-turn-info').style.display='none';
@@ -4226,7 +4292,7 @@ function ccPushState(uiMode,extra){
   var ps=cc.players.map(function(p){
     return {name:p.name,chips:p.chips,bet:p.bet,totalBet:p.totalBet,folded:p.folded,allIn:p.allIn,eliminated:p.eliminated,rebuyCount:p.rebuyCount,startChips:p.startChips,_roundStartChips:p._roundStartChips,pid:p.pid};
   });
-  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null};
+  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null};
   if(extra){Object.keys(extra).forEach(function(k){st[k]=extra[k];});}
   fbSet(ccGamePath+'/state',st);
 }
@@ -4249,6 +4315,15 @@ function ccOnState(st){
   });
   cc.phase=st.phase;cc.pot=st.pot;cc.curBet=st.curBet;cc.curIdx=st.curIdx;cc.dealerIdx=st.dealerIdx;
   cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;
+  // アクション通知（非ホスト側で表示）
+  if(st.lastAction&&st.lastAction.name){
+    var la=st.lastAction;
+    var laKey=la.name+'_'+la.action+'_'+la.amount;
+    if(laKey!==cc._lastShownAction){
+      cc._lastShownAction=laKey;
+      ccShowActionToast(la.name,la.action,la.amount);
+    }
+  }
   // Firebaseは空配列をnullで返す→ガード
   var acts=st.acts;
   if(acts&&typeof acts==='object'&&!Array.isArray(acts)) acts=Object.keys(acts).map(function(k){return acts[k];});
@@ -4342,14 +4417,15 @@ function ccProcessAction(type,amount){
   ccSaveState();
   var p=cc.players[cc.curIdx];
   if(cc.phase===0&&cc.curIdx===cc._bbIdx) cc._bbActed=true;
-  if(type==='fold'){p.folded=true;ccAdvance();}
-  else if(type==='check'){if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);ccAdvance();}
-  else if(type==='call'){var ca=Math.min(cc.curBet-p.bet,p.chips);p.chips-=ca;p.bet+=ca;p.totalBet+=ca;cc.pot+=ca;if(p.chips===0)p.allIn=true;if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);ccAdvance();}
+  if(type==='fold'){p.folded=true;ccShowActionToast(p.name,'fold',0);ccAdvance();}
+  else if(type==='check'){if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);ccShowActionToast(p.name,'check',0);ccAdvance();}
+  else if(type==='call'){var ca=Math.min(cc.curBet-p.bet,p.chips);p.chips-=ca;p.bet+=ca;p.totalBet+=ca;cc.pot+=ca;if(p.chips===0)p.allIn=true;if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);ccShowActionToast(p.name,'call',ca);ccAdvance();}
   else if(type==='raise'){
     var tr=snap5(amount);if(tr<=0)return;var mr=cc.curBet+cc.lastRaise;if(tr<mr&&tr<p.bet+p.chips)return;
     var add=tr-p.bet;if(add<=0)return;if(add>p.chips)add=p.chips;var nb=p.bet+add;
     if(nb<=cc.curBet){p.chips-=add;p.bet=nb;p.totalBet+=add;cc.pot+=add;if(p.chips===0)p.allIn=true;if(cc.acts.indexOf(cc.curIdx)<0)cc.acts.push(cc.curIdx);}
     else{cc.lastRaise=Math.max(cc.lastRaise,nb-cc.curBet);p.chips-=add;p.bet=nb;p.totalBet+=add;cc.pot+=add;cc.curBet=nb;if(p.chips===0)p.allIn=true;cc.acts=[cc.curIdx];}
+    ccShowActionToast(p.name,'raise',nb);
     ccAdvance();
   }
   else if(type==='allin'){
