@@ -202,7 +202,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.37-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.38-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -4854,6 +4854,16 @@ document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
   ccRoomCode=code;ccRoomPath='ccrooms/'+ccRoomCode;ccGamePath=ccRoomPath+'/game';ccMyPid=myId;ccIsHost=false;
   fbGet(ccRoomPath,function(data){
     if(!data){alert('ルームが見つかりません');return;}
+    if(data.status==='started'){
+      // 既に開始済み→既存プレイヤーなら再接続
+      var pdata=data.players||{};
+      if(pdata[myId]){
+        ccIsHost=false;ccIsOnline=true;
+        ccEnterStartedGame();
+        return;
+      }
+      alert('ゲームは既に開始されています');return;
+    }
     if(data.status!=='waiting'){alert('ゲームは既に開始されています');return;}
     var pdata=data.players||{};
     var count=Object.keys(pdata).length;
@@ -4869,6 +4879,17 @@ document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
       document.getElementById('cc-ol-wait').style.display='block';
       ccWatchLobbyPlayers();
       ccWatchForStart();
+      // フォールバック: リスナーが作動しない場合に定期的にステータスを確認
+      cc._lobbyPollTimer=setInterval(function(){
+        fbGet(ccRoomPath+'/status',function(s){
+          if(s==='started'){
+            clearInterval(cc._lobbyPollTimer);cc._lobbyPollTimer=null;
+            fbOff(ccRoomPath+'/status');
+            fbOff(ccRoomPath+'/players');
+            ccEnterStartedGame();
+          }
+        });
+      },5000);
     });
   });
 });
@@ -4944,44 +4965,66 @@ function ccReorderPlayer(pid,dir,pids,data){
 function ccWatchForStart(){
   fbListen(ccRoomPath+'/status',function(status){
     if(status==='started'){
+      if(cc._lobbyPollTimer){clearInterval(cc._lobbyPollTimer);cc._lobbyPollTimer=null;}
       fbOff(ccRoomPath+'/status');
       fbOff(ccRoomPath+'/players');
-      fbGet(ccRoomPath,function(data){
-        if(!data) return;
-        ccIsOnline=true;
-        var s=data.settings||{};
-        cc.sbAmt=s.sb||5;cc.bbAmt=s.bb||10;cc.initialChips=s.chips||500;cc.cardMode=!!s.cardMode;
-        var pdata=data.players||{};
-        var pids=Object.keys(pdata);
-        pids.sort(function(a,b){return (pdata[a].idx||0)-(pdata[b].idx||0);});
-        cc.players=[];
-        pids.forEach(function(pid,i){
-          var pChips=snap5(pdata[pid].customChips)||cc.initialChips;
-          cc.players.push({name:pdata[pid].name,chips:pChips,startChips:pChips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:pChips});
-          if(pid===myId) ccMyIdx=i;
-        });
-        cc.dealerIdx=0;cc.roundNum=0;
-        ccSaveSession();
-        showScreen('screen-chipcalc');
-        ccRenderAll(); // 初期テーブル描画
-        fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
-        // ホスト退出監視
-        fbListen(ccRoomPath+'/status',function(s){
-          if(s==='ended'){
-            fbOff(ccRoomPath+'/status');
-            alert('ホストがゲームを終了しました');
-            ccOnlineCleanup();
-            showScreen('screen-lobby');
-          }
-        });
-        // フォールバック: リスナーが作動しない場合に手動で状態取得
-        setTimeout(function(){
-          if(!cc.roundActive){
-            fbGet(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
-          }
-        },3000);
-      });
+      ccEnterStartedGame();
     }
+  });
+}
+// 非ホスト: started状態のゲームに参加
+function ccEnterStartedGame(retryCount){
+  retryCount=retryCount||0;
+  fbGet(ccRoomPath,function(data){
+    if(!data){
+      // リトライ（最大3回）
+      if(retryCount<3){
+        setTimeout(function(){ccEnterStartedGame(retryCount+1);},1000*(retryCount+1));
+      }else{
+        alert('ルームデータの取得に失敗しました。再度参加してください。');
+        ccOnlineCleanup();
+        showScreen('screen-lobby');
+      }
+      return;
+    }
+    ccIsOnline=true;
+    var s=data.settings||{};
+    cc.sbAmt=s.sb||5;cc.bbAmt=s.bb||10;cc.initialChips=s.chips||500;cc.cardMode=!!s.cardMode;
+    var pdata=data.players||{};
+    var pids=Object.keys(pdata);
+    pids.sort(function(a,b){return (pdata[a].idx||0)-(pdata[b].idx||0);});
+    cc.players=[];
+    pids.forEach(function(pid,i){
+      var pChips=snap5(pdata[pid].customChips)||cc.initialChips;
+      cc.players.push({name:pdata[pid].name,chips:pChips,startChips:pChips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:pChips});
+      if(pid===myId) ccMyIdx=i;
+    });
+    if(ccMyIdx<0){
+      alert('ルームにあなたのデータが見つかりません。再度参加してください。');
+      ccOnlineCleanup();
+      showScreen('screen-lobby');
+      return;
+    }
+    cc.dealerIdx=0;cc.roundNum=0;
+    ccSaveSession();
+    showScreen('screen-chipcalc');
+    ccRenderAll(); // 初期テーブル描画
+    fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+    // ホスト退出監視
+    fbListen(ccRoomPath+'/status',function(s){
+      if(s==='ended'){
+        fbOff(ccRoomPath+'/status');
+        alert('ホストがゲームを終了しました');
+        ccOnlineCleanup();
+        showScreen('screen-lobby');
+      }
+    });
+    // フォールバック: リスナーが作動しない場合に手動で状態取得
+    setTimeout(function(){
+      if(!cc.roundActive){
+        fbGet(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+      }
+    },3000);
   });
 }
 
@@ -5005,7 +5048,11 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     });
     cc.dealerIdx=0;cc.roundNum=0;
     fbOff(ccRoomPath+'/players');
-    fbSet(ccRoomPath+'/status','started',function(){
+    // 設定をFirebaseに同期（ホストがルーム作成後に変更した場合に非ホストが正しい値を取得）
+    var settingsPatch={};
+    settingsPatch['settings']={chips:defaultChips,sb:cc.sbAmt,bb:cc.bbAmt,cardMode:cc.cardMode};
+    settingsPatch['status']='started';
+    fbPatch(ccRoomPath,settingsPatch,function(){
       ccSaveSession();
       showScreen('screen-chipcalc');
       ccStartRound();
@@ -5259,6 +5306,7 @@ function ccStopDepartureWatch(){
 function ccOnlineCleanup(){
   ccClearSession();
   ccStopDepartureWatch();
+  if(cc._lobbyPollTimer){clearInterval(cc._lobbyPollTimer);cc._lobbyPollTimer=null;}
   if(ccIsOnline){
     fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath+'/status');fbOff(ccRoomPath);
     if(ccIsHost){
