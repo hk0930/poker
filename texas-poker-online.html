@@ -199,7 +199,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.32-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.33-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -551,10 +551,11 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <div id="cc-picker-title" style="font-family:Cinzel,serif;font-size:14px;color:var(--gold);letter-spacing:2px;text-align:center;margin-bottom:4px;"></div>
       <div id="cc-picker-subtitle" style="font-size:10px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:8px;"></div>
       <div id="cc-picker-selected" style="display:flex;justify-content:center;gap:6px;margin-bottom:10px;min-height:50px;align-items:center;"></div>
-      <div id="cc-picker-grid" style="display:grid;grid-template-columns:repeat(13,1fr);gap:2px;margin-bottom:12px;"></div>
+      <div id="cc-picker-grid" style="margin-bottom:12px;"></div>
       <div style="display:flex;justify-content:center;gap:10px;">
         <button id="cc-picker-confirm" class="btn" style="padding:10px 30px;" disabled>確定</button>
         <button id="cc-picker-clear" style="padding:10px 20px;background:rgba(200,50,50,.2);border:1px solid rgba(220,80,80,.4);border-radius:8px;color:#f88;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">クリア</button>
+        <button id="cc-picker-cancel" style="display:none;padding:10px 20px;background:rgba(100,100,100,.2);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:11px;cursor:pointer;">キャンセル</button>
       </div>
     </div>
   </div>
@@ -3204,7 +3205,11 @@ function ccGetSavedSession(){
 }
 
 function ccSaveState(){
-  ccHistory.push(JSON.parse(JSON.stringify(cc)));
+  var snap=JSON.parse(JSON.stringify(cc));
+  // カード状態もバックアップ
+  snap._ccUsedCards=JSON.parse(JSON.stringify(ccUsedCards));
+  snap._ccCommunity=JSON.parse(JSON.stringify(ccCommunity));
+  ccHistory.push(snap);
   if(ccHistory.length>CC_MAX_HISTORY) ccHistory.shift();
   ccUpdateUndoBtn();
 }
@@ -3218,12 +3223,17 @@ function ccUndo(){
   cc.acts=prev.acts;cc.roundNum=prev.roundNum;cc.roundActive=prev.roundActive;
   cc.lastRaise=prev.lastRaise;cc.dealerIdx=prev.dealerIdx;
   cc._bbActed=prev._bbActed;cc._sbIdx=prev._sbIdx;cc._bbIdx=prev._bbIdx;cc._isHeadsUp=prev._isHeadsUp;
+  cc._streetActions=prev._streetActions||[];
   cc.players.forEach(function(p,i){
     var s=prev.players[i];
     p.chips=s.chips;p.bet=s.bet;p.totalBet=s.totalBet;
     p.folded=s.folded;p.allIn=s.allIn;p.eliminated=s.eliminated;
     p.rebuyCount=s.rebuyCount;p.startChips=s.startChips;
+    p.hole=s.hole||null;
   });
+  // カード状態復元
+  if(prev._ccUsedCards) ccUsedCards=JSON.parse(JSON.stringify(prev._ccUsedCards));
+  if(prev._ccCommunity) ccCommunity=JSON.parse(JSON.stringify(prev._ccCommunity));
   ccUpdateUndoBtn();
   ccRenderAll();
   // re-evaluate UI
@@ -3443,9 +3453,15 @@ function ccRenderAll(){
     else if(p.folded) html+='<div style="font-size:8px;color:#f88;">FOLD</div>';
     else if(p.allIn) html+='<div class="sst-allin" style="font-size:8px;">ALL IN</div>';
     else html+='<div style="min-height:10px;"></div>';
-    // カードモード: カード裏面表示（手札がある場合）
+    // カードモード: 手札表示
     if(cc.cardMode&&p.hole&&p.hole.length===2&&!p.folded){
-      html+='<div style="display:flex;gap:1px;justify-content:center;margin-top:2px;transform:scale(.55);margin-bottom:-10px;">'+cH(null,true)+cH(null,true)+'</div>';
+      var showFace=(ccIsOnline&&i===ccMyIdx)||(cc.phase===4);
+      if(!ccIsOnline) showFace=false; // オフラインは常に裏面（他プレイヤーに見えるため）
+      if(showFace){
+        html+='<div style="display:flex;gap:1px;justify-content:center;margin-top:2px;transform:scale(.55);margin-bottom:-10px;">'+cH(p.hole[0],true)+cH(p.hole[1],true)+'</div>';
+      }else{
+        html+='<div style="display:flex;gap:1px;justify-content:center;margin-top:2px;transform:scale(.55);margin-bottom:-10px;">'+cH(null,true)+cH(null,true)+'</div>';
+      }
     }
     html+='</div>';
   });
@@ -3789,28 +3805,44 @@ function ccCardKey(c){return c.r+':'+c.s;}
 
 // カードピッカーを表示
 // title: タイトル, count: 選択枚数, cb: function(selectedCards), cancelCb: optional
-function ccShowCardPicker(title,subtitle,count,cb){
+// opts: {cancelable:bool, cancelCb:function}
+function ccShowCardPicker(title,subtitle,count,cb,opts){
+  opts=opts||{};
   var picker=document.getElementById('cc-card-picker');
   var grid=document.getElementById('cc-picker-grid');
   var selEl=document.getElementById('cc-picker-selected');
   var confirmBtn=document.getElementById('cc-picker-confirm');
+  var cancelBtn=document.getElementById('cc-picker-cancel');
   document.getElementById('cc-picker-title').textContent=title;
   document.getElementById('cc-picker-subtitle').textContent=subtitle||count+'枚のカードを選択してください';
+  // キャンセルボタン制御
+  if(cancelBtn){
+    cancelBtn.style.display=opts.cancelable?'':'none';
+    cancelBtn.onclick=function(){
+      picker.style.display='none';
+      if(opts.cancelCb) opts.cancelCb();
+    };
+  }
   var selected=[];
   function renderGrid(){
     var html='';
-    // スートごとに行を表示
+    // スートごとに行を表示（スートラベル付き）
+    var suitColors={'♠':'rgba(255,255,255,.7)','♥':'#e55','♦':'#48f','♣':'rgba(255,255,255,.7)'};
     SUITS.forEach(function(s){
+      html+='<div style="margin-bottom:6px;">';
+      html+='<div style="font-size:14px;color:'+suitColors[s]+';margin-bottom:2px;text-align:center;">'+s+'</div>';
+      html+='<div style="display:grid;grid-template-columns:repeat(13,1fr);gap:1px;">';
       RANKS.forEach(function(r){
         var card={r:r,s:s};
         var key=ccCardKey(card);
         var used=ccUsedCards[key];
         var isSel=selected.some(function(c){return ccCardKey(c)===key;});
         var dis=used&&!isSel;
-        var style='cursor:'+(dis?'not-allowed':'pointer')+';opacity:'+(dis?'.15':'1')+';';
-        if(isSel) style+='outline:2px solid var(--gold);outline-offset:1px;border-radius:3px;background:rgba(201,168,76,.15);';
+        var style='cursor:'+(dis?'not-allowed':'pointer')+';opacity:'+(dis?'.15':'1')+';touch-action:manipulation;';
+        if(isSel) style+='outline:2px solid var(--gold);outline-offset:0px;border-radius:3px;background:rgba(201,168,76,.2);';
         html+='<div class="cc-pick-card" data-r="'+r+'" data-s="'+s+'" style="'+style+'">'+cH(card,true)+'</div>';
       });
+      html+='</div></div>';
     });
     grid.innerHTML=html;
     // 選択済みカード表示
@@ -3869,6 +3901,7 @@ function ccDealCards(playerIndices,idx,cb){
     2,
     function(cards){
       p.hole=cards;
+      ccPlayCardSound();
       // 次のプレイヤーへ — プライバシー画面を挟む
       if(idx<playerIndices.length-1){
         ccShowPrivacyScreen(cc.players[playerIndices[idx+1]].name,function(){
@@ -4053,6 +4086,7 @@ function ccAutoShowdownEval(notFolded){
     html+='</div>';
     // 獲得チップ
     if(isWinner) html+='<div style="font-size:12px;color:#afd;font-weight:700;min-width:50px;text-align:right;">+'+awards[c.idx]+'</div>';
+    else if(!c.allIn) html+='<div style="font-size:11px;color:#f88;min-width:50px;text-align:right;">-'+(c.totalBet||0)+'</div>';
     html+='</div>';
   });
   html+='</div>';
@@ -4219,6 +4253,7 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
     var pName=PHASE_NAMES[cc.phase];
     ccPickCommunityCards(pName,cardCount,function(){
       ccRenderAll();
+      if(ccIsOnline&&ccIsHost) ccPushState('action');
       ccShowAP();
     });
   }else{
@@ -4867,7 +4902,15 @@ function ccPushState(uiMode,extra){
   var ps=cc.players.map(function(p){
     return {name:p.name,chips:p.chips,bet:p.bet,totalBet:p.totalBet,folded:p.folded,allIn:p.allIn,eliminated:p.eliminated,rebuyCount:p.rebuyCount,startChips:p.startChips,_roundStartChips:p._roundStartChips,pid:p.pid};
   });
-  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[]};
+  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[]};
+  // カードモードの結果時: 全プレイヤーの手札を公開
+  if(cc.cardMode&&(uiMode==='result'||uiMode==='showdown')){
+    var reveal={};
+    cc.players.forEach(function(p,i){
+      if(!p.eliminated&&!p.folded&&p.hole) reveal[i]=p.hole;
+    });
+    st.reveal=reveal;
+  }
   if(extra){Object.keys(extra).forEach(function(k){st[k]=extra[k];});}
   fbSet(ccGamePath+'/state',st);
 }
@@ -4906,6 +4949,21 @@ function ccOnState(st){
   cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
   cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
   cc.cardMode=!!st.cardMode;
+  // カード公開情報（ショーダウン時）
+  if(st.reveal){
+    Object.keys(st.reveal).forEach(function(idx){
+      var i=+idx;
+      if(cc.players[i]){
+        var h=st.reveal[idx];
+        if(h&&typeof h==='object'&&!Array.isArray(h)) h=Object.keys(h).sort(function(a,b){return (+a)-(+b);}).map(function(k){return h[k];});
+        if(Array.isArray(h)&&h.length===2) cc.players[i].hole=h;
+      }
+    });
+  }
+  // ストリートアクション同期
+  var sa=st.streetActions;
+  if(sa&&typeof sa==='object'&&!Array.isArray(sa)) sa=Object.keys(sa).sort(function(a,b){return (+a)-(+b);}).map(function(k){return sa[k];});
+  cc._streetActions=sa||[];
   // コミュニティカード同期
   var comm=st.community;
   if(comm&&typeof comm==='object'&&!Array.isArray(comm)) comm=Object.keys(comm).sort(function(a,b){return (+a)-(+b);}).map(function(k){return comm[k];});
@@ -4946,9 +5004,10 @@ function ccOnState(st){
   }else if(mode==='deal'&&cc.cardMode){
     // カード選択モード: 非ホストがまだカードを選んでいない場合のみ表示
     if(!cc._dealSent){
-      cc._dealSent=false;
       var myP=cc.players[ccMyIdx];
       if(!myP.eliminated){
+        // カードピッカーが既に表示されている場合は再表示しない
+        if(document.getElementById('cc-card-picker').style.display==='block') return;
         ccShowCardPicker(
           myP.name+' のカードを選択',
           '自分の手札を2枚選んでください',
@@ -4959,6 +5018,7 @@ function ccOnState(st){
             var patch={};
             patch['game/holes/'+ccMyPid]=cards;
             fbPatch(ccRoomPath,patch);
+            ccShowActionToast(myP.name,'カード選択完了',0);
             turnInfo.textContent='他のプレイヤーのカード選択を待っています...';
             turnInfo.style.display='block';
           }
@@ -5147,6 +5207,15 @@ function ccOnlineCleanup(){
           cc.acts=acts||[];
           cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
           cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
+          cc.cardMode=!!st.cardMode;
+          // コミュニティカード復元
+          var comm=st.community;
+          if(comm&&typeof comm==='object'&&!Array.isArray(comm)) comm=Object.keys(comm).sort(function(a,b){return (+a)-(+b);}).map(function(k){return comm[k];});
+          ccCommunity=comm||[];
+          // ストリートアクション復元
+          var sa=st.streetActions;
+          if(sa&&typeof sa==='object'&&!Array.isArray(sa)) sa=Object.keys(sa).sort(function(a,b){return (+a)-(+b);}).map(function(k){return sa[k];});
+          cc._streetActions=sa||[];
           ccRoundId=st.rid||'';
           ccRenderAll();
           // UIモード復元
