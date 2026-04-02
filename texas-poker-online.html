@@ -202,7 +202,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.35-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.36-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3220,6 +3220,12 @@ function ccSaveState(){
 function ccUndo(){
   if(ccIsOnline&&!ccIsHost) return;
   if(ccHistory.length===0) return;
+  // カードピッカーが開いている場合は閉じる
+  var picker=document.getElementById('cc-card-picker');
+  if(picker) picker.style.display='none';
+  // アリンオーバーレイが開いている場合は閉じる
+  var allinOv=document.getElementById('cc-allin-overlay');
+  if(allinOv){allinOv.style.display='none';allinOv.innerHTML='';}
   var prev=ccHistory.pop();
   // restore cc state
   cc.phase=prev.phase;cc.pot=prev.pot;cc.curIdx=prev.curIdx;cc.curBet=prev.curBet;
@@ -3237,15 +3243,20 @@ function ccUndo(){
   // カード状態復元
   if(prev._ccUsedCards) ccUsedCards=JSON.parse(JSON.stringify(prev._ccUsedCards));
   if(prev._ccCommunity) ccCommunity=JSON.parse(JSON.stringify(prev._ccCommunity));
+  cc._pendingRebuy=0; // リバイ状態もリセット
   ccUpdateUndoBtn();
   ccRenderAll();
-  // re-evaluate UI
+  // re-evaluate UI — 全パネルをリセット
   document.getElementById('cc-ap').style.display='none';
   document.getElementById('cc-phase-btns').style.display='none';
   document.getElementById('cc-showdown').style.display='none';
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-summary').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
+  document.getElementById('cc-turn-info').style.display='none';
+  // NEXT HANDボタンのdisabled状態もリセット
+  var nb=document.getElementById('cc-next-round');
+  nb.disabled=false;nb.style.opacity='';
   if(cc.roundActive){
     if(ccIsOnline&&ccIsHost) ccStartWatchAction();
     ccShowAP();
@@ -3913,9 +3924,6 @@ function ccShowCardPicker(title,subtitle,count,cb,opts){
   // 確定ボタン
   confirmBtn.onclick=function(){
     if(selected.length!==count) return;
-    // 確認ダイアログ
-    var names=selected.map(function(c){return c.r+c.s;}).join(', ');
-    if(!confirm('選択したカード: '+names+'\nこれでよろしいですか？')) return;
     // 使用済みに登録
     selected.forEach(function(c){ccUsedCards[ccCardKey(c)]=true;});
     picker.style.display='none';
@@ -4646,6 +4654,12 @@ document.getElementById('cc-next-round').addEventListener('click',function(){
   if(cc._pendingRebuy>0) return; // リバイ確認中は進めない
   document.getElementById('cc-result').style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
+  document.getElementById('cc-turn-info').style.display='none';
+  // カードピッカー・オーバーレイが残っている場合は閉じる
+  var picker=document.getElementById('cc-card-picker');
+  if(picker) picker.style.display='none';
+  var allinOv=document.getElementById('cc-allin-overlay');
+  if(allinOv){allinOv.style.display='none';allinOv.innerHTML='';}
   ccStartRound();
   if(ccIsOnline&&ccIsHost) ccStartWatchAction();
 });
