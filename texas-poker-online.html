@@ -202,7 +202,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.02.39-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.03.40-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3244,6 +3244,7 @@ function ccUndo(){
   if(prev._ccUsedCards) ccUsedCards=JSON.parse(JSON.stringify(prev._ccUsedCards));
   if(prev._ccCommunity) ccCommunity=JSON.parse(JSON.stringify(prev._ccCommunity));
   cc._pendingRebuy=0; // リバイ状態もリセット
+  ccLastAction=null; // アクション通知もリセット（staleデータ防止）
   ccUpdateUndoBtn();
   ccRenderAll();
   // re-evaluate UI — 全パネルをリセット
@@ -3260,6 +3261,9 @@ function ccUndo(){
   if(cc.roundActive){
     if(ccIsOnline&&ccIsHost) ccStartWatchAction();
     ccShowAP();
+  }else if(ccIsOnline&&ccIsHost){
+    // ラウンド非アクティブ時もオンラインなら状態をプッシュ
+    ccPushState('action');
   }
 }
 
@@ -5161,6 +5165,11 @@ function ccOnState(st){
   var rebuyP=document.getElementById('cc-rebuy-panel');
   ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';summary.style.display='none';rebuyP.style.display='none';turnInfo.style.display='none';
   var mode=st.uiMode||'action';
+  // オーバーレイもクリア（ホストのundo時に非ホスト側に残らないように）
+  var allinOv=document.getElementById('cc-allin-overlay');
+  if(allinOv){allinOv.style.display='none';allinOv.innerHTML='';}
+  var picker=document.getElementById('cc-card-picker');
+  if(picker&&mode!=='deal') picker.style.display='none';
   if(mode==='action'){
     if(st.waitFor===ccMyPid&&cc.roundActive){
       turnInfo.textContent=cc.players[ccMyIdx].name+' のアクション（あなた）';turnInfo.style.display='block';
