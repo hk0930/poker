@@ -202,7 +202,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.03.40-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.03.41-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -1856,17 +1856,7 @@ var _lastPhase=-1, _lastCommLen=0;
 var _hostLeftDetected = false;
 var _stateEverReceived = false; // 有効なstateを一度でも受け取ったか
 var _nullStateCount = 0;        // 連続null回数
-function _dbg(msg){
-  var d=document.getElementById('_dbgbox');
-  if(!d){d=document.createElement('div');d.id='_dbgbox';
-    d.style.cssText='position:fixed;top:50px;right:4px;z-index:9999;background:rgba(0,0,0,.85);color:#0f0;font-size:7px;font-family:monospace;padding:4px 6px;border-radius:4px;max-width:220px;word-break:break-all;line-height:1.4;';
-    document.body.appendChild(d);}
-  // 最新5行を保持
-  var lines=(d.textContent||'').split('\n').filter(Boolean);
-  lines.push(msg);
-  if(lines.length>12) lines=lines.slice(-12);
-  d.textContent=lines.join('\n');
-}
+function _dbg(msg){}
 function onState(st){
   if(isHost) return;
   _dbg((st?'GOT wf='+st.waitFor+' pot='+st.pot:'NULL'));
