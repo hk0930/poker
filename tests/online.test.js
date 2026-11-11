@@ -212,3 +212,142 @@ test('オンライン(3人): 全員の端末で同じ状態が見える', async 
   for (const p of [g1, g2]) await waitSynced(p, { pot: 30, curIdx: (await h.state(host)).curIdx, phase: 0 });
   await finish(room);
 });
+
+// ─── ホスト引き継ぎ ───
+
+const conserved = (page) => page.evaluate(() => window.__cc.totalChips() === window.__cc.totalStart());
+const takeoverShown = (page, timeout = 6000) =>
+  page.waitForSelector('#cc-takeover', { state: 'visible', timeout });
+
+test('引き継ぎ: ホストの端末が落ちたら参加者が引き継いで続けられる', async () => {
+  const room = await setupRoom({ guests: 2 });
+  const [host, g1, g2] = room.all;
+  await waitMyTurn(host);
+  await h.act(host, 'call'); // ディーラー(ホスト)がコール → SB(ゲスト1)の手番
+  await waitMyTurn(g1);
+  await host.context().close(); // ホストの端末が落ちる
+  await takeoverShown(g1);
+  await takeoverShown(g2);
+  await g1.click('#cc-takeover-btn');
+  await g1.waitForFunction(() => window.__cc.isHost === true);
+  await g2.waitForSelector('#cc-takeover', { state: 'hidden' });
+  // 旧ホストはこのハンドをフォールド扱い。ゲスト1の手番から再開
+  let s = await h.state(g1);
+  assert.equal(s.players[0].folded, true);
+  assert.equal(s.curIdx, 1);
+  await waitMyTurn(g1);
+  await h.act(g1, 'call');
+  await waitMyTurn(g2);
+  await h.act(g2, 'check');
+  await g1.waitForSelector('#cc-next-phase', { state: 'visible' });
+  s = await h.state(g1);
+  assert.equal(s.pot, 30);
+  assert.ok(await conserved(g1));
+  // 参加者(ゲスト2)にも新ホストの状態が届く
+  await waitSynced(g2, { pot: 30, curIdx: s.curIdx, phase: 0 });
+  for (const p of [g1, g2]) assert.deepEqual(p.errors, []);
+  await g1.context().close();
+  await g2.context().close();
+});
+
+test('引き継ぎ: ホストが「ロビーへ」で抜けたらすぐに引き継ぎを案内する', async () => {
+  const room = await setupRoom({ guests: 2 });
+  const [host, g1, g2] = room.all;
+  await waitMyTurn(host);
+  await host.click('#cc-btn-lobby');
+  await takeoverShown(g1, 1500); // 生存信号の途絶を待たずに出る
+  assert.equal(await g1.textContent('#cc-takeover-title'), 'ホストが退出しました');
+  await g2.click('#cc-takeover-btn');
+  await g2.waitForFunction(() => window.__cc.isHost === true);
+  // 旧ホストの手番だったので自動でフォールドされ、次の人(ゲスト1)の手番
+  await waitMyTurn(g1);
+  await h.act(g1, 'fold');
+  await g2.waitForSelector('#cc-result', { state: 'visible' });
+  assert.ok(await conserved(g2));
+  for (const p of room.all) assert.deepEqual(p.errors, []);
+  for (const p of room.all) await p.context().close();
+});
+
+test('引き継ぎ: 旧ホストが戻ると参加者になり、次のハンドから参加できる', async () => {
+  const room = await setupRoom({ guests: 2 });
+  const [host, g1, g2] = room.all;
+  await waitMyTurn(host);
+  await h.act(host, 'call');
+  await waitMyTurn(g1);
+  await host.evaluate(() => window.__cc.stopHostBeat()); // スリープ相当
+  await takeoverShown(g1);
+  await g1.click('#cc-takeover-btn');
+  // 旧ホストは自動で参加者に切り替わる
+  await host.waitForFunction(() => window.__cc.isHost === false, null, { timeout: 5000 });
+  assert.ok(!(await h.visible(host, '#cc-undo-btn')));
+  // このハンドを終わらせて次へ
+  await waitMyTurn(g1);
+  await h.act(g1, 'fold');
+  await g1.waitForSelector('#cc-result', { state: 'visible' });
+  await h.nextHand(g1);
+  // 旧ホストに手番が来るまで進める（フォールド扱いにならないこと）
+  let reached = false;
+  for (let i = 0; i < 6 && !reached; i++) {
+    await g1.waitForTimeout(700);
+    for (const p of [host, g1, g2]) {
+      if (await p.evaluate(() => document.getElementById('cc-ap').style.display === 'block')) {
+        if (p === host) { reached = true; break; }
+        const s = await h.state(p);
+        const me = s.players[s.curIdx];
+        await h.act(p, me && me.bet >= s.curBet ? 'check' : 'call');
+        break;
+      }
+    }
+  }
+  assert.ok(reached, '旧ホストにアクションの番が回ってくる');
+  const hs = await h.state(host);
+  await h.act(host, hs.players[0].bet >= hs.curBet ? 'check' : 'call');
+  await g1.waitForTimeout(500);
+  const s = await h.state(g1);
+  assert.equal(s.players[0].folded, false);
+  assert.ok(await conserved(g1));
+  for (const p of room.all) assert.deepEqual(p.errors, []);
+  for (const p of room.all) await p.context().close();
+});
+
+test('引き継ぎ(カード入力): 引き継いだホストが手札を使って自動判定できる', async () => {
+  const room = await setupRoom({ guests: 2, cardMode: true });
+  const [host, g1, g2] = room.all;
+  await h.pickCards(host, ['2♣', '7♦']);
+  await h.pickCards(g1, ['A♠', 'A♥']);
+  await h.pickCards(g2, ['K♠', 'K♥']);
+  await waitMyTurn(host);
+  await h.act(host, 'call');
+  await waitMyTurn(g1);
+  await host.context().close();
+  await takeoverShown(g2);
+  await g2.click('#cc-takeover-btn');
+  await g2.waitForFunction(() => window.__cc.isHost === true);
+  await waitMyTurn(g1);
+  await h.act(g1, 'call');
+  await waitMyTurn(g2);
+  await h.act(g2, 'check');
+  for (const b of [['9♣', '5♦', '3♠'], ['J♦'], ['4♣']]) {
+    await h.nextPhase(g2);
+    await h.pickCards(g2, b);
+    await waitMyTurn(g1);
+    await h.act(g1, 'check');
+    await waitMyTurn(g2);
+    await h.act(g2, 'check');
+  }
+  await g2.waitForSelector('#cc-result', { state: 'visible' });
+  const s = await h.state(g2);
+  assert.equal(s.players[1].chips, 520, 'AAのゲスト1が勝つ');
+  assert.ok(await conserved(g2));
+  for (const p of [g1, g2]) assert.deepEqual(p.errors, []);
+  await g1.context().close();
+  await g2.context().close();
+});
+
+test('引き継ぎ: ホストが生きている間は引き継ぎ案内が出ない', async () => {
+  const room = await setupRoom();
+  const g = room.guests[0];
+  await g.waitForTimeout(4000); // 判定時間(2.5秒)より長く待つ
+  assert.ok(!(await h.visible(g, '#cc-takeover')));
+  await finish(room);
+});

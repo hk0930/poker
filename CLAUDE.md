@@ -34,6 +34,13 @@
 - 効果音: `ccPlayActionSound(action)` / `ccPlayCardSound()`。オン/オフは `cc_sound`（localStorage）
 - 画面スリープ防止: `showScreen()` でロビー以外なら `noSleepOn()`、ロビーで `noSleepOff()`。アプリ復帰時とタップ時に再取得
 - `tests/resume.test.js` — 自動保存と再開
+- ホスト引き継ぎ（各自の端末モード）: ホストは `ccStartHostBeat()` で `ccrooms/{code}/hostBeat` を定期更新。参加者は `ccStartHostWatch()` で値の変化を自分の時計で監視し、途絶（15秒）か `hostLeft` で引き継ぎ画面を出す
+  - 引き継ぎ: `ccClaimHost()` → 旧ホストの `departed` を書いてから `hostId` を書く（この順序が重要）→ `ccBecomeHost()` が `game/state` と `game/holes` から `ccApplyHostState()` → `ccResumeHostUI()`
+  - 旧ホストは `ccWatchHostId()` で交代を検知して `ccBecomeGuest()`。退出フラグを外し、次のハンドから参加
+  - ゲーム途中にホストが「ロビーへ」で抜けると `status:'ended'` ではなく `hostLeft:true`。精算後は従来どおり `ended`
+  - カード入力モードの手札 `game/holes` はハンド中は残し、次のディール開始時に消す
+  - 退出中（`departed`）のプレイヤーは手番が来たら毎ハンド自動フォールド（`ccFoldIfDeparted()`）
+  - `?test=1` では判定時間を短縮（生存信号0.4秒/判定2.5秒）
 
 ## アーキテクチャ
 

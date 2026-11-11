@@ -205,7 +205,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.43-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.44-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -3746,6 +3746,7 @@ function ccShowAP(){
   }
   var p=cc.players[cc.curIdx];
   if(ccIsOnline&&ccIsHost&&cc.curIdx!==ccMyIdx){
+    if(p._departed&&ccFoldIfDeparted()) return; // 退出中の人は待たずにフォールド
     turnInfo.textContent=p.name+' のアクションを待っています...';
     turnInfo.style.display='block';
     ccPushState('action');
@@ -4166,15 +4167,24 @@ function ccPickCommunityCards(phaseName,count,cb){
 
 // オンラインモードのディール: ホスト側
 function ccOnlineDealStart(){
-  // ホストに自分のカード選択を表示
+  // 前のハンドの手札を消してから配る（書き込みは順番どおり届く）
+  fbSet(ccGamePath+'/holes',null);
+  // 退出中の人には配らない（カード入力を待ち続けないように）
+  cc.players.forEach(function(p){if(p._departed&&!p.eliminated&&p.pid!==ccMyPid) p.folded=true;});
+  ccRenderAll();
   ccPushState('deal');
+  ccHostPickOwnCards();
+}
+// ホスト自身の手札入力（引き継ぎ時にも使う）
+function ccHostPickOwnCards(){
   ccShowCardPicker(
     cc.players[ccMyIdx].name+' のカードを選択',
     '自分の手札を2枚選んでください',
     2,
     function(cards){
       cc.players[ccMyIdx].hole=cards;
-      // 非ホストのカード送信を監視
+      // ホストが落ちても引き継げるよう自分の手札も保存しておく
+      var patch={};patch['game/holes/'+ccMyPid]=cards;fbPatch(ccRoomPath,patch);
       cc._dealReceived={};
       cc._dealReceived[ccMyPid]=true;
       ccWatchDealCards();
@@ -4190,8 +4200,9 @@ function ccWatchDealCards(){
   fbListen(ccGamePath+'/holes',function(data){
     if(!data) return;
     var allDone=true;
+    cc._dealReceived=cc._dealReceived||{};
     cc.players.forEach(function(p,i){
-      if(p.eliminated) return;
+      if(p.eliminated||p.folded) return;
       if(p.pid===ccMyPid) return; // ホスト自身は処理済み
       if(data[p.pid]){
         // カードを受信 — usedCardsに登録
@@ -4207,8 +4218,7 @@ function ccWatchDealCards(){
       }
     });
     if(allDone){
-      fbOff(ccGamePath+'/holes');
-      fbSet(ccGamePath+'/holes',null); // クリーンアップ
+      fbOff(ccGamePath+'/holes'); // 手札はハンド終了まで残す（ホスト引き継ぎ用）
       turnInfo.style.display='none';
       ccRenderAll();
       ccShowAP();
@@ -5201,11 +5211,14 @@ function ccEnterStartedGame(retryCount){
       showScreen('screen-lobby');
       return;
     }
-    cc.dealerIdx=0;cc.roundNum=0;
+    cc.dealerIdx=0;cc.roundNum=0;cc._gameOver=false;
+    cc._hostPid=data.hostId;
     ccSaveSession();
     showScreen('screen-chipcalc');
     ccRenderAll(); // 初期テーブル描画
     fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+    ccWatchHostId();
+    ccStartHostWatch();
     // ホスト退出監視
     fbListen(ccRoomPath+'/status',function(s){
       if(s==='ended'){
@@ -5248,12 +5261,15 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     var settingsPatch={};
     settingsPatch['settings']={chips:defaultChips,sb:cc.sbAmt,bb:cc.bbAmt,cardMode:cc.cardMode};
     settingsPatch['status']='started';
+    cc._gameOver=false;cc._hostPid=ccMyPid;
     fbPatch(ccRoomPath,settingsPatch,function(){
       ccSaveSession();
       showScreen('screen-chipcalc');
       ccStartRound();
       ccStartWatchAction();
       ccStartDepartureWatch();
+      ccStartHostBeat();
+      ccWatchHostId();
     });
   });
 });
@@ -5366,6 +5382,7 @@ function ccOnState(st){
     if(st.resultHtml){result.style.display='block';document.getElementById('cc-result-body').innerHTML=st.resultHtml||'';document.getElementById('cc-next-round').style.display='none';document.getElementById('cc-end-game').style.display='none';}
     turnInfo.textContent='リバイ確認中...（ホストが決定します）';turnInfo.style.display='block';
   }else if(mode==='summary'){
+    cc._gameOver=true;
     summary.style.display='block';document.getElementById('cc-summary-body').innerHTML=st.summaryHtml||'';
   }else if(mode==='allin'&&st.allinName){
     ccShowAllinEffect(st.allinName,st.allinAmount||0,function(){});
@@ -5485,32 +5502,271 @@ function ccStartDepartureWatch(){
   cc._departWatchTimer=setInterval(function(){
     if(!ccIsOnline||!ccIsHost){ccStopDepartureWatch();return;}
     cc.players.forEach(function(p){
-      if(!p.pid||p.pid===myId||p.eliminated||p.folded||p._departed) return;
+      if(!p.pid||p.pid===ccMyPid||p.eliminated) return;
       fbGet(ccRoomPath+'/players/'+p.pid+'/departed',function(v){
+        p._departed=!!v; // 戻ってきたら解除
         if(!v) return;
-        p._departed=true;
         // 退出プレイヤーが現在のアクションプレイヤーなら即フォールド
-        var idx=cc.players.indexOf(p);
-        if(cc.roundActive&&cc.curIdx===idx&&!p.folded){
-          p.folded=true;
-          ccAdvance();
-        }
+        ccFoldIfDeparted();
       });
     });
-  },5000);
+  },CC_TEST_MODE?500:5000);
+}
+// ホスト: 手番の人が退出中ならフォールドして進める
+function ccFoldIfDeparted(){
+  if(!ccIsHost||!cc.roundActive||cc.curIdx<0) return false;
+  var p=cc.players[cc.curIdx];
+  if(!p||!p._departed||p.folded||p.allIn||p.pid===ccMyPid) return false;
+  p.folded=true;
+  ccShowActionToast(p.name,'fold',0);
+  ccAdvance();
+  return true;
 }
 function ccStopDepartureWatch(){
   if(cc._departWatchTimer){clearInterval(cc._departWatchTimer);cc._departWatchTimer=null;}
+}
+
+// ════════════════════════════════════════
+// ホスト引き継ぎ
+// ホストは一定間隔で hostBeat を更新。参加者は更新が止まる（または hostLeft）と
+// 「ホストを引き継ぐ」を表示し、押した人が Firebase の最新状態から続きを進める
+// ════════════════════════════════════════
+var CC_TEST_MODE=/[?&]test=1\b/.test(location.search);
+var CC_BEAT_MS=CC_TEST_MODE?400:4000;       // ホストの生存信号の間隔
+var CC_HOST_TIMEOUT=CC_TEST_MODE?2500:15000; // これだけ途絶えたら切断とみなす
+
+function ccStartHostBeat(){
+  ccStopHostBeat();
+  if(!ccIsOnline||!ccIsHost) return;
+  var beat=function(){fbSet(ccRoomPath+'/hostBeat',Date.now());};
+  beat();
+  cc._beatTimer=setInterval(beat,CC_BEAT_MS);
+}
+function ccStopHostBeat(){
+  if(cc._beatTimer){clearInterval(cc._beatTimer);cc._beatTimer=null;}
+}
+
+// 参加者: ホストの生存信号を監視（端末の時計のずれに影響されないよう、値が変わった時刻を自分の時計で記録）
+function ccStartHostWatch(){
+  ccStopHostWatch();
+  if(!ccIsOnline||ccIsHost) return;
+  cc._lastBeatVal=null;cc._hostBeatSeen=Date.now();cc._takeoverSnooze=0;
+  fbListen(ccRoomPath+'/hostBeat',function(v){
+    if(v!==cc._lastBeatVal){cc._lastBeatVal=v;cc._hostBeatSeen=Date.now();ccHideTakeover();}
+  });
+  fbListen(ccRoomPath+'/hostLeft',function(v){
+    if(v&&!ccIsHost&&!cc._gameOver) ccShowTakeover(true);
+  });
+  cc._hostWatchTimer=setInterval(function(){
+    if(!ccIsOnline||ccIsHost){ccStopHostWatch();return;}
+    if(cc._gameOver||cc._lastBeatVal===null) return; // 一度も信号を受けていない時は判定しない
+    if(Date.now()<cc._takeoverSnooze) return;
+    if(Date.now()-cc._hostBeatSeen>CC_HOST_TIMEOUT) ccShowTakeover(false);
+  },1000);
+}
+function ccStopHostWatch(){
+  if(cc._hostWatchTimer){clearInterval(cc._hostWatchTimer);cc._hostWatchTimer=null;}
+  if(ccRoomPath){fbOff(ccRoomPath+'/hostBeat');fbOff(ccRoomPath+'/hostLeft');}
+}
+
+// 全員: ホストが誰に変わったかを監視
+function ccWatchHostId(){
+  fbOff(ccRoomPath+'/hostId');
+  fbListen(ccRoomPath+'/hostId',function(h){
+    if(!h||!ccIsOnline) return;
+    if(ccIsHost&&h!==ccMyPid){ccBecomeGuest(h);return;}
+    if(!ccIsHost&&h!==cc._hostPid){
+      cc._hostPid=h;
+      cc._lastBeatVal=null;cc._hostBeatSeen=Date.now();
+      ccHideTakeover();
+      var np=cc.players.filter(function(p){return p.pid===h;})[0];
+      if(np&&h!==ccMyPid) ccShowNotice('ホストが '+np.name+' に交代しました');
+    }
+  });
+}
+
+function ccShowNotice(msg){
+  var el=document.getElementById('cc-notice');
+  if(!el){
+    el=document.createElement('div');el.id='cc-notice';
+    el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1350;padding:10px 18px;background:rgba(0,0,0,.9);border:1px solid var(--gold);border-radius:10px;color:var(--gold-light);font-size:13px;pointer-events:none;transition:opacity .3s;max-width:90vw;text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;el.style.opacity='1';
+  clearTimeout(ccShowNotice._t);
+  ccShowNotice._t=setTimeout(function(){el.style.opacity='0';},3500);
+}
+
+function ccShowTakeover(hostLeft){
+  var ov=document.getElementById('cc-takeover');
+  if(!ov){
+    ov=document.createElement('div');ov.id='cc-takeover';
+    ov.style.cssText='position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML='<div style="width:100%;max-width:340px;background:linear-gradient(160deg,#1a2e1f,#0d1a10);border:1px solid var(--gold);border-radius:14px;padding:20px;text-align:center;">'
+      +'<div id="cc-takeover-title" style="font-family:Cinzel,serif;font-size:15px;color:var(--gold-light);margin-bottom:8px;"></div>'
+      +'<div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:16px;">誰か1人がホストを引き継ぐと、続きから再開できます。</div>'
+      +'<button class="btn" id="cc-takeover-btn" style="width:100%;margin:0 0 8px;">ホストを引き継ぐ</button>'
+      +'<button id="cc-takeover-wait" style="width:100%;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer;">待つ</button>'
+      +'</div>';
+    document.body.appendChild(ov);
+    document.getElementById('cc-takeover-btn').addEventListener('click',function(){
+      this.disabled=true;ccClaimHost();
+    });
+    document.getElementById('cc-takeover-wait').addEventListener('click',function(){
+      cc._takeoverSnooze=Date.now()+CC_HOST_TIMEOUT;ccHideTakeover();
+    });
+  }
+  document.getElementById('cc-takeover-title').textContent=hostLeft?'ホストが退出しました':'ホストとの接続が切れました';
+  document.getElementById('cc-takeover-btn').disabled=false;
+  ov.style.display='flex';
+}
+function ccHideTakeover(){
+  var ov=document.getElementById('cc-takeover');
+  if(ov) ov.style.display='none';
+}
+
+// 参加者: ホストを引き継ぐ
+function ccClaimHost(){
+  var oldHost=cc._hostPid;
+  fbGet(ccRoomPath+'/hostId',function(cur){
+    if(cur&&cur!==oldHost&&cur!==ccMyPid){ccHideTakeover();return;} // 先に誰かが引き継いだ
+    // 旧ホストの退出フラグを先に書く（旧ホストが戻っていればホスト交代を見て自分で外す）
+    var pre={};if(oldHost&&oldHost!==ccMyPid) pre['players/'+oldHost+'/departed']=true;
+    fbPatch(ccRoomPath,pre,function(){
+      fbSet(ccRoomPath+'/hostId',ccMyPid,function(){ccBecomeHost(oldHost);});
+    });
+  });
+}
+
+// Firebaseの状態をホストとして取り込む（引き継ぎ・ホストのリロード共通）
+function ccApplyHostState(st){
+  var arr=function(v){return v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort(function(a,b){return (+a)-(+b);}).map(function(k){return v[k];}):(v||[]);};
+  arr(st.players).forEach(function(d,i){
+    var p=cc.players[i];if(!p) return;
+    p.chips=d.chips;p.bet=d.bet||0;p.totalBet=d.totalBet||0;p.folded=!!d.folded;p.allIn=!!d.allIn;p.eliminated=!!d.eliminated;
+    p.rebuyCount=d.rebuyCount||0;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
+  });
+  cc.phase=st.phase||0;cc.pot=st.pot||0;cc.curBet=st.curBet||0;cc.curIdx=(typeof st.curIdx==='number')?st.curIdx:-1;cc.dealerIdx=st.dealerIdx||0;
+  cc.roundNum=st.roundNum||0;cc.roundActive=!!st.roundActive;cc.lastRaise=st.lastRaise||0;
+  cc.acts=arr(st.acts);
+  cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=!!st._bbActed;
+  cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
+  cc.cardMode=!!st.cardMode;
+  ccCommunity=arr(st.community);
+  ccUsedCards=st.usedCards||{};
+  cc._streetActions=arr(st.streetActions);
+  ccRoundId=st.rid||'';
+}
+
+// ホストとして画面を再開する（uiModeに応じて）
+function ccResumeHostUI(st,holes){
+  var mode=st.uiMode||'action';
+  ['cc-ap','cc-phase-btns','cc-showdown','cc-result','cc-summary','cc-rebuy-panel','cc-turn-info','cc-card-picker'].forEach(function(id){
+    var el=document.getElementById(id);if(el) el.style.display='none';
+  });
+  var ov=document.getElementById('cc-allin-overlay');if(ov){ov.style.display='none';ov.innerHTML='';}
+  var nb=document.getElementById('cc-next-round');nb.disabled=false;nb.style.opacity='';
+  ccRenderAll();
+  if(mode==='summary'){
+    cc._gameOver=true;
+    document.getElementById('cc-summary-body').innerHTML=st.summaryHtml||'';
+    document.getElementById('cc-summary').style.display='block';
+    return;
+  }
+  if(mode==='result'||mode==='rebuy'){
+    document.getElementById('cc-result-body').innerHTML=st.resultHtml||'';
+    document.getElementById('cc-result').style.display='block';
+    nb.style.display='';document.getElementById('cc-end-game').style.display='';
+    ccCheckEliminated();
+    if(!cc._pendingRebuy) ccPushState('result',{resultHtml:st.resultHtml||''});
+    return;
+  }
+  if(mode==='showdown'&&!cc.cardMode){ccShowShowdown();return;}
+  if(mode==='deal'&&cc.cardMode&&cc.roundActive){
+    var me=cc.players[ccMyIdx];
+    ccPushState('deal');
+    if(me&&!(me.hole&&me.hole.length===2)) ccHostPickOwnCards();
+    else{cc._dealReceived={};ccWatchDealCards();}
+    return;
+  }
+  if(!cc.roundActive){
+    if(cc.pot>0) ccDoShowdown();
+    return;
+  }
+  if(mode==='allinReveal'||cc.phase>=4){cc.phase=4;ccDoShowdown();return;}
+  var cur=cc.players[cc.curIdx];
+  if(mode==='allin'||!cur||cur.folded||cur.allIn||cur.eliminated) ccAdvance();
+  else ccShowAP();
+}
+
+// 参加者 → ホストへ
+function ccBecomeHost(oldHostPid){
+  ccStopHostWatch();ccHideTakeover();
+  fbOff(ccGamePath+'/state');
+  fbGet(ccRoomPath,function(data){
+    var st=data&&data.game&&data.game.state;
+    if(!st){alert('ゲームの状態を取得できませんでした');return;}
+    ccIsHost=true;cc._hostPid=ccMyPid;
+    ccApplyHostState(st);
+    // 手札（カード入力モード）
+    var holes=(data.game&&data.game.holes)||{};
+    cc.players.forEach(function(p){
+      var h=holes[p.pid];
+      if(h&&typeof h==='object'&&!Array.isArray(h)) h=Object.keys(h).sort(function(a,b){return (+a)-(+b);}).map(function(k){return h[k];});
+      p.hole=(Array.isArray(h)&&h.length===2)?h:null;
+    });
+    // いなくなった旧ホストはこのハンドをフォールド扱い（戻ってくれば次のハンドから参加）
+    var patch={hostLeft:null,status:'started'};
+    var old=cc.players.filter(function(p){return p.pid===oldHostPid;})[0];
+    if(old&&old.pid!==ccMyPid){
+      old._departed=true; // 戻ってくれば退出監視が解除する
+      if(cc.roundActive&&!old.folded&&!old.eliminated) old.folded=true;
+    }
+    fbPatch(ccRoomPath,patch);
+    ccHistory=[];ccUpdateUndoBtn();
+    ccSaveSession();
+    ccStartHostBeat();
+    ccStartWatchAction();
+    ccStartDepartureWatch();
+    ccShowNotice('ホストを引き継ぎました');
+    ccResumeHostUI(st);
+  });
+}
+
+// ホスト → 参加者へ（別の人が引き継いだ時。例: スリープから戻った旧ホスト）
+function ccBecomeGuest(newHostPid){
+  ccIsHost=false;cc._hostPid=newHostPid;
+  ccStopHostBeat();ccStopDepartureWatch();
+  fbOff(ccGamePath+'/action');fbOff(ccGamePath+'/holes');
+  ['cc-ap','cc-phase-btns','cc-showdown','cc-result','cc-rebuy-panel','cc-card-picker'].forEach(function(id){
+    var el=document.getElementById(id);if(el) el.style.display='none';
+  });
+  ccHistory=[];ccUpdateUndoBtn();
+  var patch={};patch['players/'+ccMyPid+'/departed']=null;fbPatch(ccRoomPath,patch);
+  ccSaveSession();
+  fbOff(ccGamePath+'/state');
+  fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+  ccStartHostWatch();
+  var np=cc.players.filter(function(p){return p.pid===newHostPid;})[0];
+  ccShowNotice('ホストが '+(np?np.name:'他の人')+' に引き継がれました。次のハンドから参加できます');
 }
 
 // オンラインクリーンアップ
 function ccOnlineCleanup(){
   ccClearSession();
   ccStopDepartureWatch();
+  ccStopHostBeat();
+  ccStopHostWatch();
+  ccHideTakeover();
   if(cc._lobbyPollTimer){clearInterval(cc._lobbyPollTimer);cc._lobbyPollTimer=null;}
   if(ccIsOnline){
     fbOff(ccGamePath+'/state');fbOff(ccGamePath+'/action');fbOff(ccRoomPath+'/status');fbOff(ccRoomPath);
-    if(ccIsHost){
+    fbOff(ccRoomPath+'/hostId');fbOff(ccGamePath+'/holes');
+    if(ccIsHost&&cc.roundNum>0&&!cc._gameOver){
+      // ゲームの途中でホストが抜けた → 参加者に引き継いでもらう
+      var hp={hostLeft:true};hp['players/'+ccMyPid+'/departed']=true;
+      fbPatch(ccRoomPath,hp);
+    }else if(ccIsHost){
       fbSet(ccRoomPath+'/status','ended');
     }else{
       var patch={};patch['players/'+ccMyPid+'/departed']=true;
@@ -5536,7 +5792,6 @@ function ccOnlineCleanup(){
   ccRoomPath='ccrooms/'+ccRoomCode;
   ccGamePath=ccRoomPath+'/game';
   ccMyPid=sess.myPid||myId;
-  ccIsHost=!!sess.isHost;
   // Firebaseからルーム状態を確認
   fbGet(ccRoomPath,function(data){
     if(!data||data.status==='ended'){
@@ -5545,6 +5800,9 @@ function ccOnlineCleanup(){
       return;
     }
     ccIsOnline=true;
+    // 引き継ぎで役割が変わっている場合があるので、今のhostIdで判断する
+    ccIsHost=data.hostId===ccMyPid;
+    cc._hostPid=data.hostId;
     var s=data.settings||{};
     cc.sbAmt=s.sb||5;cc.bbAmt=s.bb||10;cc.initialChips=s.chips||500;cc.cardMode=!!s.cardMode;
     // プレイヤーリスト復元
@@ -5555,64 +5813,41 @@ function ccOnlineCleanup(){
     pids.forEach(function(pid,i){
       var p=pdata[pid];
       var pChips=snap5(p.customChips)||cc.initialChips;
-      cc.players.push({name:p.name,chips:pChips,startChips:pChips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:pChips});
+      cc.players.push({name:p.name,chips:pChips,startChips:pChips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,pid:pid,_roundStartChips:pChips,_departed:!!p.departed});
       if(pid===myId) ccMyIdx=i;
     });
-    cc.dealerIdx=0;cc.roundNum=0;
+    cc.dealerIdx=0;cc.roundNum=0;cc._gameOver=false;
     showScreen('screen-chipcalc');
+    ccWatchHostId();
     if(ccIsHost){
-      // ホスト: Firebaseから最新ゲーム状態を取得して復元
-      fbGet(ccGamePath+'/state',function(st){
-        if(st){
-          // 状態を復元
-          var sp=st.players;
-          if(sp&&typeof sp==='object'&&!Array.isArray(sp)){
-            var keys=Object.keys(sp).sort(function(a,b){return (+a)-(+b);});
-            sp=keys.map(function(k){return sp[k];});
-          }
-          if(sp) sp.forEach(function(d,i){
-            if(!cc.players[i]) return;
-            var p=cc.players[i];
-            p.chips=d.chips;p.bet=d.bet;p.totalBet=d.totalBet;p.folded=d.folded;p.allIn=d.allIn;p.eliminated=d.eliminated;p.rebuyCount=d.rebuyCount;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
-          });
-          cc.phase=st.phase;cc.pot=st.pot;cc.curBet=st.curBet;cc.curIdx=st.curIdx;cc.dealerIdx=st.dealerIdx;
-          cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;
-          var acts=st.acts;
-          if(acts&&typeof acts==='object'&&!Array.isArray(acts)) acts=Object.keys(acts).map(function(k){return acts[k];});
-          cc.acts=acts||[];
-          cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
-          cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
-          cc.cardMode=!!st.cardMode;
-          // コミュニティカード復元
-          var comm=st.community;
-          if(comm&&typeof comm==='object'&&!Array.isArray(comm)) comm=Object.keys(comm).sort(function(a,b){return (+a)-(+b);}).map(function(k){return comm[k];});
-          ccCommunity=comm||[];
-          // 使用済みカード復元
-          if(st.usedCards) ccUsedCards=st.usedCards;
-          // ストリートアクション復元
-          var sa=st.streetActions;
-          if(sa&&typeof sa==='object'&&!Array.isArray(sa)) sa=Object.keys(sa).sort(function(a,b){return (+a)-(+b);}).map(function(k){return sa[k];});
-          cc._streetActions=sa||[];
-          ccRoundId=st.rid||'';
-          ccRenderAll();
-          // UIモード復元
-          if(cc.roundActive){
-            ccStartWatchAction();
-            ccShowAP();
-          }
-          ccStartDepartureWatch();
-        }else{
-          // ゲーム状態がない→新しいラウンド開始
-          ccRenderAll();
-          ccStartRound();
-          ccStartWatchAction();
-          ccStartDepartureWatch();
-        }
-      });
+      var st=data.game&&data.game.state;
+      if(st){
+        ccApplyHostState(st);
+        var holes=(data.game&&data.game.holes)||{};
+        cc.players.forEach(function(p){
+          var h=holes[p.pid];
+          if(h&&typeof h==='object'&&!Array.isArray(h)) h=Object.keys(h).sort(function(a,b){return (+a)-(+b);}).map(function(k){return h[k];});
+          if(Array.isArray(h)&&h.length===2) p.hole=h;
+        });
+        ccStartWatchAction();
+        ccStartDepartureWatch();
+        ccStartHostBeat();
+        if(data.hostLeft) fbPatch(ccRoomPath,{hostLeft:null});
+        ccResumeHostUI(st);
+      }else{
+        // ゲーム状態がない→新しいラウンド開始
+        ccRenderAll();
+        ccStartRound();
+        ccStartWatchAction();
+        ccStartDepartureWatch();
+        ccStartHostBeat();
+      }
     }else{
-      // 非ホスト: 状態リスナー登録して受信待ち
+      // 非ホスト: 状態リスナー登録して受信待ち（戻ってきたので退出フラグを外す）
+      var dp={};dp['players/'+ccMyPid+'/departed']=null;fbPatch(ccRoomPath,dp);
       ccRenderAll();
       fbListen(ccGamePath+'/state',function(st){if(st)ccOnState(st);});
+      ccStartHostWatch();
       // ホスト退出監視
       fbListen(ccRoomPath+'/status',function(s){
         if(s==='ended'){
@@ -5637,6 +5872,8 @@ if(/[?&]test=1\b/.test(location.search)){
     get community(){return ccCommunity;},
     get noSleepWanted(){return _noSleepWanted;},
     get soundOn(){return ccSoundOn;},
+    get isHost(){return ccIsHost;},
+    stopHostBeat:function(){ccStopHostBeat();},
     totalChips:function(){return cc.players.reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
     totalStart:function(){return cc.players.reduce(function(s,p){return s+p.startChips;},0);}
   };
