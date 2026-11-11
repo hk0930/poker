@@ -74,6 +74,9 @@ body{background:radial-gradient(ellipse at 50%,#1e5535 0%,#0a2010 100%);min-heig
 .card-wrap.sm svg{width:32px;height:46px;}
 .card-wrap.lg svg{width:68px;height:100px;}
 .card-wrap svg{width:44px;height:64px;border-radius:5px;box-shadow:0 3px 10px rgba(0,0,0,.55);}
+/* カード選択: 13枚が画面幅に収まるよう縮小 */
+.cc-pick-card .card-wrap{display:block;width:100%;}
+.cc-pick-card .card-wrap svg{width:100%;height:auto;aspect-ratio:44/64;box-shadow:0 1px 4px rgba(0,0,0,.5);}
 #ap{width:100%;max-width:700px;margin:0 auto;background:rgba(0,0,0,.6);border:1px solid rgba(201,168,76,.25);border-radius:14px;padding:12px;}
 #ap-hd{display:flex;justify-content:space-between;margin-bottom:10px;}
 #ap-who{font-family:Cinzel,serif;font-size:12px;color:var(--gold-light);}
@@ -202,7 +205,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.04.03.41-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.42-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -557,7 +560,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <div id="cc-picker-grid" style="margin-bottom:12px;"></div>
       <div style="display:flex;justify-content:center;gap:10px;">
         <button id="cc-picker-confirm" class="btn" style="padding:10px 30px;" disabled>確定</button>
-        <button id="cc-picker-clear" style="padding:10px 20px;background:rgba(200,50,50,.2);border:1px solid rgba(220,80,80,.4);border-radius:8px;color:#f88;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">クリア</button>
+        <button id="cc-picker-clear" style="padding:10px 20px;white-space:nowrap;flex-shrink:0;background:rgba(200,50,50,.2);border:1px solid rgba(220,80,80,.4);border-radius:8px;color:#f88;font-family:Cinzel,serif;font-size:11px;cursor:pointer;">クリア</button>
         <button id="cc-picker-cancel" style="display:none;padding:10px 20px;background:rgba(100,100,100,.2);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:11px;cursor:pointer;">キャンセル</button>
       </div>
     </div>
@@ -3477,12 +3480,14 @@ function ccRenderAll(){
     if(i===cc.curIdx&&cc.roundActive&&cc.phase<4) html+='<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--gold-light);animation:cc-arrow-bounce .8s infinite alternate;">▼</div>';
     html+='<div class="sname" style="font-size:9px;">'+esc(p.name)+badge+rebuyBadge+winnerBadge+'</div>';
     html+='<div class="schips" style="font-size:10px;">'+chipsHTML(p.chips)+'</div>';
-    if(p.bet>0) html+='<div class="sbet" style="font-size:9px;color:#f0d080;">BET '+p.bet+'</div>';
-    else if(p.folded) html+='<div style="font-size:8px;color:#f88;">FOLD</div>';
-    else if(p.allIn) html+='<div class="sst-allin" style="font-size:8px;">ALL IN</div>';
+    // ハンド決着後（ポット配分済み）はベット表示を出さない
+    var handLive=cc.roundActive||cc.pot>0;
+    if(p.folded) html+='<div style="font-size:8px;color:#f88;">FOLD</div>';
+    else if(p.bet>0&&handLive) html+='<div class="sbet" style="font-size:9px;color:#f0d080;">BET '+p.bet+'</div>';
+    else if(p.allIn&&handLive) html+='<div class="sst-allin" style="font-size:8px;">ALL IN</div>';
     else html+='<div style="min-height:10px;"></div>';
-    // プレイヤーアクションログ（シート内表示）
-    var pActs=ccGetPlayerActions(p.name);
+    // プレイヤーアクションログ（シート内表示。フォールドは上で表示済み）
+    var pActs=(p.folded||!handLive)?null:ccGetPlayerActions(p.name);
     if(pActs){
       html+='<div class="cc-seat-action" style="margin-top:1px;font-size:7px;letter-spacing:.5px;font-family:Cinzel,serif;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;text-align:center;color:'+pActs.color+';text-shadow:0 0 6px '+pActs.glow+';">'+pActs.text+'</div>';
     }
@@ -3519,8 +3524,10 @@ function ccRenderAll(){
   cc.players.forEach(function(p){if(!p.eliminated)streetTotal+=p.bet;});
   var prevPot=cc.pot-streetTotal;
   var streetInfo='';
-  if(prevPot>0) streetInfo+='前ストリート: '+prevPot+' ';
-  if(streetTotal>0) streetInfo+='このストリート: '+streetTotal;
+  if(cc.pot>0){
+    if(prevPot>0) streetInfo+='前ストリート: '+prevPot+' ';
+    if(streetTotal>0) streetInfo+='このストリート: '+streetTotal;
+  }
   document.getElementById('cc-street-bets').textContent=streetInfo;
   // ストリート内アクション履歴（シート内に表示するため中央は非表示）
   var saEl=document.getElementById('cc-street-actions');
@@ -3881,10 +3888,14 @@ function ccShowCardPicker(title,subtitle,count,cb,opts){
     var html='';
     // スートごとに行を表示（スートラベル付き）
     var suitColors={'♠':'rgba(255,255,255,.7)','♥':'#e55','♦':'#48f','♣':'rgba(255,255,255,.7)'};
+    // ランク見出し（小さいカードでも数字が読めるように）
+    html+='<div style="display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:2px;margin-bottom:2px;">';
+    RANKS.forEach(function(r){html+='<div style="text-align:center;font-family:Cinzel,serif;font-size:11px;font-weight:700;color:var(--gold-light);">'+r+'</div>';});
+    html+='</div>';
     SUITS.forEach(function(s){
       html+='<div style="margin-bottom:6px;">';
       html+='<div style="font-size:14px;color:'+suitColors[s]+';margin-bottom:2px;text-align:center;">'+s+'</div>';
-      html+='<div style="display:grid;grid-template-columns:repeat(13,minmax(22px,1fr));gap:1px;overflow-x:auto;">';
+      html+='<div style="display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:2px;">';
       RANKS.forEach(function(r){
         var card={r:r,s:s};
         var key=ccCardKey(card);
@@ -4052,7 +4063,20 @@ function ccWatchDealCards(){
 }
 
 // ショーダウン分岐: カードモードなら自動、通常なら手動
+// 誰もコールしていない超過ベットは本人に返す（例: 600オールインに300までしか払えない相手）
+function ccRefundUncalled(){
+  var live=cc.players.filter(function(p){return !p.eliminated;});
+  var bets=live.map(function(p){return p.totalBet;}).sort(function(a,b){return b-a;});
+  if(bets.length<2||bets[0]<=bets[1]) return;
+  var top=live.filter(function(p){return p.totalBet===bets[0];})[0];
+  if(!top||top.folded) return;
+  var excess=bets[0]-bets[1];
+  top.chips+=excess;top.totalBet-=excess;top.bet=Math.max(0,top.bet-excess);cc.pot-=excess;
+  if(top.chips>0) top.allIn=false;
+}
+
 function ccDoShowdown(){
+  ccRefundUncalled();
   if(cc.cardMode) ccAutoShowdown();
   else ccShowShowdown();
 }
@@ -4234,13 +4258,17 @@ function ccShowActionToast(name,action,amount){
   else if(action==='raise'){msg+='RAISE → '+amount;color='var(--gold-light)';}
   else if(action==='allin'){msg+='ALL IN '+amount;color='#ff6060';}
   else{msg+=action;}
-  var toast=document.createElement('div');
-  toast.style.cssText='position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1100;padding:8px 20px;background:rgba(0,0,0,.85);border:1px solid '+color+';border-radius:10px;font-family:Cinzel,serif;font-size:13px;color:'+color+';letter-spacing:2px;pointer-events:none;opacity:0;transition:opacity .3s,top .3s;white-space:nowrap;text-shadow:0 0 8px '+color+';';
+  // 通知は1つだけ使い回す（連続アクションで重ならないように）
+  var toast=document.getElementById('cc-action-toast');
+  if(!toast){
+    toast=document.createElement('div');
+    toast.id='cc-action-toast';
+    document.body.appendChild(toast);
+  }
+  toast.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1100;padding:8px 20px;background:rgba(0,0,0,.85);border:1px solid '+color+';border-radius:10px;font-family:Cinzel,serif;font-size:13px;color:'+color+';letter-spacing:2px;pointer-events:none;opacity:1;transition:opacity .3s;white-space:nowrap;text-shadow:0 0 8px '+color+';';
   toast.textContent=msg;
-  document.body.appendChild(toast);
-  setTimeout(function(){toast.style.opacity='1';toast.style.top='20px';},30);
-  setTimeout(function(){toast.style.opacity='0';toast.style.top='8px';},1800);
-  setTimeout(function(){if(toast.parentNode)toast.parentNode.removeChild(toast);},2200);
+  clearTimeout(ccShowActionToast._t);
+  ccShowActionToast._t=setTimeout(function(){toast.style.opacity='0';},1400);
 }
 
 // ALL INエフェクト（オンライン版と同様の演出）
@@ -5437,6 +5465,18 @@ function ccOnlineCleanup(){
     }
   });
 })();
+
+// 自動テスト用の参照口（?test=1 の時だけ有効）
+if(/[?&]test=1\b/.test(location.search)){
+  window.__cc={
+    get state(){return cc;},
+    get history(){return ccHistory;},
+    get usedCards(){return ccUsedCards;},
+    get community(){return ccCommunity;},
+    totalChips:function(){return cc.players.reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
+    totalStart:function(){return cc.players.reduce(function(s,p){return s+p.startChips;},0);}
+  };
+}
 
 // URLパラメータでルームコード自動入力
 (function(){

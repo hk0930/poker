@@ -1,19 +1,35 @@
 # Texas Hold'em Online - プロジェクト仕様書
 
 ## 概要
-- **ファイル**: `texas-poker-online.html`（単一HTMLファイル、約3000行）
+- **ファイル**: `texas-poker-online.html`（単一HTMLファイル、約5500行）
 - **URL**: https://hk0930.github.io/poker/texas-poker-online.html
 - **GitHub**: https://github.com/hk0930/poker
-- **バージョン**: v2026.03.02.xx-sdk（更新時は必ずバージョン番号をインクリメント）
+- **バージョン**: v2026.MM.DD.xx-sdk（ロビー画面に表示。更新時は必ず番号をインクリメント）
 
 ## ゲーム仕様
 - **種類**: テキサスホールデムポーカー
-- **モード**: オンライン対戦（Firebase）/ オフラインCPU対戦
+- **モード**: オンライン対戦（Firebase）/ オフラインCPU対戦 / チップ計算（リアルカード用）
 - **CPU**: 1〜5人、難易度EASY/NORMAL/HARD、名前はアレックス/ソフィア/リオン/エマ/ルーカス/ミア
 - **チップ最小単位**: 5（snap5()で丸める）
 - **デフォルト**: 開始500チップ、SB=5、BB=10
 - **リバイシステム**: チップ不足時に追加購入可能、CPUはホストが判断
 - **ロビーへ戻るボタン**: ショーダウンモーダル表示時のみ使用可
+
+## 自動テスト（必ず実行）
+- 実行: `npm test`（Node 22 の `node --test` + Playwright。外部通信なしで動く）
+- `tests/chipcalc.test.js` — チップ計算 1台モード（進行・オールイン・サイドポット・リバイ・UNDO・表示）
+- `tests/cardmode.test.js` — カード入力で勝者自動判定
+- `tests/online.test.js` — 各自の端末モード。`tests/fakefirebase.js` の偽Firebaseでホスト＋参加者の複数画面を同時に動かす
+- アプリは `?test=1` の時だけ `window.__cc`（チップ計算の内部状態）を公開する
+- GitHub Actions（`.github/workflows/test.yml`）で push 毎に実行
+- 修正したらテストを追加し、全件合格を確認してからコミットする
+
+## チップ計算モード（`cc` / `cc*` 関数）
+- 1台モード: 1つの端末を回して全員分を操作。各自の端末モード: Firebase `ccrooms/{code}` でホストが状態を配信
+- カード入力モード（`cc.cardMode`）: 手札・ボードを入力すると `evalHand` で自動判定
+- 進行の中心は `ccShowAP()`（次の手番/フェーズ移行/ショーダウンを判定）。ホストはここで `ccPushState()` する
+- UNDO: `ccSaveState()` をアクション前に積み、`ccUndo()` で戻す。オンラインはホストのみ
+- ショーダウン前に `ccRefundUncalled()` で誰もコールしていない超過ベットを本人に返す
 
 ## アーキテクチャ
 

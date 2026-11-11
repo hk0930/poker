@@ -1,0 +1,11 @@
+{
+  "name": "texas-poker-online",
+  "private": true,
+  "description": "Texas Hold'em Online / チップ計算",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
