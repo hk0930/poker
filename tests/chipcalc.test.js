@@ -399,3 +399,93 @@ test('効果音: ボタンでオン/オフでき、リロード後も記憶さ�
   assert.deepEqual(page.errors, []);
   await page.context().close();
 });
+
+test('精算: 結果をLINEなどに貼れるテキストでコピーできる', async () => {
+  const page = await setup({ players: 3, names: ['たろう', 'はなこ', 'けん'] });
+  await h.act(page, 'fold');
+  await h.act(page, 'fold');
+  await page.waitForSelector('#cc-result', { state: 'visible' });
+  await page.click('#cc-end-game');
+  await page.waitForSelector('#cc-summary', { state: 'visible' });
+  const text = await page.evaluate(() => window.__cc.state._summaryText);
+  assert.match(text, /1ハンド/);
+  assert.match(text, /けん {2}500 → 505（\+5）/);
+  assert.match(text, /はなこ → けん {2}5/);
+  assert.ok(text.indexOf('けん') < text.indexOf('たろう'), '勝った順に並ぶ');
+  await page.click('#cc-summary-copy');
+  await page.waitForFunction(() => document.getElementById('cc-summary-copied').textContent !== '');
+  assert.equal(await page.textContent('#cc-summary-copied'), 'コピーしました。LINEなどに貼り付けできます');
+  await finish(page);
+});
+
+// 先頭のプレイヤーがフォールドして1ハンドを終わらせ、次のハンドへ
+async function quickHand(page) {
+  await h.act(page, 'fold');
+  await page.waitForSelector('#cc-result', { state: 'visible' });
+  await h.nextHand(page);
+}
+
+test('ブラインド上昇: 5ハンドごとに上がり、残りハンド数が表示される', async () => {
+  const page = await setup({ players: 2, blindUp: 'hands:5' });
+  assert.equal(await page.textContent('#cc-blind-info'), 'LV1 ・ 5 / 10 ・ 次まで5ハンド');
+  for (let i = 0; i < 4; i++) await quickHand(page);
+  let s = await h.state(page);
+  assert.equal(s.roundNum, 5);
+  assert.equal(s.bbAmt, 10);
+  assert.equal(await page.textContent('#cc-blind-info'), 'LV1 ・ 5 / 10 ・ 次まで1ハンド');
+  await quickHand(page);
+  s = await h.state(page);
+  assert.equal(s.roundNum, 6);
+  assert.equal(s.sbAmt, 10);
+  assert.equal(s.bbAmt, 20);
+  assert.equal(s.pot, 30, '上がったブラインドが徴収される');
+  assert.equal(await page.textContent('#cc-blind-info'), 'LV2 ・ 10 / 20 ・ 次まで5ハンド');
+  assert.match(await page.textContent('#cc-notice'), /10 \/ 20 に上がりました/);
+  await finish(page);
+});
+
+test('ブラインド上昇: 時間制は経過後の次のハンドから上がる', async () => {
+  const page = await setup({ players: 2, blindUp: 'time:10' });
+  assert.match(await page.textContent('#cc-blind-info'), /^LV1 ・ 5 \/ 10 ・ 次まで(10:00|9:5\d)$/);
+  await page.evaluate(() => window.__cc.shiftClock(10 * 60000 + 1000));
+  await page.waitForFunction(() => document.getElementById('cc-blind-info').textContent.includes('次のハンドで上昇'));
+  assert.equal((await h.state(page)).bbAmt, 10, 'ハンドの途中では変わらない');
+  await quickHand(page);
+  const s = await h.state(page);
+  assert.equal(s.bbAmt, 20);
+  assert.match(await page.textContent('#cc-blind-info'), /^LV2 ・ 10 \/ 20 ・ 次まで/);
+  await finish(page);
+});
+
+test('ブラインド上昇: なしの時は現在のブラインドだけ表示', async () => {
+  const page = await setup({ players: 2 });
+  assert.equal(await page.textContent('#cc-blind-info'), 'BLINDS 5 / 10');
+  await quickHand(page);
+  assert.equal((await h.state(page)).bbAmt, 10);
+  await finish(page);
+});
+
+test('ブラインド上昇: 中断して再開してもレベルが続く', async () => {
+  const page = await setup({ players: 2, blindUp: 'hands:5' });
+  for (let i = 0; i < 5; i++) await quickHand(page);
+  await page.reload();
+  await page.click('#cc-resume-btn');
+  const s = await h.state(page);
+  assert.equal(s.bbAmt, 20);
+  assert.equal(await page.textContent('#cc-blind-info'), 'LV2 ・ 10 / 20 ・ 次まで5ハンド');
+  await finish(page);
+});
+
+test('表示: ブラインド表示がプレイヤー席に隠れない（2〜8人）', async () => {
+  for (const n of [2, 3, 5, 8]) {
+    const page = await setup({ players: n, blindUp: 'hands:5' });
+    const hidden = await page.evaluate(() => {
+      const el = document.getElementById('cc-blind-info');
+      const r = el.getBoundingClientRect();
+      const pts = [0.2, 0.5, 0.8].map((f) => document.elementFromPoint(r.left + r.width * f, r.top + r.height / 2));
+      return pts.some((t) => t !== el);
+    });
+    assert.ok(!hidden, n + '人でブラインド表示が隠れています');
+    await page.context().close();
+  }
+});
