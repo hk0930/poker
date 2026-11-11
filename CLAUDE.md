@@ -30,6 +30,10 @@
 - 進行の中心は `ccShowAP()`（次の手番/フェーズ移行/ショーダウンを判定）。ホストはここで `ccPushState()` する
 - UNDO: `ccSaveState()` をアクション前に積み、`ccUndo()` で戻す。オンラインはホストのみ
 - ショーダウン前に `ccRefundUncalled()` で誰もコールしていない超過ベットを本人に返す
+- 1台モードは `ccRenderAll()` のたびに `ccAutoSave()` で localStorage（`cc_offline_save_v1`）へ自動保存。ロビーの「続きから再開」で `ccResumeOffline()`。ゲーム終了（精算）と新規開始で消える
+- 効果音: `ccPlayActionSound(action)` / `ccPlayCardSound()`。オン/オフは `cc_sound`（localStorage）
+- 画面スリープ防止: `showScreen()` でロビー以外なら `noSleepOn()`、ロビーで `noSleepOff()`。アプリ復帰時とタップ時に再取得
+- `tests/resume.test.js` — 自動保存と再開
 
 ## アーキテクチャ
 
@@ -244,7 +248,7 @@ onState(st)
 ### 画面スリープ防止
 1. Screen Wake Lock API（優先）
 2. Base64インライン動画ループ（フォールバック）
-- ゲーム開始時に有効化、ロビーへ戻る時に無効化
+- `showScreen()` に連動（ロビー以外で有効、ロビーで無効）。全モード共通
 
 ### リバイシステム
 - チップ < BB になったプレイヤーに確認モーダル

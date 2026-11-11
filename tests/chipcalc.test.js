@@ -376,3 +376,26 @@ test('表示: カード選択で13枚がスマホ幅に収まる', async () => {
   assert.ok(ok, 'Aの列が画面からはみ出しています');
   await page.context().close();
 });
+
+test('スリープ防止: ゲーム中は有効、ロビーに戻ると解除', async () => {
+  const page = await setup({ players: 2 });
+  assert.equal(await page.evaluate(() => window.__cc.noSleepWanted), true);
+  await page.click('#cc-btn-lobby');
+  await page.waitForSelector('#screen-lobby.active');
+  assert.equal(await page.evaluate(() => window.__cc.noSleepWanted), false);
+  await page.context().close();
+});
+
+test('効果音: ボタンでオン/オフでき、リロード後も記憶される', async () => {
+  const page = await setup({ players: 2 });
+  assert.equal(await page.textContent('#cc-sound-btn'), '🔊');
+  await page.click('#cc-sound-btn');
+  assert.equal(await page.textContent('#cc-sound-btn'), '🔇');
+  assert.equal(await page.evaluate(() => window.__cc.soundOn), false);
+  await h.act(page, 'call'); // 音なしでもエラーにならない
+  await page.reload();
+  assert.equal(await page.evaluate(() => window.__cc.soundOn), false);
+  assert.equal(await page.textContent('#cc-sound-btn'), '🔇');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});

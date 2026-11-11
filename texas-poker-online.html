@@ -205,7 +205,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.42-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.43-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -213,6 +213,16 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <button id="btn-mode-online" style="flex:1;min-width:0;padding:12px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🌐 オンライン<br><span style="font-size:9px;opacity:.7;">ルームコード対戦</span></button>
       <button id="btn-mode-offline" style="flex:1;min-width:0;padding:12px 4px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:10px;color:var(--gold-light);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🤖 オフライン<br><span style="font-size:9px;opacity:.7;">CPU対戦</span></button>
       <button id="btn-mode-chipcalc" style="flex:1;min-width:0;padding:12px 4px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:rgba(255,255,255,.5);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;">🎰 チップ計算<br><span style="font-size:9px;opacity:.7;">リアルカード用</span></button>
+    </div>
+  </div>
+
+  <!-- チップ計算(1台モード)の再開バナー -->
+  <div id="cc-resume-banner" class="panel" style="display:none;padding:12px 16px;border-color:rgba(201,168,76,.5);">
+    <div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:4px;">中断したチップ計算があります</div>
+    <div id="cc-resume-info" style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="cc-resume-btn" style="flex:2;margin:0;">続きから再開</button>
+      <button id="cc-resume-discard" style="flex:1;padding:10px;background:rgba(200,50,50,.15);border:1px solid rgba(220,80,80,.4);border-radius:10px;color:#f88;font-size:12px;cursor:pointer;">破棄</button>
     </div>
   </div>
 
@@ -461,6 +471,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <button id="cc-btn-lobby" style="background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 14px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">✕ ロビーへ</button>
     <div id="cc-round-info" style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;">ROUND 1</div>
     <div style="display:flex;gap:4px;align-items:center;">
+      <button id="cc-sound-btn" aria-label="効果音" style="padding:6px 10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.7);font-size:12px;line-height:1;cursor:pointer;touch-action:manipulation;">🔊</button>
       <button id="cc-history-btn" style="display:none;padding:6px 10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">履歴</button>
       <button id="cc-undo-btn" style="display:none;padding:6px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">↩ UNDO</button>
     </div>
@@ -703,6 +714,7 @@ function _noSleepEnable(){
       _noSleepVideo = lock; // lockオブジェクトをvideoの代わりに使用
       lock.addEventListener('release', function(){
         _noSleepActive = false;
+        if(_noSleepVideo === lock) _noSleepVideo = null;
       });
     }).catch(function(){
       _noSleepEnableVideo(); // フォールバック
@@ -751,6 +763,22 @@ function _noSleepDisable(){
   _noSleepActive = false;
   _noSleepVideo = null;
 }
+
+// ゲーム画面にいる間はスリープ防止を維持する
+// ・アプリ切替などでOSが解除しても、戻ってきた時に再取得
+// ・ユーザー操作なしで有効化できなかった場合は、次のタップで再試行
+var _noSleepWanted = false;
+function noSleepOn(){ _noSleepWanted = true; _noSleepEnable(); }
+function noSleepOff(){ _noSleepWanted = false; _noSleepDisable(); }
+document.addEventListener('visibilitychange', function(){
+  if(_noSleepWanted && document.visibilityState === 'visible'){
+    _noSleepActive = false;
+    _noSleepEnable();
+  }
+});
+document.addEventListener('pointerdown', function(){
+  if(_noSleepWanted && !_noSleepActive) _noSleepEnable();
+}, true);
 
 // ════════════════════════════════════════
 // チップ表示ユーティリティ
@@ -3120,6 +3148,8 @@ function _animateCommCards(newCards, cb){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   document.getElementById(id).classList.add('active');
+  // ゲーム中は画面を消さない、ロビーに戻ったら解除
+  if(id==='screen-lobby') noSleepOff(); else noSleepOn();
 }
 
 // グローバルに公開（ボタンのonclickから呼び出せるよう）
@@ -3199,6 +3229,74 @@ function ccClearSession(){
 function ccGetSavedSession(){
   try{var s=sessionStorage.getItem('cc_session');return s?JSON.parse(s):null;}catch(e){return null;}
 }
+
+// ─── 1台モードの自動保存（リロードやブラウザを閉じても再開できる） ───
+var CC_SAVE_KEY='cc_offline_save_v1';
+function ccAutoSave(){
+  if(ccIsOnline||!cc.players.length||cc._gameOver) return;
+  try{
+    localStorage.setItem(CC_SAVE_KEY,JSON.stringify({
+      savedAt:Date.now(),cc:cc,history:ccHistory,roundHistory:ccRoundHistory,
+      actionLog:ccActionLog,lastWinners:ccLastWinners,usedCards:ccUsedCards,community:ccCommunity
+    }));
+  }catch(e){}
+}
+function ccClearSave(){try{localStorage.removeItem(CC_SAVE_KEY);}catch(e){}}
+function ccLoadSave(){
+  try{
+    var d=JSON.parse(localStorage.getItem(CC_SAVE_KEY)||'null');
+    if(!d||!d.cc||!d.cc.players||d.cc.players.length<2) return null;
+    return d;
+  }catch(e){return null;}
+}
+function ccRefreshResumeBanner(){
+  var el=document.getElementById('cc-resume-banner');
+  var d=ccLoadSave();
+  if(!d){el.style.display='none';return;}
+  var t=new Date(d.savedAt);
+  var hm=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
+  var names=d.cc.players.map(function(p){return esc(p.name)+' '+p.chips;}).join(' / ');
+  document.getElementById('cc-resume-info').innerHTML='ROUND '+d.cc.roundNum+' ・ '+d.cc.players.length+'人 ・ 保存 '+(t.toDateString()===new Date().toDateString()?'':(t.getMonth()+1)+'/'+t.getDate()+' ')+hm+'<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;">'+names+'</div>';
+  el.style.display='block';
+}
+function ccResumeOffline(){
+  var d=ccLoadSave();
+  if(!d) return;
+  ccIsOnline=false;ccIsHost=false;
+  Object.keys(cc).forEach(function(k){delete cc[k];});
+  Object.keys(d.cc).forEach(function(k){cc[k]=d.cc[k];});
+  ccHistory=d.history||[];ccRoundHistory=d.roundHistory||[];ccActionLog=d.actionLog||[];
+  ccLastWinners=d.lastWinners||[];ccUsedCards=d.usedCards||{};ccCommunity=d.community||[];
+  ['cc-ap','cc-phase-btns','cc-showdown','cc-result','cc-summary','cc-rebuy-panel','cc-turn-info','cc-card-picker'].forEach(function(id){
+    var el=document.getElementById(id);if(el) el.style.display='none';
+  });
+  var nb=document.getElementById('cc-next-round');nb.disabled=false;nb.style.opacity='';
+  showScreen('screen-chipcalc');
+  ccUpdateUndoBtn();
+  ccRenderAll();
+  if(cc.roundActive){
+    // カード入力モードで手札入力の途中だった場合は、未入力の人から入力し直す
+    var missing=[];
+    cc.players.forEach(function(p,i){if(cc.cardMode&&!p.eliminated&&!p.folded&&!(p.hole&&p.hole.length===2)) missing.push(i);});
+    if(missing.length){
+      missing.forEach(function(i){cc.players[i].hole=null;});
+      ccShowPrivacyScreen(cc.players[missing[0]].name,function(){
+        ccDealCards(missing,0,function(){ccRenderAll();ccShowAP();});
+      });
+    }else{
+      ccShowAP();
+    }
+  }else if(cc.pot>0){
+    ccDoShowdown();
+  }else{
+    ccShowResult('<div style="font-size:13px;color:rgba(255,255,255,.6);">ROUND '+cc.roundNum+' は終了しています</div>');
+  }
+}
+document.getElementById('cc-resume-btn').addEventListener('click',ccResumeOffline);
+document.getElementById('cc-resume-discard').addEventListener('click',function(){
+  if(!confirm('中断したゲームを破棄しますか？')) return;
+  ccClearSave();ccRefreshResumeBanner();
+});
 
 function ccSaveState(){
   var snap=JSON.parse(JSON.stringify(cc));
@@ -3313,6 +3411,9 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
   }
   cc.dealerIdx=0;
   cc.roundNum=0;
+  cc._gameOver=false;
+  ccRoundHistory=[];ccLastWinners=[];
+  ccClearSave();
   showScreen('screen-chipcalc');
   ccStartRound();
 });
@@ -3534,6 +3635,7 @@ function ccRenderAll(){
   if(saEl) saEl.innerHTML='';
   document.getElementById('cc-round-info').textContent='ROUND '+cc.roundNum;
   document.getElementById('cc-history-btn').style.display=ccRoundHistory.length>0?'inline-block':'none';
+  ccAutoSave();
 }
 
 // active including allIn
@@ -3828,11 +3930,62 @@ document.querySelectorAll('.cc-preset-btn').forEach(function(b){
   });
 });
 
-// カードオープン音（Web Audio API）
+// 効果音のオン/オフ（端末に記憶）
+var ccSoundOn=true;
+try{ccSoundOn=localStorage.getItem('cc_sound')!=='0';}catch(e){}
+function ccUpdateSoundBtn(){
+  var b=document.getElementById('cc-sound-btn');
+  b.textContent=ccSoundOn?'🔊':'🔇';
+  b.style.opacity=ccSoundOn?'1':'.6';
+}
+document.getElementById('cc-sound-btn').addEventListener('click',function(){
+  ccSoundOn=!ccSoundOn;
+  try{localStorage.setItem('cc_sound',ccSoundOn?'1':'0');}catch(e){}
+  ccUpdateSoundBtn();
+  if(ccSoundOn) ccPlayActionSound('check');
+});
+ccUpdateSoundBtn();
+
+// Web Audio の共通部分
 var _ccAudioCtx=null;
+function ccAudio(){
+  if(!ccSoundOn) return null;
+  if(!_ccAudioCtx) _ccAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(_ccAudioCtx.state==='suspended') _ccAudioCtx.resume();
+  return _ccAudioCtx;
+}
+// 短い音を1つ鳴らす（type: 波形, f: 周波数, dur: 長さ, vol: 音量, delay: 開始の遅れ）
+function ccTone(ctx,type,f,dur,vol,delay){
+  var t=ctx.currentTime+(delay||0);
+  var o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g);g.connect(ctx.destination);
+  o.start(t);o.stop(t+dur);
+}
+// アクションの効果音
+function ccPlayActionSound(action){
+  try{
+    var ctx=ccAudio();if(!ctx) return;
+    if(action==='check'){ // テーブルを2回ノック
+      ccTone(ctx,'sine',180,0.07,0.35,0);ccTone(ctx,'sine',170,0.07,0.3,0.11);
+    }else if(action==='call'||action==='raise'){ // チップの音
+      var n=action==='raise'?3:2;
+      for(var i=0;i<n;i++){ccTone(ctx,'triangle',2400+i*180,0.05,0.12,i*0.06);ccTone(ctx,'sine',3600+i*120,0.03,0.06,i*0.06);}
+    }else if(action==='allin'){ // チップの山＋低音
+      for(var j=0;j<6;j++) ccTone(ctx,'triangle',2200+Math.random()*900,0.05,0.1,j*0.045);
+      ccTone(ctx,'sawtooth',90,0.4,0.12,0);
+    }else if(action==='fold'){
+      ccTone(ctx,'sine',320,0.12,0.12,0);
+    }
+  }catch(e){}
+}
+
+// カードオープン音（Web Audio API）
 function ccPlayCardSound(){
   try{
-    if(!_ccAudioCtx) _ccAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(!ccAudio()) return;
     var ctx=_ccAudioCtx;
     var t=ctx.currentTime;
     // カードめくり音: 短いノイズバースト + 軽いクリック
@@ -3970,6 +4123,7 @@ function ccDealCards(playerIndices,idx,cb){
     2,
     function(cards){
       p.hole=cards;
+      ccAutoSave(); // 途中で閉じても入力済みの手札は残す
       ccPlayCardSound();
       // 次のプレイヤーへ — プライバシー画面を挟む
       if(idx<playerIndices.length-1){
@@ -4250,6 +4404,7 @@ function ccShowActionToast(name,action,amount){
   ccActionLog.push(PHASE_NAMES[cc.phase]+' - '+logMsg);
   if(!cc._streetActions) cc._streetActions=[];
   cc._streetActions.push({name:name,action:action,amount:amount||0});
+  ccPlayActionSound(action);
   var msg=name+': ';
   var color='#4af';
   if(action==='fold'){msg+='FOLD';color='#f88';}
@@ -4273,6 +4428,7 @@ function ccShowActionToast(name,action,amount){
 
 // ALL INエフェクト（オンライン版と同様の演出）
 function ccShowAllinEffect(name,amount,cb){
+  ccPlayActionSound('allin');
   var ov=document.getElementById('cc-allin-overlay');
   if(!ov){
     ov=document.createElement('div');
@@ -4715,6 +4871,8 @@ document.getElementById('cc-end-game').addEventListener('click',function(){
 
 function ccEndGame(){
   cc.roundActive=false;
+  cc._gameOver=true;
+  if(!ccIsOnline) ccClearSave();
   // 全UIを非表示
   document.getElementById('cc-ap').style.display='none';
   document.getElementById('cc-phase-btns').style.display='none';
@@ -4806,6 +4964,7 @@ function ccCalcSettlement(){
 document.getElementById('cc-summary-lobby').addEventListener('click',function(){
   ccOnlineCleanup();
   showScreen('screen-lobby');
+  ccRefreshResumeBanner();
 });
 
 document.getElementById('cc-btn-lobby').addEventListener('click',function(){
@@ -4814,6 +4973,7 @@ document.getElementById('cc-btn-lobby').addEventListener('click',function(){
   }
   ccOnlineCleanup();
   showScreen('screen-lobby');
+  ccRefreshResumeBanner();
 });
 
 // ════════════════════════════════════════
@@ -5466,6 +5626,8 @@ function ccOnlineCleanup(){
   });
 })();
 
+ccRefreshResumeBanner();
+
 // 自動テスト用の参照口（?test=1 の時だけ有効）
 if(/[?&]test=1\b/.test(location.search)){
   window.__cc={
@@ -5473,6 +5635,8 @@ if(/[?&]test=1\b/.test(location.search)){
     get history(){return ccHistory;},
     get usedCards(){return ccUsedCards;},
     get community(){return ccCommunity;},
+    get noSleepWanted(){return _noSleepWanted;},
+    get soundOn(){return ccSoundOn;},
     totalChips:function(){return cc.players.reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
     totalStart:function(){return cc.players.reduce(function(s,p){return s+p.startChips;},0);}
   };
