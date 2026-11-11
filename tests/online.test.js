@@ -422,3 +422,87 @@ test('ルーム作成時に、終了・放置された古いルームが削除�
   assert.deepEqual(host.errors, []);
   await host.context().close();
 });
+
+// ─── 途中参加・途中退席 ───
+
+async function joinMidGame(db, code, name) {
+  const p = await device(db);
+  await p.fill('#cc-my-name', name);
+  await p.click('#cc-ol-join-toggle');
+  await p.fill('#cc-ol-join-code', code);
+  await p.click('#cc-ol-join-btn');
+  await p.waitForSelector('#screen-chipcalc.active');
+  return p;
+}
+// 誰かの手番ならその人がフォールド、を結果が出るまで繰り返す
+async function foldOut(room, pages) {
+  const host = pages[0];
+  for (let i = 0; i < 40 && !(await h.visible(host, '#cc-result')); i++) {
+    let acted = false;
+    for (const p of pages) {
+      if (await p.evaluate(() => document.getElementById('cc-ap').style.display === 'block')) {
+        await h.act(p, 'fold'); acted = true; break;
+      }
+    }
+    if (!acted) await host.waitForTimeout(200);
+  }
+  await host.waitForSelector('#cc-result', { state: 'visible' });
+}
+
+test('途中参加: ゲーム中のルームにコードで参加し、次のハンドから席に着く', async () => {
+  const room = await setupRoom();
+  const { host, db } = room;
+  const g = room.guests[0];
+  const code = (await host.textContent('#cc-ol-code-disp')).trim();
+  const late = await joinMidGame(db, code, '遅れた人');
+  await late.waitForFunction(() => document.getElementById('cc-turn-info').textContent.includes('次のハンドから参加'));
+  await host.waitForFunction(() => document.getElementById('cc-notice') && document.getElementById('cc-notice').textContent.includes('遅れた人'));
+  assert.equal((await h.state(host)).players.length, 2, 'ハンドの途中では席は増えない');
+  await foldOut(room, [host, g]);
+  await h.nextHand(host);
+  await late.waitForFunction(() => window.__cc.state.players.length === 3);
+  await g.waitForFunction(() => window.__cc.state.players.length === 3);
+  const s = await h.state(host);
+  assert.deepEqual(s.players.map((p) => p.name), ['ホスト', 'ゲスト1', '遅れた人']);
+  // 遅れた人にも手番が回ってくる
+  await foldOut(room, [host, g, late]);
+  assert.ok(await conserved(host));
+  for (const p of [...room.all, late]) { assert.deepEqual(p.errors, []); await p.context().close(); }
+});
+
+test('途中退席: 参加者が「ロビーへ」で抜けると次のハンドで席が外れ、精算に残る', async () => {
+  const room = await setupRoom({ guests: 2 });
+  const [host, g1, g2] = room.all;
+  await waitMyTurn(host);
+  await g2.click('#cc-btn-lobby'); // ゲスト2が抜ける
+  await g2.waitForSelector('#screen-lobby.active');
+  await foldOut(room, [host, g1]);
+  await h.nextHand(host);
+  await g1.waitForFunction(() => window.__cc.state.players.length === 2);
+  let s = await h.state(host);
+  assert.deepEqual(s.players.map((p) => p.name), ['ホスト', 'ゲスト1']);
+  assert.equal(s.leftPlayers[0].name, 'ゲスト2');
+  assert.ok(await conserved(host));
+  await foldOut(room, [host, g1]);
+  await host.click('#cc-end-game');
+  await g1.waitForSelector('#cc-summary', { state: 'visible' });
+  assert.match(await g1.evaluate(() => window.__cc.state._summaryText), /ゲスト2 .*途中退席/);
+  for (const p of [host, g1]) { assert.deepEqual(p.errors, []); await p.context().close(); }
+  await g2.context().close();
+});
+
+test('途中退席: ホストが結果画面から参加者を退席させられる', async () => {
+  const room = await setupRoom({ guests: 2 });
+  const [host, g1, g2] = room.all;
+  await foldOut(room, room.all);
+  await host.click('#cc-members-btn');
+  await host.click('.cc-mem-leave[data-idx="1"]');
+  await g1.waitForFunction(() => document.getElementById('cc-turn-info').textContent.includes('退席しました'));
+  await g2.waitForFunction(() => window.__cc.state.players.length === 2);
+  assert.ok(!(await h.visible(g2, '#cc-members-btn')), '参加者にはメンバー変更ボタンが出ない');
+  await host.click('#cc-mem-close');
+  await h.nextHand(host);
+  await waitSynced(g2, { pot: 15, curIdx: (await h.state(host)).curIdx, phase: 0 });
+  assert.ok(await conserved(host));
+  for (const p of room.all) { assert.deepEqual(p.errors, []); await p.context().close(); }
+});

@@ -44,6 +44,11 @@
 - ブラインド自動上昇: `ccInitBlinds(値)` で開始時に設定（`hands:5` / `time:10` など）。`ccStartRound()` 冒頭の `ccApplyBlindLevel()` でのみ上げる（ハンド途中は変えない）。倍率は `CC_BLIND_MULT`。表示は `#cc-blind-info`（`ccUpdateBlindInfo()`）。オンラインは state の `blind` で配信し、時間制は残りミリ秒で送る（端末の時計ずれ対策）
 - 精算結果の共有: `ccBuildSummaryText()` でテキスト化し「結果をコピー」「共有」（Web Share API）。オンラインは state の `summaryText` で参加者にも配信
 - 古いルームの削除: ルーム作成時に `ccCleanupOldRooms()`。終了済みは1時間後、それ以外は最後の活動（`hostBeat`/`createdAt`）から24時間後に削除。時刻のない旧形式は残す
+- 途中参加・途中退席: 席の変更はハンドとハンドの間だけ。退席者は `cc.players` から `cc.leftPlayers` に移し、チップは精算に残す（`ccAllPlayers()` で両方）。`ccRemovePlayer()` / `ccAddPlayer()`（退席者が戻ると元のチップで復帰）。席が変わったら UNDO 履歴は消す
+  - 1台モード: 結果画面の「メンバー変更」から追加・退席・復帰
+  - 各自の端末モード: ゲーム中もルームコードで参加でき `players/{pid}.pending=true` → ホストが `ccWatchMembers()` で検知し、次のハンド開始時に `ccApplyOnlineMembership()` で着席。参加者が「ロビーへ」で抜けると `left=true` で次のハンドに席から外れる。ホストも「メンバー変更」から退席させられる
+  - 参加者側は state の `players` と `left` から `ccSyncPlayers()` で席を作り直す（pid で照合）。席にいない間は「次のハンドから参加します」「退席しました」を表示し、ホスト引き継ぎもしない
+- `tests/members.test.js` — 途中参加・退席（1台モード）
 
 ## アーキテクチャ
 

@@ -205,7 +205,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.45-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.46-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -553,6 +553,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <div class="ptitle">RESULT</div>
       <div id="cc-result-body" style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.8;"></div>
       <button id="cc-next-round" class="btn">NEXT HAND</button>
+      <button id="cc-members-btn" style="width:100%;margin-top:8px;padding:10px;background:rgba(80,160,230,.12);border:1px solid rgba(80,160,230,.4);border-radius:10px;color:#adf;font-size:12px;cursor:pointer;">メンバー変更（参加・退席）</button>
       <button id="cc-end-game" style="width:100%;margin-top:8px;padding:11px;background:rgba(180,40,40,.2);border:1px solid rgba(220,80,80,.35);border-radius:10px;color:rgba(255,150,150,.9);font-family:Cinzel,serif;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;">ゲームを終了 → 精算</button>
     </div>
   </div>
@@ -3421,12 +3422,206 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
   }
   cc.dealerIdx=0;
   cc.roundNum=0;
-  cc._gameOver=false;
+  cc._gameOver=false;cc.leftPlayers=[];
   ccRoundHistory=[];ccLastWinners=[];
   ccClearSave();
   showScreen('screen-chipcalc');
   ccStartRound();
 });
+
+// ─── 途中参加・途中退席 ───
+// 退席した人は cc.leftPlayers に移す（チップは精算に残る）。席替えはハンドとハンドの間だけ
+function ccAllPlayers(){return cc.players.concat(cc.leftPlayers||[]);}
+function ccRecalcMyIdx(){
+  ccMyIdx=-1;
+  if(ccIsOnline) cc.players.forEach(function(p,i){if(p.pid===ccMyPid) ccMyIdx=i;});
+}
+function ccRemovePlayer(idx){
+  var p=cc.players[idx];if(!p) return;
+  cc.leftPlayers=cc.leftPlayers||[];
+  p.left=true;p.bet=0;p.totalBet=0;p.folded=false;p.allIn=false;
+  cc.leftPlayers.push(p);
+  cc.players.splice(idx,1);
+  var n=cc.players.length;
+  if(n&&idx<=cc.dealerIdx) cc.dealerIdx=(cc.dealerIdx-1+n)%n; // 次のハンドは退席者の次の人がディーラー
+  if(cc.dealerIdx>=n) cc.dealerIdx=0;
+  cc._sbIdx=undefined;cc._bbIdx=undefined;
+  ccRecalcMyIdx();
+  ccHistory=[];ccUpdateUndoBtn();
+}
+function ccAddPlayer(name,chips,pid){
+  cc.leftPlayers=cc.leftPlayers||[];
+  var back=-1;
+  cc.leftPlayers.forEach(function(p,i){if((pid&&p.pid===pid)||(!pid&&!p.pid&&p.name===name)) back=i;});
+  var p;
+  if(back>=0){
+    // 退席していた人が戻る: 持っていたチップで復帰（0なら新たに買い直し）
+    p=cc.leftPlayers.splice(back,1)[0];
+    p.left=false;p.eliminated=false;
+    if(p.chips<=0){p.chips=chips;p.startChips+=chips;}
+  }else{
+    p={name:name,chips:chips,startChips:chips,bet:0,totalBet:0,folded:false,allIn:false,eliminated:false,rebuyCount:0,_roundStartChips:chips};
+    if(pid) p.pid=pid;
+  }
+  p._roundStartChips=p.chips;
+  cc.players.push(p);
+  cc._sbIdx=undefined;cc._bbIdx=undefined;
+  ccRecalcMyIdx();
+  ccHistory=[];ccUpdateUndoBtn();
+  return p;
+}
+// 名前の重複を避ける（精算は名前で表示するため）
+function ccUniqueName(name){
+  var names=ccAllPlayers().filter(function(p){return !p.left;}).map(function(p){return p.name;});
+  if(names.indexOf(name)<0) return name;
+  for(var i=2;;i++) if(names.indexOf(name+i)<0) return name+i;
+}
+// 状態の players 配列に合わせて席を作り直す（参加者・引き継ぎ時）
+function ccSyncPlayers(sp,left){
+  var arr=function(v){return v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort(function(a,b){return (+a)-(+b);}).map(function(k){return v[k];}):(v||[]);};
+  sp=arr(sp);
+  var same=sp.length===cc.players.length&&sp.every(function(d,i){return cc.players[i].pid===d.pid;});
+  if(!same){
+    var byPid={};cc.players.forEach(function(p){if(p.pid) byPid[p.pid]=p;});
+    cc.players=sp.map(function(d){return byPid[d.pid]||{name:d.name,pid:d.pid,hole:null};});
+  }
+  sp.forEach(function(d,i){
+    var p=cc.players[i];
+    p.name=d.name;p.chips=d.chips;p.bet=d.bet||0;p.totalBet=d.totalBet||0;p.folded=!!d.folded;p.allIn=!!d.allIn;p.eliminated=!!d.eliminated;
+    p.rebuyCount=d.rebuyCount||0;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
+  });
+  cc.leftPlayers=arr(left).map(function(d){return {name:d.name,pid:d.pid,chips:d.chips,startChips:d.startChips,rebuyCount:d.rebuyCount||0,left:true};});
+  ccRecalcMyIdx();
+}
+
+// ホスト: ルームのプレイヤー一覧を監視（途中参加の希望・退席の申告）
+function ccWatchMembers(){
+  fbOff(ccRoomPath+'/players');
+  cc._pendingJoins=[];
+  fbListen(ccRoomPath+'/players',function(data){
+    if(!data||!ccIsHost) return;
+    var seated={};cc.players.forEach(function(p){seated[p.pid]=p;});
+    var pending=[];
+    Object.keys(data).forEach(function(pid){
+      var d=data[pid];
+      if(seated[pid]){seated[pid]._left=!!d.left;return;}
+      if(d.pending&&!d.left) pending.push({pid:pid,name:d.name});
+    });
+    pending.forEach(function(j){
+      if(!cc._pendingJoins.some(function(x){return x.pid===j.pid;})) ccShowNotice(j.name+' が参加します（次のハンドから）');
+    });
+    cc._pendingJoins=pending;
+    ccRenderMembersPanel();
+  });
+}
+// ホスト: ハンド開始前に参加・退席を反映
+function ccApplyOnlineMembership(){
+  var changed=false;
+  for(var i=cc.players.length-1;i>=0;i--){
+    if(cc.players[i]._left&&cc.players[i].pid!==ccMyPid){ccRemovePlayer(i);changed=true;}
+  }
+  var patch={};
+  (cc._pendingJoins||[]).forEach(function(j){
+    if(cc.players.length>=8) return;
+    if(cc.players.some(function(p){return p.pid===j.pid;})) return;
+    ccAddPlayer(j.name,cc.initialChips,j.pid);
+    patch['players/'+j.pid+'/pending']=null;changed=true;
+  });
+  cc._pendingJoins=[];
+  if(Object.keys(patch).length) fbPatch(ccRoomPath,patch);
+  return changed;
+}
+
+// メンバー変更パネル（ホスト／1台モード、ハンドの間だけ）
+function ccOpenMembers(){
+  var ov=document.getElementById('cc-members');
+  if(!ov){
+    ov=document.createElement('div');ov.id='cc-members';
+    ov.style.cssText='position:fixed;inset:0;z-index:1250;background:rgba(0,0,0,.8);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;';
+    document.body.appendChild(ov);
+  }
+  ov.style.display='flex';
+  ccRenderMembersPanel();
+}
+function ccCloseMembers(){
+  var ov=document.getElementById('cc-members');if(ov) ov.style.display='none';
+}
+function ccRenderMembersPanel(){
+  var ov=document.getElementById('cc-members');
+  if(!ov||ov.style.display==='none') return;
+  var h='<div style="width:100%;max-width:360px;background:linear-gradient(160deg,#1a2e1f,#0d1a10);border:1px solid var(--gold);border-radius:14px;padding:18px;">';
+  h+='<div style="font-family:Cinzel,serif;font-size:13px;color:var(--gold-light);letter-spacing:2px;text-align:center;margin-bottom:12px;">メンバー変更</div>';
+  h+='<div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:6px;">席にいる人（退席するとチップは精算に残ります）</div>';
+  cc.players.forEach(function(p,i){
+    var tag=p.eliminated?' <span style="color:#f88;font-size:10px;">脱落</span>':(p._departed?' <span style="color:#fa0;font-size:10px;">接続切れ</span>':'');
+    var me=ccIsOnline&&p.pid===ccMyPid;
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 8px;background:rgba(0,0,0,.3);border-radius:8px;margin-bottom:4px;">';
+    h+='<span style="flex:1;color:var(--gold-light);font-size:13px;">'+esc(p.name)+tag+'</span>';
+    h+='<span style="font-family:Cinzel,serif;font-size:11px;color:rgba(255,255,255,.6);">'+p.chips+'</span>';
+    if(!me) h+='<button class="cc-mem-leave" data-idx="'+i+'" style="padding:5px 10px;background:rgba(200,50,50,.2);border:1px solid rgba(220,80,80,.4);border-radius:6px;color:#f88;font-size:11px;cursor:pointer;">退席</button>';
+    else h+='<span style="font-size:10px;color:rgba(255,255,255,.35);width:48px;text-align:center;">ホスト</span>';
+    h+='</div>';
+  });
+  if(ccIsOnline){
+    h+='<div style="font-size:10px;color:rgba(255,255,255,.4);margin:12px 0 6px;">参加待ち（次のハンドから席に着きます）</div>';
+    if((cc._pendingJoins||[]).length) cc._pendingJoins.forEach(function(j){h+='<div style="padding:6px 8px;font-size:12px;color:#afd;">'+esc(j.name)+'</div>';});
+    else h+='<div style="padding:6px 8px;font-size:11px;color:rgba(255,255,255,.35);">なし（ルームコード <b style="color:var(--gold-light);letter-spacing:2px;">'+esc(ccRoomCode)+'</b> で参加できます）</div>';
+  }else{
+    var full=cc.players.length>=8;
+    h+='<div style="font-size:10px;color:rgba(255,255,255,.4);margin:12px 0 6px;">参加する人を追加'+(full?'（満席です）':'')+'</div>';
+    var backs=(cc.leftPlayers||[]);
+    if(backs.length&&!full){
+      backs.forEach(function(p,i){
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;">';
+        h+='<span style="flex:1;font-size:12px;color:rgba(255,255,255,.6);">'+esc(p.name)+'（退席中・'+p.chips+'）</span>';
+        h+='<button class="cc-mem-back" data-i="'+i+'" style="padding:5px 10px;background:rgba(40,170,80,.2);border:1px solid rgba(60,200,100,.4);border-radius:6px;color:#afd;font-size:11px;cursor:pointer;">復帰</button></div>';
+      });
+    }
+    if(!full){
+      h+='<div style="display:flex;gap:6px;">';
+      h+='<input id="cc-mem-name" class="inp" placeholder="名前" style="flex:2;margin:0;min-width:0;">';
+      h+='<input id="cc-mem-chips" class="num-inp" value="'+cc.initialChips+'" style="flex:1;width:auto;min-width:0;">';
+      h+='</div>';
+      h+='<button id="cc-mem-add" style="width:100%;margin-top:6px;padding:10px;background:rgba(40,170,80,.2);border:1px solid rgba(60,200,100,.4);border-radius:8px;color:#afd;font-size:12px;cursor:pointer;">参加する</button>';
+    }
+  }
+  h+='<button id="cc-mem-close" class="btn" style="margin-top:14px;">閉じる</button></div>';
+  ov.innerHTML=h;
+  ov.querySelectorAll('.cc-mem-leave').forEach(function(b){
+    b.addEventListener('click',function(){
+      var p=cc.players[+this.dataset.idx];
+      if(!confirm(p.name+' を退席させますか？\n（チップ '+p.chips+' は精算に残ります）')) return;
+      if(ccIsOnline){var pt={};pt['players/'+p.pid+'/left']=true;fbPatch(ccRoomPath,pt);}
+      ccRemovePlayer(+this.dataset.idx);
+      ccMembersChanged();
+    });
+  });
+  ov.querySelectorAll('.cc-mem-back').forEach(function(b){
+    b.addEventListener('click',function(){
+      var p=cc.leftPlayers[+this.dataset.i];
+      ccAddPlayer(p.name,cc.initialChips);
+      ccMembersChanged();
+    });
+  });
+  var add=document.getElementById('cc-mem-add');
+  if(add) add.addEventListener('click',function(){
+    var name=document.getElementById('cc-mem-name').value.trim();
+    if(!name){alert('名前を入力してください');return;}
+    var chips=snap5(+document.getElementById('cc-mem-chips').value)||cc.initialChips;
+    ccAddPlayer(ccUniqueName(name),chips);
+    ccMembersChanged();
+  });
+  document.getElementById('cc-mem-close').addEventListener('click',ccCloseMembers);
+}
+function ccMembersChanged(){
+  ccRenderAll();
+  ccRenderMembersPanel();
+  var active=cc.players.filter(function(p){return !p.eliminated;}).length;
+  var nb=document.getElementById('cc-next-round');
+  nb.textContent=active<2?'NEXT HAND（1人のため精算へ）':'NEXT HAND';
+  if(ccIsOnline&&ccIsHost) ccPushState('result',{resultHtml:document.getElementById('cc-result-body').innerHTML});
+}
+document.getElementById('cc-members-btn').addEventListener('click',ccOpenMembers);
 
 // ─── ブラインド自動上昇 ───
 var CC_BLIND_MULT=[1,2,3,4,6,8,12,16,24,32,48,64,96,128];
@@ -3500,6 +3695,9 @@ setInterval(function(){
 },1000);
 
 function ccStartRound(){
+  if(ccIsOnline&&ccIsHost) ccApplyOnlineMembership();
+  ccCloseMembers();
+  document.getElementById('cc-next-round').textContent='NEXT HAND';
   ccHistory=[];ccUpdateUndoBtn();
   ccActionLog=[];
   cc._pendingRebuy=0;
@@ -4691,14 +4889,15 @@ function ccShowResult(html){
   });
   summaryHtml+='</div>';
   // チップ保存検証: 全チップ合計 + pot = 総投入額
-  var totalChips=0;cc.players.forEach(function(p){totalChips+=p.chips;});
+  var totalChips=0;ccAllPlayers().forEach(function(p){totalChips+=p.chips;});
   totalChips+=cc.pot;
-  var totalStart=0;cc.players.forEach(function(p){totalStart+=p.startChips;});
+  var totalStart=0;ccAllPlayers().forEach(function(p){totalStart+=p.startChips;});
   if(totalChips!==totalStart) console.warn('チップ保存エラー: 現在合計='+totalChips+' 投入合計='+totalStart+' 差分='+(totalChips-totalStart));
   body.innerHTML=html+summaryHtml;
   resultEl.style.display='block';
   document.getElementById('cc-next-round').style.display=ccIsOnline&&!ccIsHost?'none':'';
   document.getElementById('cc-end-game').style.display=ccIsOnline&&!ccIsHost?'none':'';
+  document.getElementById('cc-members-btn').style.display=ccIsOnline&&!ccIsHost?'none':'';
   if(ccIsOnline&&ccIsHost) ccPushState('result',{resultHtml:body.innerHTML});
   ccCheckEliminated();
 }
@@ -4984,9 +5183,10 @@ function ccEndGame(){
   html+='<div style="font-family:Cinzel,serif;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">各プレイヤーの結果</div>';
   // 損益バーグラフ
   var maxAbs=0;
-  cc.players.forEach(function(p){var d=Math.abs(p.chips-p.startChips);if(d>maxAbs)maxAbs=d;});
+  var all=ccAllPlayers();
+  all.forEach(function(p){var d=Math.abs(p.chips-p.startChips);if(d>maxAbs)maxAbs=d;});
   if(maxAbs===0) maxAbs=1;
-  cc.players.forEach(function(p){
+  all.forEach(function(p){
     var diff=p.chips-p.startChips;
     var diffColor=diff>0?'#0f0':diff<0?'#f66':'rgba(255,255,255,.5)';
     var diffStr=diff>0?'+'+diff:diff===0?'±0':''+diff;
@@ -4994,7 +5194,7 @@ function ccEndGame(){
     var barColor=diff>0?'rgba(80,220,100,.4)':diff<0?'rgba(220,80,80,.4)':'rgba(255,255,255,.1)';
     html+='<div style="padding:6px 8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">';
-    html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+'</span>';
+    html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+(p.left?' <span style="font-size:10px;color:rgba(255,255,255,.4);">途中退席</span>':'')+'</span>';
     html+='<span style="font-size:12px;"><span style="color:rgba(255,255,255,.4);">'+p.startChips+' → '+p.chips+'</span> <span style="color:'+diffColor+';font-weight:700;">('+diffStr+')</span></span>';
     html+='</div>';
     html+='<div style="width:100%;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;">';
@@ -5032,10 +5232,10 @@ function ccBuildSummaryText(transfers){
   var d=new Date();
   var lines=['🎰 ポーカー結果（'+d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+'・'+cc.roundNum+'ハンド）',''];
   lines.push('■ 結果');
-  cc.players.slice().sort(function(a,b){return (b.chips-b.startChips)-(a.chips-a.startChips);}).forEach(function(p){
+  ccAllPlayers().slice().sort(function(a,b){return (b.chips-b.startChips)-(a.chips-a.startChips);}).forEach(function(p){
     var diff=p.chips-p.startChips;
     var diffStr=diff>0?'+'+diff:diff===0?'±0':''+diff;
-    lines.push(p.name+'  '+p.startChips+' → '+p.chips+'（'+diffStr+'）'+(p.rebuyCount>0?' リバイ'+p.rebuyCount+'回':''));
+    lines.push(p.name+'  '+p.startChips+' → '+p.chips+'（'+diffStr+'）'+(p.rebuyCount>0?' リバイ'+p.rebuyCount+'回':'')+(p.left?' 途中退席':''));
   });
   lines.push('');
   lines.push('■ チップの受け渡し');
@@ -5074,7 +5274,7 @@ document.getElementById('cc-summary-share').addEventListener('click',function(){
 
 function ccCalcSettlement(){
   // 損益を計算
-  var balances=cc.players.map(function(p){
+  var balances=ccAllPlayers().map(function(p){
     return {name:p.name,diff:p.chips-p.startChips};
   });
   // 負けた人（diff<0）→ 勝った人（diff>0）への最小送金を計算
@@ -5210,14 +5410,22 @@ document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
   fbGet(ccRoomPath,function(data){
     if(!data){alert('ルームが見つかりません');return;}
     if(data.status==='started'){
-      // 既に開始済み→既存プレイヤーなら再接続
       var pdata=data.players||{};
-      if(pdata[myId]){
-        ccIsHost=false;ccIsOnline=true;
+      var mine=pdata[myId];
+      ccIsHost=false;ccIsOnline=true;
+      if(mine&&!mine.left){
+        // 既存プレイヤーの再接続
+        var rp={};rp['players/'+myId+'/departed']=null;fbPatch(ccRoomPath,rp);
         ccEnterStartedGame();
         return;
       }
-      alert('ゲームは既に開始されています');return;
+      // 途中参加: 次のハンドから席に着く
+      var seated=Object.keys(pdata).filter(function(k){return !pdata[k].left;}).length;
+      if(seated>=8){alert('ルームが満員です');return;}
+      var maxIdx=0;Object.keys(pdata).forEach(function(k){maxIdx=Math.max(maxIdx,pdata[k].idx||0);});
+      var jp={};jp['players/'+myId]={name:name,idx:mine?mine.idx:maxIdx+1,pending:true};
+      fbPatch(ccRoomPath,jp,function(){ccEnterStartedGame();});
+      return;
     }
     if(data.status!=='waiting'){alert('ゲームは既に開始されています');return;}
     var pdata=data.players||{};
@@ -5360,7 +5568,7 @@ function ccEnterStartedGame(retryCount){
       showScreen('screen-lobby');
       return;
     }
-    cc.dealerIdx=0;cc.roundNum=0;cc._gameOver=false;
+    cc.dealerIdx=0;cc.roundNum=0;cc._gameOver=false;cc.leftPlayers=[];
     cc._hostPid=data.hostId;
     ccSaveSession();
     showScreen('screen-chipcalc');
@@ -5411,7 +5619,7 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     var settingsPatch={};
     settingsPatch['settings']={chips:defaultChips,sb:cc.sbAmt,bb:cc.bbAmt,cardMode:cc.cardMode,blindUp:cc.blindUp||null};
     settingsPatch['status']='started';
-    cc._gameOver=false;cc._hostPid=ccMyPid;
+    cc._gameOver=false;cc._hostPid=ccMyPid;cc.leftPlayers=[];
     fbPatch(ccRoomPath,settingsPatch,function(){
       ccSaveSession();
       showScreen('screen-chipcalc');
@@ -5430,7 +5638,7 @@ function ccPushState(uiMode,extra){
   var ps=cc.players.map(function(p){
     return {name:p.name,chips:p.chips,bet:p.bet,totalBet:p.totalBet,folded:p.folded,allIn:p.allIn,eliminated:p.eliminated,rebuyCount:p.rebuyCount,startChips:p.startChips,_roundStartChips:p._roundStartChips,pid:p.pid};
   });
-  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[],usedCards:ccUsedCards||{},blind:{lv:cc.blindLevel||0,up:cc.blindUp||null,baseSb:cc.baseSb||cc.sbAmt,baseBb:cc.baseBb||cc.bbAmt,remainMs:ccBlindRemainMs()}};
+  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[],usedCards:ccUsedCards||{},left:(cc.leftPlayers||[]).map(function(p){return {name:p.name,pid:p.pid||null,chips:p.chips,startChips:p.startChips,rebuyCount:p.rebuyCount||0};}),blind:{lv:cc.blindLevel||0,up:cc.blindUp||null,baseSb:cc.baseSb||cc.sbAmt,baseBb:cc.baseBb||cc.bbAmt,remainMs:ccBlindRemainMs()}};
   // カードモードの結果時: 全プレイヤーの手札を公開
   if(cc.cardMode&&(uiMode==='result'||uiMode==='showdown')){
     var reveal={};
@@ -5454,11 +5662,7 @@ function ccOnState(st){
     var keys=Object.keys(sp).sort(function(a,b){return (+a)-(+b);});
     sp=keys.map(function(k){return sp[k];});
   }
-  if(sp) sp.forEach(function(d,i){
-    if(!cc.players[i]) return;
-    var p=cc.players[i];
-    p.chips=d.chips;p.bet=d.bet;p.totalBet=d.totalBet;p.folded=d.folded;p.allIn=d.allIn;p.eliminated=d.eliminated;p.rebuyCount=d.rebuyCount;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
-  });
+  if(sp) ccSyncPlayers(sp,st.left);
   cc.phase=st.phase;cc.pot=st.pot;cc.curBet=st.curBet;cc.curIdx=st.curIdx;cc.dealerIdx=st.dealerIdx;
   cc.roundNum=st.roundNum;cc.roundActive=st.roundActive;cc.lastRaise=st.lastRaise;
   // アクション通知（非ホスト側で表示）
@@ -5510,6 +5714,7 @@ function ccOnState(st){
   var rebuyP=document.getElementById('cc-rebuy-panel');
   ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';summary.style.display='none';rebuyP.style.display='none';turnInfo.style.display='none';
   var mode=st.uiMode||'action';
+  document.getElementById('cc-members-btn').style.display='none'; // 席の変更はホストだけ
   // オーバーレイもクリア（ホストのundo時に非ホスト側に残らないように）
   var allinOv=document.getElementById('cc-allin-overlay');
   if(allinOv){allinOv.style.display='none';allinOv.innerHTML='';}
@@ -5571,6 +5776,12 @@ function ccOnState(st){
       turnInfo.textContent='他のプレイヤーのカード選択を待っています...';
       turnInfo.style.display='block';
     }
+  }
+  // 自分が席にいない（参加待ち／退席済み）
+  if(ccMyIdx<0&&!cc._gameOver&&(mode==='action'||mode==='phaseDone'||mode==='deal'||mode==='result')){
+    var isLeft=(cc.leftPlayers||[]).some(function(p){return p.pid===ccMyPid;});
+    turnInfo.textContent=isLeft?'あなたは退席しました（チップは精算に残ります）':'次のハンドから参加します。しばらくお待ちください';
+    turnInfo.style.display='block';
   }
   }catch(e){console.error('ccOnState error:',e);}
 }
@@ -5694,9 +5905,11 @@ function ccStartHostBeat(){
   var beat=function(){fbSet(ccRoomPath+'/hostBeat',Date.now());};
   beat();
   cc._beatTimer=setInterval(beat,CC_BEAT_MS);
+  ccWatchMembers();
 }
 function ccStopHostBeat(){
   if(cc._beatTimer){clearInterval(cc._beatTimer);cc._beatTimer=null;}
+  if(ccRoomPath&&ccIsOnline&&cc.roundNum>0) fbOff(ccRoomPath+'/players');
 }
 
 // 参加者: ホストの生存信号を監視（端末の時計のずれに影響されないよう、値が変わった時刻を自分の時計で記録）
@@ -5751,6 +5964,7 @@ function ccShowNotice(msg){
 }
 
 function ccShowTakeover(hostLeft){
+  if(ccMyIdx<0) return; // 席にいない人（参加待ち・退席済み）は引き継げない
   var ov=document.getElementById('cc-takeover');
   if(!ov){
     ov=document.createElement('div');ov.id='cc-takeover';
@@ -5794,11 +6008,7 @@ function ccClaimHost(){
 // Firebaseの状態をホストとして取り込む（引き継ぎ・ホストのリロード共通）
 function ccApplyHostState(st){
   var arr=function(v){return v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort(function(a,b){return (+a)-(+b);}).map(function(k){return v[k];}):(v||[]);};
-  arr(st.players).forEach(function(d,i){
-    var p=cc.players[i];if(!p) return;
-    p.chips=d.chips;p.bet=d.bet||0;p.totalBet=d.totalBet||0;p.folded=!!d.folded;p.allIn=!!d.allIn;p.eliminated=!!d.eliminated;
-    p.rebuyCount=d.rebuyCount||0;p.startChips=d.startChips;p._roundStartChips=d._roundStartChips;
-  });
+  ccSyncPlayers(st.players,st.left);
   cc.phase=st.phase||0;cc.pot=st.pot||0;cc.curBet=st.curBet||0;cc.curIdx=(typeof st.curIdx==='number')?st.curIdx:-1;cc.dealerIdx=st.dealerIdx||0;
   cc.roundNum=st.roundNum||0;cc.roundActive=!!st.roundActive;cc.lastRaise=st.lastRaise||0;
   cc.acts=arr(st.acts);
@@ -5919,12 +6129,13 @@ function ccOnlineCleanup(){
     fbOff(ccRoomPath+'/hostId');fbOff(ccGamePath+'/holes');
     if(ccIsHost&&cc.roundNum>0&&!cc._gameOver){
       // ゲームの途中でホストが抜けた → 参加者に引き継いでもらう
-      var hp={hostLeft:true};hp['players/'+ccMyPid+'/departed']=true;
+      var hp={hostLeft:true};hp['players/'+ccMyPid+'/departed']=true;hp['players/'+ccMyPid+'/left']=true;
       fbPatch(ccRoomPath,hp);
     }else if(ccIsHost){
       fbSet(ccRoomPath+'/status','ended');
     }else{
       var patch={};patch['players/'+ccMyPid+'/departed']=true;
+      if(cc.roundNum>0&&!cc._gameOver) patch['players/'+ccMyPid+'/left']=true; // 次のハンドで席を外す
       fbPatch(ccRoomPath,patch);
     }
   }
@@ -6030,8 +6241,8 @@ if(/[?&]test=1\b/.test(location.search)){
     get isHost(){return ccIsHost;},
     shiftClock:function(ms){cc._gameStartTs-=ms;},
     stopHostBeat:function(){ccStopHostBeat();},
-    totalChips:function(){return cc.players.reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
-    totalStart:function(){return cc.players.reduce(function(s,p){return s+p.startChips;},0);}
+    totalChips:function(){return ccAllPlayers().reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
+    totalStart:function(){return ccAllPlayers().reduce(function(s,p){return s+p.startChips;},0);}
   };
 }
 
