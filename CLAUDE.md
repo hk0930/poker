@@ -41,6 +41,9 @@
   - カード入力モードの手札 `game/holes` はハンド中は残し、次のディール開始時に消す
   - 退出中（`departed`）のプレイヤーは手番が来たら毎ハンド自動フォールド（`ccFoldIfDeparted()`）
   - `?test=1` では判定時間を短縮（生存信号0.4秒/判定2.5秒）
+- ブラインド自動上昇: `ccInitBlinds(値)` で開始時に設定（`hands:5` / `time:10` など）。`ccStartRound()` 冒頭の `ccApplyBlindLevel()` でのみ上げる（ハンド途中は変えない）。倍率は `CC_BLIND_MULT`。表示は `#cc-blind-info`（`ccUpdateBlindInfo()`）。オンラインは state の `blind` で配信し、時間制は残りミリ秒で送る（端末の時計ずれ対策）
+- 精算結果の共有: `ccBuildSummaryText()` でテキスト化し「結果をコピー」「共有」（Web Share API）。オンラインは state の `summaryText` で参加者にも配信
+- 古いルームの削除: ルーム作成時に `ccCleanupOldRooms()`。終了済みは1時間後、それ以外は最後の活動（`hostBeat`/`createdAt`）から24時間後に削除。時刻のない旧形式は残す
 
 ## アーキテクチャ
 

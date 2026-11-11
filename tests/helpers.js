@@ -34,7 +34,7 @@ async function openApp() {
 }
 
 // 1台モードでゲーム開始
-async function startOffline(page, { players = 2, chips = 500, sb = 5, bb = 10, names, cardMode = false } = {}) {
+async function startOffline(page, { players = 2, chips = 500, sb = 5, bb = 10, names, cardMode = false, blindUp } = {}) {
   await page.click('#btn-mode-chipcalc');
   await page.click(`.cc-cnt-btn[data-n="${players}"]`);
   if (names) {
@@ -44,6 +44,7 @@ async function startOffline(page, { players = 2, chips = 500, sb = 5, bb = 10, n
   await page.fill('#cc-sb', String(sb));
   await page.fill('#cc-bb', String(bb));
   if (cardMode) await page.check('#cc-card-mode');
+  if (blindUp) await page.selectOption('#cc-blind-up', blindUp);
   await page.click('#btn-start-chipcalc');
   await page.waitForSelector('#screen-chipcalc.active');
 }

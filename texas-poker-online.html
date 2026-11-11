@@ -205,7 +205,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.44-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.45-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -279,6 +279,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">開始チップ</span><input class="num-inp" id="cc-chips" value="500"></div>
       <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="cc-sb" value="5"></div>
       <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="cc-bb" value="10"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">ブラインド上昇</span><select id="cc-blind-up" style="width:130px;background:rgba(0,0,0,.5);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:8px;color:var(--gold-light);font-size:13px;outline:none;"><option value="off">なし</option><option value="hands:5">5ハンドごと</option><option value="hands:10">10ハンドごと</option><option value="time:10">10分ごと</option><option value="time:15">15分ごと</option><option value="time:20">20分ごと</option></select></div>
       <div class="row" style="margin-top:6px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.5);"><input type="checkbox" id="cc-card-mode" style="width:18px;height:18px;">カード入力で勝者自動判定</label></div>
       <button class="btn" id="btn-start-chipcalc">開始</button>
     </div>
@@ -289,6 +290,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">開始チップ</span><input class="num-inp" id="cc-ol-chips" value="500"></div>
       <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">SB</span><input class="num-inp" id="cc-ol-sb" value="5"></div>
       <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">BB</span><input class="num-inp" id="cc-ol-bb" value="10"></div>
+      <div class="row"><span style="font-size:12px;color:rgba(255,255,255,.5);">ブラインド上昇</span><select id="cc-ol-blind-up" style="width:130px;background:rgba(0,0,0,.5);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:8px;color:var(--gold-light);font-size:13px;outline:none;"><option value="off">なし</option><option value="hands:5">5ハンドごと</option><option value="hands:10">10ハンドごと</option><option value="time:10">10分ごと</option><option value="time:15">15分ごと</option><option value="time:20">20分ごと</option></select></div>
       <div class="row" style="margin-top:6px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.5);"><input type="checkbox" id="cc-ol-card-mode" style="width:18px;height:18px;">カード入力で勝者自動判定</label></div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="btn" id="cc-ol-create" style="flex:1;">ルームを作成</button>
@@ -476,8 +478,10 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
       <button id="cc-undo-btn" style="display:none;padding:6px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:rgba(255,255,255,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;">↩ UNDO</button>
     </div>
   </div>
+  <!-- ブラインド表示 -->
+  <div id="cc-blind-info" style="width:100%;max-width:700px;margin:0 auto;text-align:center;font-family:Cinzel,serif;font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.5px;white-space:nowrap;"></div>
   <!-- 円卓エリア -->
-  <div id="cc-table-wrap" style="width:100%;max-width:700px;margin:0 auto 6px;position:relative;overflow:visible;padding:0 8px;box-sizing:border-box;">
+  <div id="cc-table-wrap" style="width:100%;max-width:700px;margin:26px auto 6px;position:relative;overflow:visible;padding:0 8px;box-sizing:border-box;">
     <!-- テーブル外枠（木目リム） -->
     <div id="cc-table-rim" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62%;min-width:220px;aspect-ratio:1.4/1;background:linear-gradient(145deg,#5a3a1a,#3d2510,#6b4420,#3d2510);border-radius:50%;box-shadow:0 6px 30px rgba(0,0,0,.6),0 0 0 3px rgba(201,168,76,.5),0 0 0 6px rgba(0,0,0,.3);z-index:0;"></div>
     <!-- テーブルフェルト（内側の緑部分） -->
@@ -559,7 +563,12 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
     <div class="panel" style="text-align:center;max-width:700px;">
       <div class="ptitle">GAME OVER - 精算</div>
       <div id="cc-summary-body" style="text-align:left;"></div>
-      <button id="cc-summary-lobby" class="btn" style="margin-top:16px;">ロビーへ戻る</button>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button id="cc-summary-copy" style="flex:1;padding:12px;background:rgba(201,168,76,.15);border:1px solid var(--gold);border-radius:10px;color:var(--gold-light);font-size:13px;cursor:pointer;">結果をコピー</button>
+        <button id="cc-summary-share" style="flex:1;padding:12px;background:rgba(80,160,230,.15);border:1px solid rgba(80,160,230,.5);border-radius:10px;color:#adf;font-size:13px;cursor:pointer;display:none;">共有</button>
+      </div>
+      <div id="cc-summary-copied" style="font-size:11px;color:#afd;margin-top:6px;min-height:14px;"></div>
+      <button id="cc-summary-lobby" class="btn" style="margin-top:10px;">ロビーへ戻る</button>
     </div>
   </div>
   <!-- カードピッカーモーダル -->
@@ -3402,6 +3411,7 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
   cc.bbAmt=snap5(+document.getElementById('cc-bb').value)||10;
   cc.initialChips=chips;
   cc.cardMode=!!document.getElementById('cc-card-mode').checked;
+  ccInitBlinds(document.getElementById('cc-blind-up').value);
   cc.players=[];
   for(var i=0;i<ccPlayerCount;i++){
     var nameEl=document.querySelector('.cc-name-inp[data-i="'+i+'"]');
@@ -3418,11 +3428,83 @@ document.getElementById('btn-start-chipcalc').addEventListener('click',function(
   ccStartRound();
 });
 
+// ─── ブラインド自動上昇 ───
+var CC_BLIND_MULT=[1,2,3,4,6,8,12,16,24,32,48,64,96,128];
+function ccInitBlinds(v){
+  var m=(v&&v!=='off')?String(v).split(':'):null;
+  cc.blindUp=m?{type:m[0],every:+m[1]}:null;
+  cc.baseSb=cc.sbAmt;cc.baseBb=cc.bbAmt;cc.blindLevel=0;
+  cc._gameStartTs=Date.now();
+}
+// 今のハンド数・経過時間から本来のレベル
+function ccTargetLevel(){
+  var u=cc.blindUp;if(!u||!u.every) return cc.blindLevel||0;
+  var n=u.type==='hands'?Math.floor((cc.roundNum-1)/u.every):Math.floor((Date.now()-(cc._gameStartTs||Date.now()))/(u.every*60000));
+  return Math.max(cc.blindLevel||0,Math.min(n,CC_BLIND_MULT.length-1));
+}
+function ccSetBlindLevel(lv){
+  cc.blindLevel=lv;
+  var m=CC_BLIND_MULT[lv]||1;
+  cc.sbAmt=Math.max(5,snap5((cc.baseSb||5)*m));
+  cc.bbAmt=Math.max(cc.sbAmt,snap5((cc.baseBb||10)*m));
+}
+// ラウンド開始時に呼ぶ（ホスト/1台モードのみ）
+function ccApplyBlindLevel(){
+  if(!cc.blindUp) return;
+  var lv=ccTargetLevel();
+  if(lv>(cc.blindLevel||0)){
+    ccSetBlindLevel(lv);
+    ccShowNotice('ブラインドが '+cc.sbAmt+' / '+cc.bbAmt+' に上がりました（LV'+(lv+1)+'）');
+  }
+}
+// 時間制の次のレベルまでの残り時間（ミリ秒）
+function ccBlindRemainMs(){
+  var u=cc.blindUp;if(!u||u.type!=='time') return 0;
+  if(cc._levelDeadline) return Math.max(0,cc._levelDeadline-Date.now());
+  var next=((cc.blindLevel||0)+1)*u.every*60000;
+  return Math.max(0,(cc._gameStartTs||Date.now())+next-Date.now());
+}
+// 参加者・引き継いだホストが状態から取り込む
+function ccReceiveBlind(b){
+  if(!b) return;
+  cc.blindUp=b.up||null;cc.blindLevel=b.lv||0;
+  cc.baseSb=b.baseSb||cc.sbAmt;cc.baseBb=b.baseBb||cc.bbAmt;
+  if(cc.blindUp&&cc.blindUp.type==='time'){
+    // 端末の時計のずれに影響されないよう、残り時間から開始時刻を逆算
+    var next=(cc.blindLevel+1)*cc.blindUp.every*60000;
+    cc._gameStartTs=Date.now()+(b.remainMs||0)-next;
+  }
+  if(!ccIsHost) cc._levelDeadline=0;
+}
+function ccUpdateBlindInfo(){
+  var el=document.getElementById('cc-blind-info');if(!el) return;
+  var txt='BLINDS '+cc.sbAmt+' / '+cc.bbAmt;
+  var u=cc.blindUp;
+  if(u){
+    txt='LV'+((cc.blindLevel||0)+1)+' ・ '+cc.sbAmt+' / '+cc.bbAmt;
+    if((cc.blindLevel||0)>=CC_BLIND_MULT.length-1) txt+=' ・ 最大';
+    else if(u.type==='hands'){
+      var nextRound=((cc.blindLevel||0)+1)*u.every+1;
+      txt+=' ・ 次まで'+Math.max(0,nextRound-cc.roundNum)+'ハンド';
+    }else{
+      var ms=ccBlindRemainMs();
+      if(ms<=0) txt+=' ・ 次のハンドで上昇';
+      else{var sec=Math.ceil(ms/1000);txt+=' ・ 次まで'+Math.floor(sec/60)+':'+('0'+sec%60).slice(-2);}
+    }
+  }
+  el.textContent=txt;
+}
+// 時間制のカウントダウン表示
+setInterval(function(){
+  if(cc.blindUp&&cc.blindUp.type==='time'&&document.getElementById('screen-chipcalc').classList.contains('active')) ccUpdateBlindInfo();
+},1000);
+
 function ccStartRound(){
   ccHistory=[];ccUpdateUndoBtn();
   ccActionLog=[];
   cc._pendingRebuy=0;
   cc.roundNum++;
+  ccApplyBlindLevel();
   if(ccIsOnline) ccRoundId=Math.random().toString(36).slice(2,10);
   cc.phase=0;cc.pot=0;cc.curBet=0;cc.lastRaise=0;cc.streetPot=0;
   cc.roundActive=true;cc._streetActions=[];
@@ -3634,6 +3716,7 @@ function ccRenderAll(){
   var saEl=document.getElementById('cc-street-actions');
   if(saEl) saEl.innerHTML='';
   document.getElementById('cc-round-info').textContent='ROUND '+cc.roundNum;
+  ccUpdateBlindInfo();
   document.getElementById('cc-history-btn').style.display=ccRoundHistory.length>0?'inline-block':'none';
   ccAutoSave();
 }
@@ -4938,9 +5021,56 @@ function ccEndGame(){
     html+='<div style="text-align:center;color:rgba(255,255,255,.4);font-size:12px;">チップの移動はありません</div>';
   }
   bodyEl.innerHTML=html;
+  cc._summaryText=ccBuildSummaryText(transfers);
   summaryEl.style.display='block';
-  if(ccIsOnline&&ccIsHost) ccPushState('summary',{summaryHtml:bodyEl.innerHTML});
+  ccShowSummaryActions();
+  if(ccIsOnline&&ccIsHost) ccPushState('summary',{summaryHtml:bodyEl.innerHTML,summaryText:cc._summaryText});
 }
+
+// 精算結果をLINEなどに貼れるテキストにする
+function ccBuildSummaryText(transfers){
+  var d=new Date();
+  var lines=['🎰 ポーカー結果（'+d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+'・'+cc.roundNum+'ハンド）',''];
+  lines.push('■ 結果');
+  cc.players.slice().sort(function(a,b){return (b.chips-b.startChips)-(a.chips-a.startChips);}).forEach(function(p){
+    var diff=p.chips-p.startChips;
+    var diffStr=diff>0?'+'+diff:diff===0?'±0':''+diff;
+    lines.push(p.name+'  '+p.startChips+' → '+p.chips+'（'+diffStr+'）'+(p.rebuyCount>0?' リバイ'+p.rebuyCount+'回':''));
+  });
+  lines.push('');
+  lines.push('■ チップの受け渡し');
+  if(transfers.length) transfers.forEach(function(t){lines.push(t.from+' → '+t.to+'  '+t.amount);});
+  else lines.push('なし');
+  return lines.join('\n');
+}
+
+function ccShowSummaryActions(){
+  document.getElementById('cc-summary-copied').textContent='';
+  document.getElementById('cc-summary-share').style.display=navigator.share?'':'none';
+}
+
+function ccCopyText(text,cb){
+  function fallback(){
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);ta.select();
+    var ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);cb(ok);
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){cb(true);},fallback);
+  }else fallback();
+}
+document.getElementById('cc-summary-copy').addEventListener('click',function(){
+  var msg=document.getElementById('cc-summary-copied');
+  ccCopyText(cc._summaryText||'',function(ok){
+    msg.textContent=ok?'コピーしました。LINEなどに貼り付けできます':'コピーできませんでした';
+  });
+});
+document.getElementById('cc-summary-share').addEventListener('click',function(){
+  if(navigator.share) navigator.share({text:cc._summaryText||''}).catch(function(){});
+});
 
 function ccCalcSettlement(){
   // 損益を計算
@@ -5025,7 +5155,8 @@ document.getElementById('cc-ol-create').addEventListener('click',function(){
   var sb=snap5(+document.getElementById('cc-ol-sb').value)||5;
   var bb=snap5(+document.getElementById('cc-ol-bb').value)||10;
   var cardMode=!!document.getElementById('cc-ol-card-mode').checked;
-  var roomData={hostId:myId,status:'waiting',settings:{chips:chips,sb:sb,bb:bb,cardMode:cardMode},players:{}};
+  var roomData={hostId:myId,status:'waiting',createdAt:Date.now(),settings:{chips:chips,sb:sb,bb:bb,cardMode:cardMode},players:{}};
+  ccCleanupOldRooms();
   roomData.players[myId]={name:name,idx:0};
   fbSet(ccRoomPath,roomData,function(){
     document.getElementById('cc-ol-create').style.display='none';
@@ -5043,6 +5174,24 @@ document.getElementById('cc-ol-create').addEventListener('click',function(){
     ccWatchLobbyPlayers();
   });
 });
+
+// 遊び終わった・放置されたルームをFirebaseから削除する（ルーム作成のついでに実行）
+// ・終了済み（ended）は1時間後、それ以外は最後の活動から24時間後に削除
+var CC_ROOM_TTL=24*60*60*1000, CC_ENDED_TTL=60*60*1000;
+function ccCleanupOldRooms(){
+  fbGet('ccrooms',function(all){
+    if(!all||typeof all!=='object') return;
+    var now=Date.now(),patch={},n=0;
+    Object.keys(all).forEach(function(code){
+      var r=all[code];if(!r||typeof r!=='object') return;
+      var last=Math.max(r.hostBeat||0,r.createdAt||0);
+      if(!last) return; // 時刻のない古い形式のルームは判断できないので残す
+      var age=now-last;
+      if(age>CC_ROOM_TTL||(r.status==='ended'&&age>CC_ENDED_TTL)){patch[code]=null;n++;}
+    });
+    if(n) fbPatch('ccrooms',patch);
+  });
+}
 
 // ルーム参加トグル
 document.getElementById('cc-ol-join-toggle').addEventListener('click',function(){
@@ -5247,6 +5396,7 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     cc.bbAmt=snap5(+document.getElementById('cc-ol-bb').value)||10;
     cc.initialChips=defaultChips;
     cc.cardMode=!!document.getElementById('cc-ol-card-mode').checked;
+    ccInitBlinds(document.getElementById('cc-ol-blind-up').value);
     var pids=Object.keys(pdata);
     pids.sort(function(a,b){return (pdata[a].idx||0)-(pdata[b].idx||0);});
     cc.players=[];
@@ -5259,7 +5409,7 @@ document.getElementById('cc-ol-start').addEventListener('click',function(){
     fbOff(ccRoomPath+'/players');
     // 設定をFirebaseに同期（ホストがルーム作成後に変更した場合に非ホストが正しい値を取得）
     var settingsPatch={};
-    settingsPatch['settings']={chips:defaultChips,sb:cc.sbAmt,bb:cc.bbAmt,cardMode:cc.cardMode};
+    settingsPatch['settings']={chips:defaultChips,sb:cc.sbAmt,bb:cc.bbAmt,cardMode:cc.cardMode,blindUp:cc.blindUp||null};
     settingsPatch['status']='started';
     cc._gameOver=false;cc._hostPid=ccMyPid;
     fbPatch(ccRoomPath,settingsPatch,function(){
@@ -5280,7 +5430,7 @@ function ccPushState(uiMode,extra){
   var ps=cc.players.map(function(p){
     return {name:p.name,chips:p.chips,bet:p.bet,totalBet:p.totalBet,folded:p.folded,allIn:p.allIn,eliminated:p.eliminated,rebuyCount:p.rebuyCount,startChips:p.startChips,_roundStartChips:p._roundStartChips,pid:p.pid};
   });
-  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[],usedCards:ccUsedCards||{}};
+  var st={players:ps,phase:cc.phase,pot:cc.pot,curBet:cc.curBet,curIdx:cc.curIdx,dealerIdx:cc.dealerIdx,roundNum:cc.roundNum,roundActive:cc.roundActive,lastRaise:cc.lastRaise,acts:cc.acts||[],_sbIdx:cc._sbIdx,_bbIdx:cc._bbIdx,_isHeadsUp:cc._isHeadsUp,_bbActed:cc._bbActed,initialChips:cc.initialChips,sbAmt:cc.sbAmt,bbAmt:cc.bbAmt,rid:ccRoundId,uiMode:uiMode||'action',waitFor:(cc.curIdx>=0&&cc.players[cc.curIdx])?cc.players[cc.curIdx].pid:null,lastAction:ccLastAction||null,cardMode:!!cc.cardMode,community:ccCommunity||[],streetActions:cc._streetActions||[],usedCards:ccUsedCards||{},blind:{lv:cc.blindLevel||0,up:cc.blindUp||null,baseSb:cc.baseSb||cc.sbAmt,baseBb:cc.baseBb||cc.bbAmt,remainMs:ccBlindRemainMs()}};
   // カードモードの結果時: 全プレイヤーの手札を公開
   if(cc.cardMode&&(uiMode==='result'||uiMode==='showdown')){
     var reveal={};
@@ -5327,6 +5477,7 @@ function ccOnState(st){
   cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=st._bbActed;
   cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
   cc.cardMode=!!st.cardMode;
+  ccReceiveBlind(st.blind);
   // カード公開情報（ショーダウン時）
   if(st.reveal){
     Object.keys(st.reveal).forEach(function(idx){
@@ -5383,6 +5534,8 @@ function ccOnState(st){
     turnInfo.textContent='リバイ確認中...（ホストが決定します）';turnInfo.style.display='block';
   }else if(mode==='summary'){
     cc._gameOver=true;
+    cc._summaryText=st.summaryText||'';
+    ccShowSummaryActions();
     summary.style.display='block';document.getElementById('cc-summary-body').innerHTML=st.summaryHtml||'';
   }else if(mode==='allin'&&st.allinName){
     ccShowAllinEffect(st.allinName,st.allinAmount||0,function(){});
@@ -5652,6 +5805,7 @@ function ccApplyHostState(st){
   cc._sbIdx=st._sbIdx;cc._bbIdx=st._bbIdx;cc._isHeadsUp=st._isHeadsUp;cc._bbActed=!!st._bbActed;
   cc.initialChips=st.initialChips||500;cc.sbAmt=st.sbAmt||5;cc.bbAmt=st.bbAmt||10;
   cc.cardMode=!!st.cardMode;
+  ccReceiveBlind(st.blind);
   ccCommunity=arr(st.community);
   ccUsedCards=st.usedCards||{};
   cc._streetActions=arr(st.streetActions);
@@ -5670,6 +5824,7 @@ function ccResumeHostUI(st,holes){
   if(mode==='summary'){
     cc._gameOver=true;
     document.getElementById('cc-summary-body').innerHTML=st.summaryHtml||'';
+    cc._summaryText=st.summaryText||'';ccShowSummaryActions();
     document.getElementById('cc-summary').style.display='block';
     return;
   }
@@ -5873,6 +6028,7 @@ if(/[?&]test=1\b/.test(location.search)){
     get noSleepWanted(){return _noSleepWanted;},
     get soundOn(){return ccSoundOn;},
     get isHost(){return ccIsHost;},
+    shiftClock:function(ms){cc._gameStartTs-=ms;},
     stopHostBeat:function(){ccStopHostBeat();},
     totalChips:function(){return cc.players.reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
     totalStart:function(){return cc.players.reduce(function(s,p){return s+p.startChips;},0);}

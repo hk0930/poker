@@ -28,11 +28,12 @@ async function device(db) {
 }
 
 // ホストがルームを作り、参加者が入り、ゲームを開始する
-async function setupRoom({ guests = 1, cardMode = false, chips } = {}) {
+async function setupRoom({ guests = 1, cardMode = false, chips, blindUp } = {}) {
   const db = new FakeDb();
   const host = await device(db);
   await host.fill('#cc-my-name', 'ホスト');
   if (cardMode) await host.check('#cc-ol-card-mode');
+  if (blindUp) await host.selectOption('#cc-ol-blind-up', blindUp);
   await host.click('#cc-ol-create');
   await host.waitForSelector('#cc-ol-code-disp:not(:empty)');
   const code = (await host.textContent('#cc-ol-code-disp')).trim();
@@ -350,4 +351,74 @@ test('引き継ぎ: ホストが生きている間は引き継ぎ案内が出な
   await g.waitForTimeout(4000); // 判定時間(2.5秒)より長く待つ
   assert.ok(!(await h.visible(g, '#cc-takeover')));
   await finish(room);
+});
+
+test('オンライン: 精算結果のテキストが参加者にも届き、コピーできる', async () => {
+  const room = await setupRoom();
+  const { host } = room;
+  const g = room.guests[0];
+  await waitMyTurn(host);
+  await h.act(host, 'fold');
+  await host.waitForSelector('#cc-result', { state: 'visible' });
+  await host.click('#cc-end-game');
+  await g.waitForSelector('#cc-summary', { state: 'visible' });
+  const text = await g.evaluate(() => window.__cc.state._summaryText);
+  assert.match(text, /ホスト → ゲスト1 {2}5/);
+  await g.click('#cc-summary-copy');
+  await g.waitForFunction(() => document.getElementById('cc-summary-copied').textContent !== '');
+  await finish(room);
+});
+
+test('オンライン: ブラインド上昇が参加者の画面にも表示され、引き継ぎ後も続く', async () => {
+  const room = await setupRoom({ guests: 2, blindUp: 'hands:5' });
+  const [host, g1, g2] = room.all;
+  await g1.waitForFunction(() => document.getElementById('cc-blind-info').textContent === 'LV1 ・ 5 / 10 ・ 次まで5ハンド');
+  // 5ハンド進める（手番の人がフォールドを繰り返す）
+  for (let hand = 0; hand < 5; hand++) {
+    while (!(await h.visible(host, '#cc-result'))) {
+      let acted = false;
+      for (const p of room.all) {
+        if (await p.evaluate(() => document.getElementById('cc-ap').style.display === 'block')) {
+          await h.act(p, 'fold'); acted = true; break;
+        }
+      }
+      if (!acted) await host.waitForTimeout(200);
+    }
+    await h.nextHand(host);
+    await host.waitForTimeout(200);
+  }
+  await g2.waitForFunction(() => document.getElementById('cc-blind-info').textContent === 'LV2 ・ 10 / 20 ・ 次まで5ハンド');
+  // ホストが落ちても、引き継いだ人がレベルを引き継ぐ
+  await host.context().close();
+  await g1.waitForSelector('#cc-takeover', { state: 'visible', timeout: 6000 });
+  await g1.click('#cc-takeover-btn');
+  await g1.waitForFunction(() => window.__cc.isHost === true);
+  const s = await h.state(g1);
+  assert.equal(s.bbAmt, 20);
+  assert.equal(s.blindLevel, 1);
+  assert.equal(await g1.textContent('#cc-blind-info'), 'LV2 ・ 10 / 20 ・ 次まで5ハンド');
+  for (const p of [g1, g2]) { assert.deepEqual(p.errors, []); await p.context().close(); }
+});
+
+test('ルーム作成時に、終了・放置された古いルームが削除される', async () => {
+  const db = new FakeDb();
+  const now = Date.now();
+  db.write('ccrooms', {
+    OLD111: { status: 'started', createdAt: now - 3 * 86400000, hostBeat: now - 2 * 86400000 },
+    END222: { status: 'ended', createdAt: now - 3 * 3600000, hostBeat: now - 2 * 3600000 },
+    NEW333: { status: 'started', createdAt: now - 3600000, hostBeat: now - 1000 },
+    END444: { status: 'ended', createdAt: now - 600000, hostBeat: now - 60000 },
+    LEG555: { status: 'started' },
+  });
+  const host = await device(db);
+  await host.fill('#cc-my-name', 'ホスト');
+  await host.click('#cc-ol-create');
+  await host.waitForSelector('#cc-ol-code-disp:not(:empty)');
+  await host.waitForFunction(() => true);
+  await new Promise((r) => setTimeout(r, 500));
+  const left = Object.keys(db.read('ccrooms')).sort();
+  const code = (await host.textContent('#cc-ol-code-disp')).trim();
+  assert.deepEqual(left, [code, 'END444', 'LEG555', 'NEW333'].sort());
+  assert.deepEqual(host.errors, []);
+  await host.context().close();
 });
