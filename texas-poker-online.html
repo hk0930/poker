@@ -205,7 +205,7 @@ to{opacity:1;transform:translateX(0) rotateY(0deg);}
 <div id="screen-lobby" class="screen active">
   <div class="logo">TEXAS HOLD'EM</div>
   <div class="logo-sub">ONLINE POKER</div>
-  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.11.46-sdk</div>
+  <div style="font-family:Cinzel,serif;font-size:9px;color:rgba(201,168,76,.4);letter-spacing:2px;text-align:center;margin-top:-8px;margin-bottom:4px;">v2026.11.13.47-sdk</div>
   <div id="conn-badge" class="badge b-err">⚠ オフラインモード</div>
   <div class="panel" style="text-align:center;padding:14px 20px;">
     <div class="ptitle">モードを選択</div>
@@ -6243,6 +6243,13 @@ if(/[?&]test=1\b/.test(location.search)){
     stopHostBeat:function(){ccStopHostBeat();},
     totalChips:function(){return ccAllPlayers().reduce(function(s,p){return s+p.chips;},0)+cc.pot;},
     totalStart:function(){return ccAllPlayers().reduce(function(s,p){return s+p.startChips;},0);}
+  };
+  // メインのゲーム（オンライン対戦・CPU対戦）
+  window.__poker={
+    get players(){return players;},get pot(){return pot;},get phase(){return phase;},
+    get curIdx(){return curIdx;},get myIdx(){return myIdx;},get isHost(){return isHost;},
+    get comm(){return comm;},get dealerIdx(){return dealerIdx;},
+    totalChips:function(){return players.reduce(function(s,p){return s+(p.chips||0);},0)+(pot||0);}
   };
 }
 
