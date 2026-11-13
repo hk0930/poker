@@ -331,6 +331,23 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .sum-bar{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:6px;}
 .sum-bar i{display:block;height:100%;border-radius:3px;transition:width .6s var(--ease);}
 .sum-bar i.up{background:var(--green);}.sum-bar i.down{background:var(--red);margin-left:auto;}
+.mtable{position:relative;width:100%;max-width:520px;height:430px;margin:14px auto 12px;}
+.mtable .felt{position:absolute;left:8%;right:8%;top:10%;bottom:13%;width:auto;max-width:none;margin:0;border-radius:130px;padding:10px;min-height:0;}
+.mtable #seats{position:absolute;inset:0;display:block;margin:0;max-width:none;}
+.mtable #seats .seat{position:absolute;transform:translate(-50%,-50%);width:86px;padding:6px 4px 5px;z-index:2;}
+.mtable #seats .seat.me{width:132px;flex-direction:row;flex-wrap:wrap;justify-content:center;column-gap:8px;padding:6px 8px;}
+.mtable #seats .seat.me .pod-av{display:none;}
+.mtable #seats .seat.me .sname{width:100%;}
+.mtable #seats .seat.me .scards{order:-1;width:100%;margin:0 0 3px;gap:5px;}
+.mtable #seats .seat.me .scards .card-wrap svg{width:48px;height:70px;}
+.mtable #seats .seat .scards .card-wrap svg{width:26px;height:38px;border-radius:4px;}
+.mtable #seats .seat .pod-cards{position:absolute;top:5px;right:5px;margin:0!important;gap:0;}
+.mtable #seats .seat .pod-cards .card-wrap svg{width:13px;height:19px;border-radius:2px;}
+.mtable #seats .seat .pod-cards .card-wrap+.card-wrap{margin-left:-5px;}
+.mtable #comm-cards{gap:4px;}
+.mtable #comm-cards .card-wrap svg,.mtable #comm-cards .card-slot{width:clamp(38px,11.500vw,52px);}
+#hdisp{display:none!important;}
+@media (max-height:760px){.mtable{height:380px;}}
 </style>
 
 </head>
@@ -537,11 +554,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <div id="back-btn-wrap" class="topbar" style="display:none;justify-content:flex-end;">
     <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ</button>
   </div>
-  <div id="seats"></div>
-  <div class="felt">
-    <div id="phase">WAITING</div>
-    <div id="comm-cards"></div>
-    <div id="pot">POT: 0</div>
+  <div class="mtable">
+    <div class="felt">
+      <div id="phase">WAITING</div>
+      <div id="comm-cards"></div>
+      <div id="pot">POT: 0</div>
+    </div>
+    <div id="seats"></div>
   </div>
   <div id="cpu-bar" style="display:none;">
     <div id="cpu-bar-text">CPU思考中...</div>
@@ -2811,19 +2830,29 @@ function renderAll(){
   var area=document.getElementById('seats');area.innerHTML='';
   // apVisible を forEach の外で1回だけ取得（シートクラス付与より前）
   var apVisible = document.getElementById('ap').style.display !== 'none';
-  var shown=players.filter(function(p){return p.eliminated||p.active;}).length;
-  area.style.gridTemplateColumns='repeat('+(shown<=3?Math.max(shown,2):Math.ceil(shown/2))+',1fr)';
+  // テーブルを囲む配置: 自分が手前（下）、相手は左下から時計回りに上を通って右下へ
+  var shownIdx=[];players.forEach(function(p,i){if(p.eliminated||p.active) shownIdx.push(i);});
+  var meAt=-1;shownIdx.forEach(function(pi,k){if(players[pi].isMe) meAt=k;});
+  var SEAT_ANGLES={1:[270],2:[215,325],3:[220,270,320],4:[160,225,315,380],5:[150,210,270,330,390],6:[150,198,246,294,342,390],7:[145,186,228,270,312,354,395]};
+  function seatPos(i){
+    var k=shownIdx.indexOf(i),n=shownIdx.length;
+    var rel=meAt>=0?(k-meAt+n)%n:k+1;
+    var ang=rel===0?90:(SEAT_ANGLES[meAt>=0?n-1:n]||SEAT_ANGLES[7])[rel-1];
+    if(ang===undefined) ang=270;
+    var r=ang*Math.PI/180;
+    return 'left:'+(50+40*Math.cos(r)).toFixed(1)+'%;top:'+(50+(rel===0?41:43)*Math.sin(r)).toFixed(1)+'%;';
+  }
   var escN=function(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   players.forEach(function(p,i){
     var av='<div class="pod-av" style="--h:'+((i*47+150)%360)+'">'+escN((p.name||'?').trim().charAt(0)||'?')+'</div>';
     if(p.eliminated){
       // 脱落プレイヤーを薄く表示
-      var s=document.createElement('div');s.className='seat folded';s.style.opacity='0.3';
+      var s=document.createElement('div');s.className='seat folded';s.style.cssText=seatPos(i)+'opacity:.3;';
       s.innerHTML=av+'<div class="sname">'+escN(p.name)+'</div><div class="pod-tag tag-fold">脱落</div>';
       area.appendChild(s); return;
     }
     if(!p.active)return;
-    var s=document.createElement('div');s.className='seat'+(p.isMe?' me':'');
+    var s=document.createElement('div');s.className='seat'+(p.isMe?' me':'');s.style.cssText=seatPos(i);
     if(i===dealerIdx) s.classList.add('dealer');
     if(p.folded){
       s.classList.add('folded');
@@ -2841,7 +2870,7 @@ function renderAll(){
     else if(!p.folded&&(phase>=4||_allInRevealed)&&p.hole&&p.hole.length===2){ h=p.hole; }
     else { h=null; }
     var show=h&&h.length===2;
-    var ch=show?('<div class="scards">'+cH(h[0],true)+cH(h[1],true)+'</div>')
+    var ch=show?('<div class="scards">'+cH(h[0],!p.isMe)+cH(h[1],!p.isMe)+'</div>')
                :('<div class="pod-cards" style="margin-top:5px;'+(p.folded?'visibility:hidden;':'')+'">'+cH(null,true)+cH(null,true)+'</div>');
     // アクション状態表示
     var stHtml='';
@@ -3076,7 +3105,6 @@ function showActionBubble(playerIdx, action, amount){
   var b=document.createElement('div');
   b.className='action-bubble '+(ACTION_CLS[action]||'');
   b.textContent=lbl;
-  seat.style.position='relative';
   seat.appendChild(b);
   setTimeout(function(){if(b.parentNode)b.remove();},2200);
 }
