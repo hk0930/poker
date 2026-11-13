@@ -316,6 +316,21 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .toast{top:calc(10px + env(safe-area-inset-top,0px));}
 .cc-winner-cb{width:22px!important;height:22px!important;accent-color:var(--gold);flex-shrink:0;}
 #cc-winner-list label{min-height:46px;}
+.win-head{text-align:center;padding:6px 0 10px;animation:popIn .4s var(--ease) both;}
+.win-name{font-size:18px;font-weight:800;color:var(--gold-light);line-height:1.4;}
+.win-amt{font-size:34px;font-weight:800;color:#8fe6b4;line-height:1.15;}
+.win-sub{font-size:12px;color:var(--text-2);margin-top:2px;}
+.list-row.win{background:rgba(52,199,123,.1);box-shadow:inset 0 0 0 1px rgba(52,199,123,.35);}
+.sum-row{padding:10px 12px;background:rgba(0,0,0,.25);border-radius:var(--r-sm);margin-bottom:6px;}
+.sum-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.sum-name{font-size:15px;font-weight:700;}
+.sum-diff{font-size:18px;}
+.sum-sub{font-size:12px;color:var(--text-3);}
+.sum-note{font-size:11px;font-weight:600;color:var(--text-3);margin-left:4px;}
+.sum-crown{font-size:10px;font-weight:800;color:#241800;background:var(--gold);border-radius:5px;padding:1px 6px;margin-right:6px;vertical-align:2px;}
+.sum-bar{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:6px;}
+.sum-bar i{display:block;height:100%;border-radius:3px;transition:width .6s var(--ease);}
+.sum-bar i.up{background:var(--green);}.sum-bar i.down{background:var(--red);margin-left:auto;}
 </style>
 
 </head>
@@ -4623,42 +4638,28 @@ function ccAutoShowdownEval(notFolded){
   cc.pot=0;
 
   // 結果HTML生成
-  var html='';
-  // コミュニティカード表示
-  html+='<div style="margin-bottom:10px;text-align:center;">';
-  html+='<div style="font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.04em;margin-bottom:4px;">COMMUNITY CARDS</div>';
-  html+='<div style="display:flex;justify-content:center;gap:4px;">';
+  var winIdxs=Object.keys(awards);
+  var html=winIdxs.length===1
+    ?ccWinHead(esc(cc.players[+winIdxs[0]].name),awards[winIdxs[0]],cont[0]&&cont[0].best?HN[cont[0].best.score.rank]+' ・ '+handDetail(cont[0].best.score):'')
+    :ccWinHead(winIdxs.map(function(k){return esc(cc.players[+k].name)+' <span class="pos">+'+awards[k]+'</span>';}).join('<br>'),null,'ポットを分配');
+  html+='<div style="display:flex;justify-content:center;gap:4px;margin:10px 0;">';
   ccCommunity.forEach(function(c){html+=cH(c,true);});
-  html+='</div></div>';
-
-  // 全プレイヤーの手札とハンド
-  html+='<div style="margin-bottom:10px;">';
+  html+='</div>';
   cont.forEach(function(c){
     var isWinner=!!awards[c.idx];
-    var bg=isWinner?'rgba(80,220,100,.08)':'rgba(0,0,0,.2)';
-    var border=isWinner?'rgba(80,220,100,.3)':'rgba(255,255,255,.1)';
-    html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:'+bg+';border:1px solid '+border+';border-radius:8px;margin-bottom:4px;">';
-    // 名前
-    html+='<div style="min-width:60px;font-size:12px;color:'+(isWinner?'#8fe6b4':'rgba(255,255,255,.6)')+';">'+esc(c.name)+(isWinner?' ★':'')+'</div>';
-    // 手札
-    html+='<div style="display:flex;gap:2px;">';
+    html+='<div class="list-row'+(isWinner?' win':'')+'" style="text-align:left;">';
+    html+='<div style="display:flex;gap:2px;flex-shrink:0;">';
     c.hole.forEach(function(card){html+=cH(card,true);});
     html+='</div>';
-    // ハンド名
-    html+='<div style="flex:1;text-align:right;">';
-    if(c.best) html+='<div style="font-size:12px;color:var(--gold-light);">'+HN[c.best.score.rank]+'</div><div style="font-size:11px;color:rgba(255,255,255,.35);">'+handDetail(c.best.score)+'</div>';
+    html+='<div style="flex:1;min-width:0;"><b>'+esc(c.name)+'</b>';
+    if(c.best) html+='<div style="font-size:12px;color:var(--gold-light);font-weight:700;">'+HN[c.best.score.rank]+'</div><div style="font-size:11px;color:var(--text-3);">'+handDetail(c.best.score)+'</div>';
     html+='</div>';
-    // 獲得チップ
-    if(isWinner) html+='<div style="font-size:12px;color:#8fe6b4;font-weight:700;min-width:50px;text-align:right;">+'+awards[c.idx]+'</div>';
-    else if(!c.allIn) html+='<div style="font-size:12px;color:#ff8f8c;min-width:50px;text-align:right;">-'+(c.totalBet||0)+'</div>';
+    if(isWinner) html+='<span class="pos">+'+awards[c.idx]+'</span>';
     html+='</div>';
   });
-  html+='</div>';
-
-  // 勝因説明（1位と2位の比較）
   if(cont.length>=2&&cont[0].best&&cont[1].best){
     var reason=winReason(cont[0],cont[1]);
-    if(reason) html+='<div style="font-size:12px;color:rgba(255,255,255,.4);text-align:center;">'+esc(reason)+'</div>';
+    if(reason) html+='<div style="font-size:12px;color:var(--text-2);text-align:center;margin-top:6px;">'+esc(reason)+'</div>';
   }
 
   ccRenderAll();
@@ -4672,35 +4673,32 @@ function ccRecordRoundHistory(winners){
   ccRoundHistory.push(entry);
 }
 
+// 増減を色つきで表示する部品
+function ccDiffHtml(diff){
+  var cls=diff>0?'pos':diff<0?'neg':'zero';
+  return '<span class="'+cls+'">'+(diff>0?'+'+diff:diff===0?'±0':''+diff)+'</span>';
+}
+function ccWinHead(names,amount,sub){
+  return '<div class="win-head"><div class="win-name">'+names+'</div>'+(amount!==null?'<div class="win-amt">+'+amount+'</div>':'')+(sub?'<div class="win-sub">'+sub+'</div>':'')+'</div>';
+}
+
 function ccShowHistory(){
   if(ccRoundHistory.length===0){alert('まだ履歴がありません');return;}
   var ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:1300;background:rgba(0,0,0,.92);overflow-y:auto;padding:16px;';
+  ov.className='picker';ov.style.display='block';ov.style.zIndex='1300';
   var html='<div style="max-width:500px;margin:0 auto;">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
-  html+='<div style="font-size:14px;color:var(--gold);letter-spacing:.12em;">ROUND HISTORY</div>';
-  html+='<button id="cc-hist-close" style="padding:6px 16px;background:rgba(200,50,50,.2);border:1px solid rgba(220,80,80,.4);border-radius:6px;color:#ff8f8c;font-size:12px;cursor:pointer;">閉じる</button>';
-  html+='</div>';
+  html+='<div class="topbar"><div class="picker-title" style="margin:0;">ハンド履歴</div><button id="cc-hist-close" class="icon-btn">✕ 閉じる</button></div>';
   for(var i=ccRoundHistory.length-1;i>=0;i--){
     var e=ccRoundHistory[i];
-    html+='<div style="margin-bottom:10px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(201,168,76,.2);border-radius:8px;">';
-    html+='<div style="font-size:12px;color:var(--gold-light);margin-bottom:6px;">ROUND '+e.round+'</div>';
-    // 勝者
-    html+='<div style="margin-bottom:4px;">';
-    e.winners.forEach(function(w){html+='<span style="color:#8fe6b4;font-size:12px;margin-right:8px;">'+esc(w.name)+' +'+w.amount+'</span>';});
-    html+='</div>';
-    // 各プレイヤー増減
+    html+='<div class="panel" style="padding:14px;margin-top:10px;">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><b style="color:var(--gold-light);">ROUND '+e.round+'</b>';
+    html+='<span style="font-size:12px;color:var(--text-2);">'+e.winners.map(function(w){return esc(w.name)+' <span class="pos">+'+w.amount+'</span>';}).join('　')+'</span></div>';
     e.players.forEach(function(p){
-      var dc=p.diff>0?'#8fe6b4':p.diff<0?'#ff8f8c':'rgba(255,255,255,.4)';
-      var ds=p.diff>0?'+'+p.diff:p.diff===0?'±0':''+p.diff;
-      html+='<div style="display:flex;justify-content:space-between;padding:2px 6px;font-size:12px;">';
-      html+='<span style="color:rgba(255,255,255,.6);">'+esc(p.name)+'</span>';
-      html+='<span><span style="color:rgba(255,255,255,.3);">→'+p.chips+'</span> <span style="color:'+dc+';font-weight:700;">'+ds+'</span></span></div>';
+      html+='<div class="list-row"><span>'+esc(p.name)+'</span><span><span style="color:var(--text-3);font-size:12px;margin-right:8px;">'+p.chips+'</span>'+ccDiffHtml(p.diff)+'</span></div>';
     });
-    // アクション履歴
     if(e.actions&&e.actions.length>0){
-      html+='<details style="margin-top:4px;"><summary style="font-size:11px;color:rgba(255,255,255,.3);cursor:pointer;">アクション詳細</summary>';
-      html+='<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;max-height:120px;overflow-y:auto;">';
+      html+='<details style="margin-top:6px;"><summary style="font-size:12px;color:var(--text-3);cursor:pointer;padding:6px 0;">アクションの詳細</summary>';
+      html+='<div style="font-size:12px;color:var(--text-2);line-height:1.7;max-height:160px;overflow-y:auto;">';
       e.actions.forEach(function(a){html+='<div>'+esc(a)+'</div>';});
       html+='</div></details>';
     }
@@ -4896,7 +4894,7 @@ function ccAwardLastStanding(winner){
   ccLastWinners=[winner.name];
   ccRecordRoundHistory([{name:winner.name,amount:wonAmount}]);
   ccRenderAll();
-  ccShowResult('<div style="font-size:16px;color:var(--gold-light);margin-bottom:8px;">'+esc(winner.name)+' が獲得!</div><div style="font-size:14px;">+'+wonAmount+' チップ</div>');
+  ccShowResult(ccWinHead(esc(winner.name),wonAmount,'ほかの全員がフォールド'));
 }
 
 function ccShowResult(html){
@@ -4904,20 +4902,12 @@ function ccShowResult(html){
   var resultEl=document.getElementById('cc-result');
   var body=document.getElementById('cc-result-body');
   // 全プレイヤーの増減サマリーを追加
-  var summaryHtml='<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(201,168,76,.2);">';
-  summaryHtml+='<div style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.04em;margin-bottom:6px;">ROUND '+cc.roundNum+' SUMMARY</div>';
+  var summaryHtml='<div class="sec-label" style="text-align:left;">ROUND '+cc.roundNum+' の増減</div>';
   cc.players.forEach(function(p){
     if(p.eliminated&&typeof p._roundStartChips==='undefined') return;
-    var startC=p._roundStartChips||0;
-    var diff=p.chips-startC;
-    var diffStr=diff>0?'+'+diff:diff===0?'±0':''+diff;
-    var diffColor=diff>0?'#8fe6b4':diff<0?'#ff8f8c':'rgba(255,255,255,.4)';
-    summaryHtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin-bottom:2px;border-radius:4px;background:rgba(0,0,0,.15);">';
-    summaryHtml+='<span style="font-size:12px;color:rgba(255,255,255,.7);">'+esc(p.name)+'</span>';
-    summaryHtml+='<span style="font-size:12px;font-weight:700;color:'+diffColor+';">'+diffStr+'</span>';
-    summaryHtml+='</div>';
+    var diff=p.chips-(p._roundStartChips||0);
+    summaryHtml+='<div class="list-row"><span>'+esc(p.name)+'</span><span><span style="color:var(--text-3);font-size:12px;margin-right:8px;">'+p.chips+'</span>'+ccDiffHtml(diff)+'</span></div>';
   });
-  summaryHtml+='</div>';
   // チップ保存検証: 全チップ合計 + pot = 総投入額
   var totalChips=0;ccAllPlayers().forEach(function(p){totalChips+=p.chips;});
   totalChips+=cc.pot;
@@ -4940,32 +4930,22 @@ function ccShowShowdown(){
   document.getElementById('cc-turn-info').style.display='none';
   var sidePots=ccCalcSidePots();
   var html='';
-  var infoHtml='';
-  if(sidePots.length>1){
-    infoHtml='<div style="margin-bottom:8px;">';
-    sidePots.forEach(function(sp,i){
-      var names=sp.eligible.map(function(idx){return esc(cc.players[idx].name);}).join(', ');
-      infoHtml+='<div style="margin-bottom:4px;">ポット'+(i+1)+': '+sp.amount+' ('+names+')</div>';
-    });
-    infoHtml+='</div>';
-  }
-  document.getElementById('cc-sidepot-info').innerHTML=infoHtml;
+  document.getElementById('cc-sidepot-info').innerHTML='';
   sidePots.forEach(function(sp,pi){
-    html+='<div class="cc-pot-block" data-pot="'+pi+'" style="margin-bottom:10px;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(201,168,76,.2);">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-    html+='<div style="font-size:12px;color:var(--gold);">'+(sidePots.length>1?'ポット'+(pi+1)+' ('+sp.amount+')':'POT: '+sp.amount)+'</div>';
-    html+='<button class="cc-split-all-btn" data-pot="'+pi+'" style="padding:3px 10px;background:rgba(80,160,230,.2);border:1px solid rgba(80,160,230,.4);border-radius:6px;color:#b9dcff;font-size:11px;cursor:pointer;letter-spacing:.04em;">SPLIT (全員)</button>';
+    var label=sidePots.length>1?(pi===0?'メインポット':'サイドポット'+pi):'ポット';
+    html+='<div class="cc-pot-block subpanel" data-pot="'+pi+'" style="margin:0 0 10px;">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    html+='<div><span style="font-size:12px;font-weight:700;color:var(--text-2);margin-right:8px;">'+label+'</span><span class="amt">'+sp.amount+'</span></div>';
+    if(sp.eligible.length>1) html+='<button class="cc-split-all-btn icon-btn" data-pot="'+pi+'" style="height:36px;">全員で分ける</button>';
     html+='</div>';
-    html+='<div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:4px;">勝者を選択（複数選択で引き分け分配）</div>';
     sp.eligible.forEach(function(idx){
       var p=cc.players[idx];
-      html+='<label style="display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:6px;background:rgba(0,0,0,.2);margin-bottom:4px;">';
-      html+='<input type="checkbox" class="cc-winner-cb" data-pot="'+pi+'" data-idx="'+idx+'" style="width:18px;height:18px;">';
-      html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+'</span>';
-      html+='<span style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.5);">'+p.chips+' chips</span>';
+      html+='<label class="list-row" style="cursor:pointer;justify-content:flex-start;gap:12px;">';
+      html+='<input type="checkbox" class="cc-winner-cb" data-pot="'+pi+'" data-idx="'+idx+'">';
+      html+='<b>'+esc(p.name)+'</b>';
       html+='</label>';
     });
-    html+='<div class="cc-split-preview" data-pot="'+pi+'" style="font-size:12px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;min-height:16px;"></div>';
+    html+='<div class="cc-split-preview" data-pot="'+pi+'" style="font-size:12px;color:var(--text-2);text-align:center;margin-top:6px;min-height:18px;"></div>';
     html+='</div>';
   });
   list.innerHTML=html;
@@ -5095,12 +5075,13 @@ document.getElementById('cc-award-btn').addEventListener('click',function(){
   });
   ccLastWinners=winnersList.map(function(w){return w.name;});
   ccRecordRoundHistory(winnersList);
-  var splitLabel='';
-  if(totalWinners>1) splitLabel='<div style="color:#b9dcff;font-size:12px;margin-bottom:6px;">SPLIT POT ('+totalWinners+'人で分配)</div>';
   cc.pot=0;
   document.getElementById('cc-showdown').style.display='none';
   ccRenderAll();
-  ccShowResult(splitLabel+resultLines.map(function(l){return '<div style="margin-bottom:4px;">'+l+'</div>';}).join(''));
+  var head=totalWinners===1
+    ?ccWinHead(esc(winnersList[0].name),winnersList[0].amount,'')
+    :ccWinHead(winnersList.map(function(w){return esc(w.name)+' <span class="pos">+'+w.amount+'</span>';}).join('<br>'),null,'ポットを分配');
+  ccShowResult(head);
 });
 
 function ccCheckEliminated(){
@@ -5116,25 +5097,14 @@ function ccCheckEliminated(){
     var nextBtn=document.getElementById('cc-next-round');
     nextBtn.disabled=true;nextBtn.style.opacity='.4';
     var rebuyEl=document.getElementById('cc-rebuy-panel');
-    var html='<div style="font-size:12px;color:var(--gold);letter-spacing:.04em;margin-bottom:8px;">チップ不足 - リバイ確認</div>';
-    // 全プレイヤーのチップ状況
-    html+='<div style="margin-bottom:10px;padding:6px 8px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid rgba(201,168,76,.15);">';
-    html+='<div style="font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.04em;margin-bottom:4px;">現在のチップ状況</div>';
-    cc.players.forEach(function(p){
-      if(p.eliminated) return;
-      var chipColor=p.chips<=0?'#ff8f8c':'rgba(255,255,255,.6)';
-      html+='<div style="display:flex;justify-content:space-between;padding:2px 4px;font-size:12px;">';
-      html+='<span style="color:rgba(255,255,255,.5);">'+esc(p.name)+'</span>';
-      html+='<span style="color:'+chipColor+';font-weight:'+(p.chips<=0?'700':'400')+';">'+p.chips+'</span></div>';
-    });
-    html+='</div>';
+    var html='<div class="ptitle" style="color:var(--orange);">チップがなくなりました</div>';
     busted.forEach(function(idx){
       var p=cc.players[idx];
-      html+='<div class="cc-rebuy-row" style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:6px;">';
-      html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+'<span style="font-size:11px;color:rgba(255,255,255,.3);margin-left:6px;">(リバイ回数: '+p.rebuyCount+')</span></span>';
-      html+='<div style="display:flex;gap:6px;">';
-      html+='<button class="cc-rebuy-btn" data-idx="'+idx+'" data-action="rebuy" style="padding:6px 14px;background:rgba(40,170,80,.25);border:1px solid rgba(60,200,100,.4);border-radius:6px;color:#8fe6b4;font-size:12px;cursor:pointer;">リバイ ('+cc.initialChips+')</button>';
-      html+='<button class="cc-rebuy-btn" data-idx="'+idx+'" data-action="out" style="padding:6px 14px;background:rgba(200,50,50,.25);border:1px solid rgba(220,80,80,.4);border-radius:6px;color:#ff8f8c;font-size:12px;cursor:pointer;">脱落</button>';
+      html+='<div class="cc-rebuy-row list-row" style="padding:12px;">';
+      html+='<span><b>'+esc(p.name)+'</b>'+(p.rebuyCount>0?'<span style="font-size:12px;color:var(--text-3);margin-left:6px;">リバイ'+p.rebuyCount+'回</span>':'')+'</span>';
+      html+='<div class="gap">';
+      html+='<button class="cc-rebuy-btn btn-ghost gold" data-idx="'+idx+'" data-action="rebuy" style="width:auto;margin:0;min-height:44px;">リバイ +'+cc.initialChips+'</button>';
+      html+='<button class="cc-rebuy-btn btn-ghost danger" data-idx="'+idx+'" data-action="out" style="width:auto;margin:0;min-height:44px;">脱落</button>';
       html+='</div></div>';
     });
     rebuyEl.innerHTML=html;
@@ -5207,48 +5177,27 @@ function ccEndGame(){
   var transfers=ccCalcSettlement();
   var summaryEl=document.getElementById('cc-summary');
   var bodyEl=document.getElementById('cc-summary-body');
-  var html='';
-  // 各プレイヤーの損益
-  html+='<div style="margin-bottom:16px;">';
-  html+='<div style="font-size:12px;color:var(--gold);letter-spacing:.04em;margin-bottom:8px;">各プレイヤーの結果</div>';
-  // 損益バーグラフ
-  var maxAbs=0;
-  var all=ccAllPlayers();
+  var html='<div class="sec-label">最終結果</div>';
+  var maxAbs=1;
+  var all=ccAllPlayers().slice().sort(function(a,b){return (b.chips-b.startChips)-(a.chips-a.startChips);});
   all.forEach(function(p){var d=Math.abs(p.chips-p.startChips);if(d>maxAbs)maxAbs=d;});
-  if(maxAbs===0) maxAbs=1;
-  all.forEach(function(p){
+  all.forEach(function(p,rank){
     var diff=p.chips-p.startChips;
-    var diffColor=diff>0?'#8fe6b4':diff<0?'#ff8f8c':'rgba(255,255,255,.5)';
-    var diffStr=diff>0?'+'+diff:diff===0?'±0':''+diff;
     var barPct=Math.round(Math.abs(diff)/maxAbs*100);
-    var barColor=diff>0?'rgba(80,220,100,.4)':diff<0?'rgba(220,80,80,.4)':'rgba(255,255,255,.1)';
-    html+='<div style="padding:6px 8px;background:rgba(0,0,0,.3);border-radius:6px;margin-bottom:4px;">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">';
-    html+='<span style="color:var(--gold-light);font-size:13px;">'+esc(p.name)+(p.left?' <span style="font-size:12px;color:rgba(255,255,255,.4);">途中退席</span>':'')+'</span>';
-    html+='<span style="font-size:12px;"><span style="color:rgba(255,255,255,.4);">'+p.startChips+' → '+p.chips+'</span> <span style="color:'+diffColor+';font-weight:700;">('+diffStr+')</span></span>';
+    html+='<div class="sum-row">';
+    html+='<div class="sum-top"><span class="sum-name">'+(rank===0&&diff>0?'<span class="sum-crown">1位</span>':'')+esc(p.name)+(p.left?' <span class="sum-note">途中退席</span>':'')+(p.rebuyCount>0?' <span class="sum-note">リバイ'+p.rebuyCount+'回</span>':'')+'</span>';
+    html+='<span class="sum-diff">'+ccDiffHtml(diff)+'</span></div>';
+    html+='<div class="sum-sub">'+p.startChips+' → '+p.chips+'</div>';
+    html+='<div class="sum-bar"><i class="'+(diff>=0?'up':'down')+'" style="width:'+barPct+'%;"></i></div>';
     html+='</div>';
-    html+='<div style="width:100%;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;">';
-    if(diff>=0){
-      html+='<div style="width:'+barPct+'%;height:100%;background:'+barColor+';border-radius:3px;transition:width .5s;"></div>';
-    }else{
-      html+='<div style="width:'+barPct+'%;height:100%;background:'+barColor+';border-radius:3px;margin-left:auto;transition:width .5s;"></div>';
-    }
-    html+='</div></div>';
   });
-  html+='</div>';
-  // チップ受け渡し
+  html+='<div class="sec-label">チップの受け渡し</div>';
   if(transfers.length>0){
-    html+='<div style="font-size:12px;color:var(--gold);letter-spacing:.04em;margin-bottom:8px;">チップの受け渡し</div>';
     transfers.forEach(function(t){
-      html+='<div style="display:flex;align-items:center;gap:6px;padding:8px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:8px;margin-bottom:6px;font-size:13px;">';
-      html+='<span style="color:#ff8f8c;font-weight:700;">'+esc(t.from)+'</span>';
-      html+='<span style="color:rgba(255,255,255,.4);">→</span>';
-      html+='<span style="color:#8fe6b4;font-weight:700;">'+esc(t.to)+'</span>';
-      html+='<span style="margin-left:auto;color:var(--gold-light);font-weight:700;">'+t.amount+'</span>';
-      html+='</div>';
+      html+='<div class="list-row" style="padding:12px;"><span><b class="neg">'+esc(t.from)+'</b><span style="color:var(--text-3);margin:0 8px;">→</span><b class="pos">'+esc(t.to)+'</b></span><span class="amt">'+t.amount+'</span></div>';
     });
   }else{
-    html+='<div style="text-align:center;color:rgba(255,255,255,.4);font-size:12px;">チップの移動はありません</div>';
+    html+='<div style="text-align:center;color:var(--text-3);font-size:13px;padding:8px;">チップの移動はありません</div>';
   }
   bodyEl.innerHTML=html;
   cc._summaryText=ccBuildSummaryText(transfers);
