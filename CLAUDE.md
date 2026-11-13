@@ -51,6 +51,16 @@
   - 参加者側は state の `players` と `left` から `ccSyncPlayers()` で席を作り直す（pid で照合）。席にいない間は「次のハンドから参加します」「退席しました」を表示し、ホスト引き継ぎもしない
 - `tests/members.test.js` — 途中参加・退席（1台モード）
 
+## デザインシステム（v48〜）
+- 先頭の `<style>` にトークン（`--bg` `--surface` `--text` `--gold` `--green` `--red` `--r` など）と部品をまとめている。色・角丸・フォントは必ずトークンを使う
+- 文字は `--font`（Inter + Noto Sans JP）。装飾フォント `--display`（Cinzel）はロゴとフェーズ名だけ。本文は 11px 未満にしない。JS が生成する HTML に `font-family` を直接書かない
+- 主な部品: `.btn`（主ボタン）/ `.btn-ghost`（`.gold` `.blue` `.danger`）/ `.icon-btn` / `.seg`（選択は `.sel` クラスで切替。インラインスタイルで色を変えない）/ `.panel` / `.sheet` / `.info-bar` / `.toast` / `.dialog`
+- 席は `.seat.pod`（アバター `.pod-av`、スタック `.pod-stack`、ベット `.pod-bet`、状態 `.pod-tag.tag-*`）。チップ計算は楕円配置、メインはグリッド
+- カードは `cH(card, small, large)` の SVG（左上に大きなランク＋スート、右下に大きなスート）。空きスロットは `.card-slot`
+- アクションボタンは 54px 以上、色は FOLD=グレー / CHECK=青 / CALL=緑 / RAISE=金 / ALL IN=赤
+- 画面や部品の出現は CSS アニメーション（`screenIn` `riseIn` `popIn`）。`prefers-reduced-motion` で無効化
+- 画面を変えたら 390px 幅のスクリーンショットで確認する
+
 ## アーキテクチャ
 
 ### ホスト/クライアント構造
