@@ -489,3 +489,30 @@ test('表示: ブラインド表示がプレイヤー席に隠れない（2〜8�
     await page.context().close();
   }
 });
+
+test('遊び方: ロビーから開けて、役10種と進め方を切り替えられる', async () => {
+  const page = await h.openApp();
+  await page.click('#btn-guide');
+  await page.waitForSelector('#guide', { state: 'visible' });
+  assert.equal(await page.locator('#guide-hands .guide-hand').count(), 10);
+  assert.match(await page.textContent('#guide-hands'), /ロイヤルフラッシュ[\s\S]*ハイカード/);
+  await page.click('.guide-tab[data-t="flow"]');
+  assert.ok(await h.visible(page, '#guide-flow'));
+  assert.match(await page.textContent('#guide-flow'), /フォールド[\s\S]*オールイン/);
+  await page.click('#guide-close');
+  assert.equal(await page.locator('#guide').count(), 0);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('表示: ハンド決着後は勝者の席が強調され、次のハンドで消える', async () => {
+  const page = await setup({ players: 3 });
+  await h.act(page, 'fold');
+  await h.act(page, 'fold');
+  await page.waitForSelector('#cc-result', { state: 'visible' });
+  const cls = await page.$$eval('#cc-seats .seat', (els) => els.map((e) => e.classList.contains('winner')));
+  assert.deepEqual(cls, [false, false, true]);
+  await h.nextHand(page);
+  assert.equal(await page.locator('#cc-seats .seat.winner').count(), 0);
+  await finish(page);
+});

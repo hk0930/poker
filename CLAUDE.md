@@ -59,6 +59,10 @@
 - カードは `cH(card, small, large)` の SVG（左上に大きなランク＋スート、右下に大きなスート）。空きスロットは `.card-slot`
 - アクションボタンは 54px 以上、色は FOLD=グレー / CHECK=青 / CALL=緑 / RAISE=金 / ALL IN=赤
 - 画面や部品の出現は CSS アニメーション（`screenIn` `riseIn` `popIn`）。`prefers-reduced-motion` で無効化
+- メインのゲームは `.mtable` の中にフェルトと `#seats` を重ね、`renderAll()` の `seatPos()` で自分を手前（下）、相手を時計回りに配置（角度表 `SEAT_ANGLES`）。自分の手札は席に大きく表示し、アクションパネル内の `#hdisp` は非表示
+- 演出: `fxChipFly(fromEl,toEl,count)`（ベット時は席→ポット、決着時はポット→勝者）。チップ計算の勝者席は `.seat.winner`
+- 結果・精算は `ccWinHead()` / `ccDiffHtml()` / `.list-row` / `.sum-row` で組む
+- 遊び方・役の一覧: `showGuide()`（ロビーの `#btn-guide`、ゲーム中の `#btn-guide-game`）
 - 画面を変えたら 390px 幅のスクリーンショットで確認する
 
 ## アーキテクチャ
