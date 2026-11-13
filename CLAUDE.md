@@ -57,7 +57,8 @@
 - 主な部品: `.btn`（主ボタン）/ `.btn-ghost`（`.gold` `.blue` `.danger`）/ `.icon-btn` / `.seg`（選択は `.sel` クラスで切替。インラインスタイルで色を変えない）/ `.panel` / `.sheet` / `.info-bar` / `.toast` / `.dialog`
 - 席は `.seat.pod`（アバター `.pod-av`、スタック `.pod-stack`、ベット `.pod-bet`、状態 `.pod-tag.tag-*`）。チップ計算は楕円配置、メインはグリッド
 - カードは `cH(card, small, large)` の SVG。空きスロットは `.card-slot`
-- アクションボタンは 54px 以上、色は FOLD=グレー / CHECK=青 / CALL=緑 / RAISE=金 / ALL IN=赤
+- アクションボタン（`.ab` / `.cc-act-btn`）は立体の2段表示（`.ab-l` 操作名＋`.ab-v` 金額）。色は `--b1/--b2/--b3` で指定: FOLD=赤 / CHECK=青 / CALL=緑 / RAISE=金 / ALL IN=黒地に金。メインのラベルは `abLabel()` で「コール(10)」→ CALL / 10 に変換
+- チップは SVG のカジノチップ（縁の差し色・内側リング）を CSS 変数 `--chip-500/100/25/10/5`・`--chip-gold`・`--chip-stack`（ポット用の山）で持ち、背景画像として使う
 - 画面や部品の出現は CSS アニメーション（`screenIn` `riseIn` `popIn`）。`prefers-reduced-motion` で無効化
 - メインのゲームは `.mtable` の中にフェルトと `#seats` を重ね、`renderAll()` の `seatPos()` で自分を手前（下）、相手を時計回りに配置（角度表 `SEAT_ANGLES`）。自分の手札は席に大きく表示し、アクションパネル内の `#hdisp` は非表示
 - 演出: `fxChipFly(fromEl,toEl,count)`（ベット時は席→ポット、決着時はポット→勝者）。チップ計算の勝者席は `.seat.winner`
