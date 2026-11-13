@@ -71,6 +71,7 @@ async function act(page, action) {
 
 // レイズ額をチップボタンで入力してRAISE（額は5の倍数で、100/25/10/5の組み合わせ）
 async function raiseTo(page, amount) {
+  if (!(await visible(page, '.cc-chip-clr'))) await page.click('.cc-act-btn[data-act="raise"]');
   await page.click('.cc-chip-clr');
   let rest = amount;
   for (const v of [500, 100, 25, 10, 5]) {

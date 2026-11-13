@@ -516,3 +516,49 @@ test('表示: ハンド決着後は勝者の席が強調され、次のハンド
   assert.equal(await page.locator('#cc-seats .seat.winner').count(), 0);
   await finish(page);
 });
+
+test('表示: 小さい画面(390x600)でもゲーム画面がスクロールせず、操作ボタンが見えている', async () => {
+  for (const n of [2, 6, 8]) {
+    const page = await h.openApp();
+    await page.setViewportSize({ width: 390, height: 600 });
+    await h.startOffline(page, { players: n });
+    const r = await page.evaluate(() => {
+      const se = document.scrollingElement;
+      const btn = document.querySelector('.cc-act-btn[data-act="fold"]').getBoundingClientRect();
+      const seats = [...document.querySelectorAll('#cc-seats .seat')].map((e) => e.getBoundingClientRect());
+      const dockTop = document.getElementById('cc-turn-info').getBoundingClientRect().top;
+      return {
+        scroll: se.scrollHeight - window.innerHeight,
+        btnBottom: btn.bottom,
+        seatMaxBottom: Math.max(...seats.map((s) => s.bottom)),
+        seatMinTop: Math.min(...seats.map((s) => s.top)),
+        dockTop,
+      };
+    });
+    assert.ok(r.scroll <= 0, n + '人: 縦スクロールが出ています');
+    assert.ok(r.btnBottom <= 600, n + '人: 操作ボタンが画面外です');
+    assert.ok(r.seatMaxBottom <= r.dockTop + 1, n + '人: 席が操作パネルに隠れています ' + JSON.stringify(r));
+    assert.ok(r.seatMinTop >= 0, n + '人: 席が画面上にはみ出しています');
+    await page.context().close();
+  }
+});
+
+test('レイズ: RAISEを押すと入力欄が開き、もう一度押すと確定する', async () => {
+  const page = await setup({ players: 2 });
+  assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')), '最初は入力欄が閉じている');
+  await page.click('.cc-act-btn[data-act="raise"]');
+  assert.ok(await h.visible(page, '.cc-chip-btn[data-v="25"]'));
+  assert.equal((await h.state(page)).curIdx, 0, '1回目では手番は進まない');
+  await page.click('.cc-chip-btn[data-v="25"]');
+  await page.click('.cc-chip-btn[data-v="5"]');
+  await page.click('.cc-act-btn[data-act="raise"]');
+  const s = await h.state(page);
+  assert.equal(s.curBet, 30);
+  assert.equal(s.curIdx, 1);
+  assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')), '次の人では閉じている');
+  // ✕で閉じられる
+  await page.click('.cc-act-btn[data-act="raise"]');
+  await page.click('#cc-ap .raise-close');
+  assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')));
+  await finish(page);
+});
