@@ -243,3 +243,27 @@ test('CPU対戦: 小さい画面(390x600)でもスクロールせず、自分の
   assert.deepEqual(page.errors, []);
   await page.context().close();
 });
+
+test('CPU対戦: 自分の手札がテーブルや他の席・操作パネルと重ならない（2〜6人、390x600 / 390x844）', async () => {
+  for (const H of [600, 844]) {
+    for (const cpu of [1, 3, 5]) {
+      const page = await startCpuGame({ cpu });
+      await page.setViewportSize({ width: 390, height: H });
+      for (let i = 0; i < 300 && !(await snap(page)).ap; i++) await page.clock.runFor(250);
+      const r = await page.evaluate(() => {
+        const box = (e) => { const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+        const hit = (a, b) => a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+        const me = box(document.querySelector('#seats .seat.me'));
+        const others = [...document.querySelectorAll('#seats .seat:not(.me)')].map(box);
+        return {
+          felt: hit(me, box(document.querySelector('.mtable .felt'))),
+          seats: others.some((o) => hit(me, o)),
+          ap: hit(me, box(document.getElementById('ap'))),
+          pot: hit(me, box(document.getElementById('pot'))),
+        };
+      });
+      assert.deepEqual(r, { felt: false, seats: false, ap: false, pot: false }, `高さ${H}・CPU${cpu}人`);
+      await page.context().close();
+    }
+  }
+});

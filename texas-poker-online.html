@@ -399,6 +399,14 @@ html,body{overscroll-behavior:none;}
   .mtable #seats{inset:34px 0 58px 0;}
 }
 .dock .sheet,#ap{background:linear-gradient(180deg,#18261f,#0e1813);}
+/* 自分の手札はテーブルの下に独立させる（フェルトや他の席と重ねない） */
+.mtable .felt{bottom:140px;}
+.mtable #seats .seat.me{background:transparent;border-color:transparent;box-shadow:none;animation:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0 4px;}
+.mtable #seats .seat.me .scards .card-wrap svg{box-shadow:0 4px 14px rgba(0,0,0,.55);}
+.mtable #seats .seat.me.myturn .scards .card-wrap svg{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(216,180,90,.55);}
+.mtable #seats .seat.me.folded .scards{opacity:.45;}
+.mtable #seats .seat.me.dealer::before{top:auto;bottom:22px;left:-14px;}
+@media (max-height:720px){.mtable .felt{bottom:124px;}}
 </style>
 
 </head>
@@ -599,7 +607,7 @@ html,body{overscroll-behavior:none;}
   </div>
   </div> <!-- /panel-online -->
   <button id="btn-guide" class="btn-ghost" style="max-width:480px;">遊び方 ・ 役の一覧</button>
-  <div class="ver">v2026.11.13.50-sdk</div>
+  <div class="ver">v2026.11.13.51-sdk</div>
 </div>
 
 <div id="screen-game" class="screen gscreen">
