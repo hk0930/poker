@@ -3,7 +3,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050b08">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poker">
 <title>Texas Hold'em Online</title>
 <!-- Firebase SDK (compat v10) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -358,6 +363,42 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .guide-rank{width:26px;height:26px;border-radius:50%;background:rgba(216,180,90,.18);color:var(--gold-light);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .guide-desc{font-size:13px;color:var(--text-2);line-height:1.6;margin-top:2px;}
 .guide-cards{display:flex;gap:3px;margin-top:8px;}
+/* ════════ ゲーム画面は1画面に固定（スクロールさせない） ════════ */
+html,body{overscroll-behavior:none;}
+.gscreen{height:100vh;height:100dvh;min-height:0;overflow:hidden;position:relative;align-items:stretch;padding:calc(8px + env(safe-area-inset-top,0px)) 10px var(--dock-h,140px);}
+#screen-game{--dock-h:128px;padding:calc(8px + env(safe-area-inset-top,0px)) 10px var(--dock-h);}
+#screen-chipcalc{--dock-h:158px;}
+.gscreen .mtable{flex:1 1 0;min-height:0;height:auto;max-height:540px;margin:auto;}
+.gscreen .table-wrap{flex:1 1 0;min-height:0;height:auto;margin:auto;}
+.gscreen .blind-info{margin-bottom:22px;flex-shrink:0;}
+.gscreen .topbar{flex-shrink:0;}
+.dock{position:absolute;left:0;right:0;bottom:0;z-index:20;max-height:82vh;max-height:82dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 10px calc(10px + var(--safe-b));pointer-events:none;}
+.dock>*{pointer-events:auto;}
+.dock .info-bar{background:rgba(16,27,21,.96);margin:0 auto 8px;}
+.dock #ibar,.dock #cpu-bar{background:rgba(16,27,21,.96);}
+.dock .sheet,.dock .phase-cta{margin-top:0!important;}
+.raise-wrap{display:none;}
+#ap.raising .raise-wrap{display:block;animation:riseIn .22s var(--ease) both;}
+#ap.raising .ab-raise::after,#cc-ap.raising .cc-act-btn[data-act="raise"]::after{content:" 確定";}
+#cc-ap .raise-box{display:none;}
+#cc-ap.raising .raise-box{display:block;animation:riseIn .22s var(--ease) both;}
+.raise-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px;}
+.raise-close{height:32px;min-width:32px;padding:0;border-radius:50%;flex-shrink:0;}
+#ap-hd{margin-bottom:8px;}
+.gscreen .blind-info{margin-bottom:6px;}
+#cc-seats{position:absolute;inset:36px 8px 36px 8px;}
+.pod-pos{right:-5px;top:-7px;bottom:auto;z-index:2;font-size:10px;padding:2px 5px;}
+.mtable #seats{inset:38px 0 66px 0;}
+.mtable #seats .seat.me .pod-pos{right:-5px;}
+.mtable .felt{top:26px;bottom:74px;left:7%;right:7%;}
+@media (max-height:720px){
+  #cc-seats.dense .pod-av{display:none;}
+  #cc-seats.dense{inset:32px 8px 32px 8px;}
+  .mtable #seats .seat:not(.me) .pod-av{width:24px;height:24px;font-size:11px;}
+  .mtable #seats .seat.me .scards .card-wrap svg{width:42px;height:61px;}
+  .mtable #seats{inset:34px 0 58px 0;}
+}
+.dock .sheet,#ap{background:linear-gradient(180deg,#18261f,#0e1813);}
 </style>
 
 </head>
@@ -558,10 +599,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   </div>
   </div> <!-- /panel-online -->
   <button id="btn-guide" class="btn-ghost" style="max-width:480px;">遊び方 ・ 役の一覧</button>
-  <div class="ver">v2026.11.13.49-sdk</div>
+  <div class="ver">v2026.11.13.50-sdk</div>
 </div>
 
-<div id="screen-game" class="screen">
+<div id="screen-game" class="screen gscreen">
   <div id="back-btn-wrap" class="topbar" style="display:none;justify-content:flex-end;">
     <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ</button>
   </div>
@@ -574,6 +615,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     </div>
     <div id="seats"></div>
   </div>
+  <div class="dock">
   <div id="cpu-bar" style="display:none;">
     <div id="cpu-bar-text">CPU思考中...</div>
     <div class="cpu-track"><div id="cpu-prog"></div></div>
@@ -582,6 +624,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <div id="ap" style="display:none;">
     <div id="ap-hd"><div id="ap-who"></div><div id="ap-info"></div></div>
     <div id="hdisp"></div>
+    <div class="raise-wrap">
+    <div class="raise-head"><span>レイズ額を決める</span><button class="icon-btn raise-close" aria-label="閉じる">✕</button></div>
     <div class="prow" id="prow"></div>
     <div class="bet-display" id="bet-display">0</div>
     <div class="bet-sub" id="bet-sub">BET / RAISE</div>
@@ -593,9 +637,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       <button class="chip-sel-btn chip-sel-5"   data-v="5"   title="5"><div class="cv">5</div></button>
       <button class="chip-sel-btn" data-v="clear" title="クリア"><div class="cv">✕</div></button>
     </div>
+    </div>
     <input type="hidden" id="rinp" value="0">
     <input type="range" id="rslider" style="display:none;">
     <div class="brow" id="brow"></div>
+  </div>
   </div>
 </div>
 
@@ -622,7 +668,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 </div>
 
 <!-- チップ計算モード画面 -->
-<div id="screen-chipcalc" class="screen">
+<div id="screen-chipcalc" class="screen gscreen">
   <div class="topbar">
     <button id="cc-btn-lobby" class="icon-btn">✕ ロビーへ</button>
     <div id="cc-round-info" class="topbar-title">ROUND 1</div>
@@ -648,6 +694,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <!-- プレイヤーシート -->
     <div id="cc-seats"></div>
   </div>
+  <div class="dock">
   <!-- ターン情報 -->
   <div id="cc-turn-info" class="info-bar"></div>
   <!-- アクションパネル -->
@@ -657,6 +704,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <div class="lbl">レイズ額</div>
         <div id="cc-bet-display" class="raise-amt">0</div>
         <div id="cc-min-raise-info" class="raise-min"></div>
+        <button class="icon-btn raise-close" aria-label="閉じる">✕</button>
       </div>
       <div id="cc-raise-remaining" class="raise-remain"></div>
       <div class="presets">
@@ -713,6 +761,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     </div>
     <div id="cc-summary-copied" style="font-size:12px;color:var(--green);margin-top:6px;min-height:16px;text-align:center;"></div>
     <button id="cc-summary-lobby" class="btn">ロビーへ戻る</button>
+  </div>
   </div>
   <!-- カードピッカーモーダル -->
   <div id="cc-card-picker" class="picker">
@@ -1059,7 +1108,7 @@ function winReason(winner, loser){
 function makeDeck(){var d=[];SUITS.forEach(function(s){RANKS.forEach(function(r){d.push({r:r,s:s});});});return d;}
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function isRed(s){return s==='♥'||s==='♦';}
-function cH(c,sm,lg){
+function cHMini(c,sm,lg){
   var sz=lg?'lg':sm?'sm':'';
   var wrap='<span class="card-wrap'+(sz?' '+sz:'')+'">',wend='</span>';
   var open='<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
@@ -1115,6 +1164,84 @@ function cH(c,sm,lg){
     svg+=suit(28.5,44,22);
   }
   return wrap+svg+'</svg>'+wend;
+}
+
+// カード描画: 本物のトランプと同じ構成（四隅のインデックス、数字どおりのピップ、絵札は人物）
+// sm==='mini' の時は、ごく小さい表示用の簡易デザイン（cHMini）
+function cH(c,sm,lg){
+  if(sm==='mini') return cHMini(c,true,false);
+  if(!c) return cHMini(null,sm,lg);
+  var sz=lg?'lg':sm?'sm':'';
+  var red=isRed(c.s), col=red?'#d42a2a':'#16181c', S=c.s, R=c.r;
+  var f=function(n){return Math.round(n*100)/100;};
+  // スートの形（中心 x,y・大きさ size・rot=true で上下反転）
+  function suit(x,y,size,rot,fill){
+    var h=size/2,g='<g transform="translate('+f(x)+','+f(y)+')'+(rot?' rotate(180)':'')+'" fill="'+(fill||col)+'">';
+    if(S==='♠'){
+      g+='<path d="M0,'+f(-h)+' C'+f(-h*.25)+','+f(-h*.55)+' '+f(-h*.95)+','+f(-h*.1)+' '+f(-h*.95)+','+f(h*.35)+' C'+f(-h*.95)+','+f(h*.85)+' '+f(-h*.3)+','+f(h*.9)+' 0,'+f(h*.45)+' C'+f(h*.3)+','+f(h*.9)+' '+f(h*.95)+','+f(h*.85)+' '+f(h*.95)+','+f(h*.35)+' C'+f(h*.95)+','+f(-h*.1)+' '+f(h*.25)+','+f(-h*.55)+' 0,'+f(-h)+' Z"/><path d="M0,'+f(h*.3)+' L'+f(h*.35)+','+f(h)+' L'+f(-h*.35)+','+f(h)+' Z"/>';
+    }else if(S==='♥'){
+      g+='<path d="M0,'+f(h*.95)+' C'+f(-h*.35)+','+f(h*.55)+' '+f(-h)+','+f(h*.15)+' '+f(-h)+','+f(-h*.35)+' C'+f(-h)+','+f(-h*.8)+' '+f(-h*.65)+','+f(-h*.98)+' '+f(-h*.48)+','+f(-h*.98)+' C'+f(-h*.2)+','+f(-h*.98)+' 0,'+f(-h*.75)+' 0,'+f(-h*.5)+' C0,'+f(-h*.75)+' '+f(h*.2)+','+f(-h*.98)+' '+f(h*.48)+','+f(-h*.98)+' C'+f(h*.65)+','+f(-h*.98)+' '+f(h)+','+f(-h*.8)+' '+f(h)+','+f(-h*.35)+' C'+f(h)+','+f(h*.15)+' '+f(h*.35)+','+f(h*.55)+' 0,'+f(h*.95)+' Z"/>';
+    }else if(S==='♦'){
+      g+='<path d="M0,'+f(-h)+' L'+f(h*.78)+',0 L0,'+f(h)+' L'+f(-h*.78)+',0 Z"/>';
+    }else{
+      g+='<circle cx="0" cy="'+f(-h*.48)+'" r="'+f(h*.46)+'"/><circle cx="'+f(-h*.52)+'" cy="'+f(h*.2)+'" r="'+f(h*.46)+'"/><circle cx="'+f(h*.52)+'" cy="'+f(h*.2)+'" r="'+f(h*.46)+'"/><path d="M0,'+f(-h*.1)+' L'+f(h*.32)+','+f(h)+' L'+f(-h*.32)+','+f(h)+' Z"/>';
+    }
+    return g+'</g>';
+  }
+  // 四隅のインデックス（左上と、180度回転した右下）
+  var ten=(R==='10');
+  function index(rot){
+    return '<g'+(rot?' transform="rotate(180 22 32)"':'')+'>'
+      +'<text x="6.3" y="11.2" font-size="'+(ten?8.6:10)+'" font-weight="700" font-family="Georgia,\'Times New Roman\',serif" fill="'+col+'" text-anchor="middle"'+(ten?' letter-spacing="-.9"':'')+'>'+R+'</text>'
+      +suit(6.3,16.6,6.2)+'</g>';
+  }
+  // ピップの配置（標準的なトランプと同じ）。[x, y, 上下反転]
+  var X1=15.4,X2=22,X3=28.6;
+  var pips={
+    '2':[[X2,15],[X2,49,1]],
+    '3':[[X2,15],[X2,32],[X2,49,1]],
+    '4':[[X1,15],[X3,15],[X1,49,1],[X3,49,1]],
+    '5':[[X1,15],[X3,15],[X2,32],[X1,49,1],[X3,49,1]],
+    '6':[[X1,15],[X3,15],[X1,32],[X3,32],[X1,49,1],[X3,49,1]],
+    '7':[[X1,15],[X3,15],[X2,23.5],[X1,32],[X3,32],[X1,49,1],[X3,49,1]],
+    '8':[[X1,15],[X3,15],[X2,23.5],[X1,32],[X3,32],[X2,40.5,1],[X1,49,1],[X3,49,1]],
+    '9':[[X1,14.5],[X3,14.5],[X1,26.2],[X3,26.2],[X2,32],[X1,37.8,1],[X3,37.8,1],[X1,49.5,1],[X3,49.5,1]],
+    '10':[[X1,14.5],[X3,14.5],[X2,20.3],[X1,26.2],[X3,26.2],[X1,37.8,1],[X3,37.8,1],[X2,43.7,1],[X1,49.5,1],[X3,49.5,1]]
+  };
+  var svg='<svg viewBox="0 0 44 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    +'<rect width="44" height="64" rx="4.2" fill="#fdfdfb"/>'
+    +'<rect x=".4" y=".4" width="43.2" height="63.2" rx="3.9" fill="none" stroke="rgba(0,0,0,.22)" stroke-width=".8"/>';
+  if(pips[R]){
+    var ps=(R==='9'||R==='10')?8:(R==='7'||R==='8')?8.6:9.4;
+    pips[R].forEach(function(q){svg+=suit(q[0],q[1],ps,q[2]);});
+  }else if(R==='A'){
+    svg+=suit(22,32,S==='♠'?24:21);
+  }else{
+    // 絵札: 枠の中に上下対称の人物（上半分を描いて180度回して下半分に）
+    var robe=red?'#c8322c':'#22356f', trim='#e2b33c', skin='#f4d6b4', hair=R==='Q'?'#7a4a21':(R==='K'?'#8b8b8b':'#3b2a1a');
+    svg+='<rect x="10.6" y="8.6" width="22.8" height="46.8" rx="1.6" fill="'+(red?'#fff3ee':'#eef2fb')+'" stroke="'+col+'" stroke-width=".6"/>';
+    var half='<g>'
+      // 肩・ローブ
+      +'<path d="M11,32 L11,27.5 C13,24.6 17,23.4 19.4,23 L24.6,23 C27,23.4 31,24.6 33,27.5 L33,32 Z" fill="'+robe+'"/>'
+      +'<path d="M19.4,23 L22,29 L24.6,23 Z" fill="'+trim+'"/>'
+      +'<path d="M11,29.6 L33,29.6 L33,32 L11,32 Z" fill="'+trim+'"/>'
+      +'<path d="M14,27 l2.2,2.6 M17.6,25.6 l1.6,4 M30,27 l-2.2,2.6 M26.4,25.6 l-1.6,4" stroke="'+trim+'" stroke-width=".7" fill="none"/>'
+      // 髪・顔
+      +(R==='Q'?'<path d="M17.2,17.5 C16.6,21.6 17,23.6 18.4,24 L25.6,24 C27,23.6 27.400,21.6 26.8,17.5 Z" fill="'+hair+'"/>':'<path d="M17.8,17.2 C17.4,19.8 17.8,21.4 18.6,22 L25.4,22 C26.2,21.4 26.6,19.8 26.2,17.2 Z" fill="'+hair+'"/>')
+      +'<ellipse cx="22" cy="18.6" rx="3.5" ry="4" fill="'+skin+'"/>'
+      +'<path d="M20.5,18.2h1.1M22.5,18.2h1.1" stroke="#3a2a1c" stroke-width=".6"/><path d="M21.1,20.6c.6,.4 1.2,.4 1.8,0" stroke="#a5503c" stroke-width=".5" fill="none"/>'
+      +(R==='K'?'<path d="M19.2,20.2c.6,2.6 5,2.6 5.6,0 l-.5,3 c-1.4,1.4 -3.200,1.4 -4.6,0 Z" fill="'+hair+'"/>':'')
+      // かぶり物: K=王冠 / Q=ティアラ / J=帽子と羽根
+      +(R==='K'?'<path d="M17.4,15.4 L17,10.6 L19.5,13 L22,9.8 L24.5,13 L27,10.6 L26.6,15.4 Z" fill="'+trim+'" stroke="#a87a14" stroke-width=".4"/><circle cx="22" cy="9.9" r=".8" fill="'+robe+'"/>'
+        :R==='Q'?'<path d="M18,15.4 L18.2,12.4 L20.1,14 L22,11.4 L23.9,14 L25.8,12.4 L26,15.4 Z" fill="'+trim+'" stroke="#a87a14" stroke-width=".4"/><circle cx="22" cy="11.5" r=".7" fill="'+robe+'"/>'
+        :'<path d="M17.2,15.8 C17,12.6 19.2,11.4 22,11.4 C24.8,11.4 27,12.6 26.8,15.8 Z" fill="'+robe+'"/><path d="M16.6,15.8h10.8" stroke="'+trim+'" stroke-width="1"/><path d="M25.4,12.4 C27.2,10 28.6,9.6 29.6,9.800 C28.8,11.4 27.6,12.8 25.8,13.4 Z" fill="'+trim+'"/>')
+      +'</g>';
+    svg+=half+'<g transform="rotate(180 22 32)">'+half+'</g>';
+    svg+='<path d="M10.6,32h22.8" stroke="'+col+'" stroke-width=".4" opacity=".5"/>';
+    svg+=suit(14.2,12.6,4.6)+suit(29.8,51.4,4.6,1);
+  }
+  svg+=index(false)+index(true)+'</svg>';
+  return '<span class="card-wrap'+(sz?' '+sz:'')+'">'+svg+'</span>';
 }
 function combs(a,k){if(!k)return[[]];if(!a.length)return[];return combs(a.slice(1),k-1).map(function(c){return[a[0]].concat(c);}).concat(combs(a.slice(1),k));}
 function sc5(cards){
@@ -1527,8 +1654,8 @@ function renderActionOffline(){
     b.textContent=x[0]+'('+v+')';b.onclick=function(){setChipBet(v,minR,maxR);};
     pr.appendChild(b);
   });
-  var br=document.getElementById('brow');br.innerHTML='';
-  function ab(lbl,cls,fn){var b=document.createElement('button');b.className='ab '+cls;b.textContent=lbl;b.onclick=fn;br.appendChild(b);}
+  var br=document.getElementById('brow');br.innerHTML='';document.getElementById('ap').classList.remove('raising');
+  function ab(lbl,cls,fn){var b=document.createElement('button');b.className='ab '+cls;b.textContent=lbl;b.onclick=function(){var apEl=document.getElementById('ap');if(cls==='ab-raise'&&!apEl.classList.contains('raising')){apEl.classList.add('raising');return;}apEl.classList.remove('raising');fn();};br.appendChild(b);}
   ab('フォールド','ab-fold',function(){sendOffline('fold',0);});
   var minRaise2=curBet+lastRaise;
   var canRaise2=(p.chips+p.bet)>minRaise2 && p.chips>toC;
@@ -2798,8 +2925,8 @@ function renderAction(){
     b.textContent=x[0]+'('+v+')';b.onclick=function(){setChipBet(v,minR,maxR);};
     pr.appendChild(b);
   });
-  var br=document.getElementById('brow');br.innerHTML='';
-  function ab(lbl,cls,fn){var b=document.createElement('button');b.className='ab '+cls;b.textContent=lbl;b.onclick=fn;br.appendChild(b);}
+  var br=document.getElementById('brow');br.innerHTML='';document.getElementById('ap').classList.remove('raising');
+  function ab(lbl,cls,fn){var b=document.createElement('button');b.className='ab '+cls;b.textContent=lbl;b.onclick=function(){var apEl=document.getElementById('ap');if(cls==='ab-raise'&&!apEl.classList.contains('raising')){apEl.classList.add('raising');return;}apEl.classList.remove('raising');fn();};br.appendChild(b);}
   ab('フォールド','ab-fold',function(){send('fold',0);});
   var minRaise=curBet+lastRaise; // 最低レイズ後のベット総額
   var canRaise=(p.chips+p.bet)>minRaise && p.chips>toC; // レイズに必要なチップが足りる
@@ -2852,7 +2979,7 @@ function renderAll(){
     var ang=rel===0?90:(SEAT_ANGLES[meAt>=0?n-1:n]||SEAT_ANGLES[7])[rel-1];
     if(ang===undefined) ang=270;
     var r=ang*Math.PI/180;
-    return 'left:'+(50+40*Math.cos(r)).toFixed(1)+'%;top:'+(50+(rel===0?41:43)*Math.sin(r)).toFixed(1)+'%;';
+    return 'left:'+(50+44*Math.cos(r)).toFixed(1)+'%;top:'+(50+50*Math.sin(r)).toFixed(1)+'%;';
   }
   var escN=function(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   players.forEach(function(p,i){
@@ -2882,7 +3009,7 @@ function renderAll(){
     else if(!p.folded&&(phase>=4||_allInRevealed)&&p.hole&&p.hole.length===2){ h=p.hole; }
     else { h=null; }
     var show=h&&h.length===2;
-    var ch=show?('<div class="scards">'+cH(h[0],!p.isMe)+cH(h[1],!p.isMe)+'</div>')
+    var ch=show?('<div class="scards">'+cH(h[0],p.isMe?false:'mini')+cH(h[1],p.isMe?false:'mini')+'</div>')
                :('<div class="pod-cards" style="margin-top:5px;'+(p.folded?'visibility:hidden;':'')+'">'+cH(null,true)+cH(null,true)+'</div>');
     // アクション状態表示
     var stHtml='';
@@ -2907,11 +3034,11 @@ function renderAll(){
         var laLabel=({fold:'FOLD',check:'CHECK',call:'CALL',raise:'RAISE',allin:'ALL IN'})[la.action]||la.action.toUpperCase();
         if(la.amount>0) laLabel+=' '+la.amount;
         stHtml='<div class="pod-tag tag-'+la.action+'">'+laLabel+'</div>';
-      } else stHtml='<div class="pod-tag"></div>';
+      } else stHtml='';
     }
     var rebuyBadge = (p.rebuyCount&&p.rebuyCount>0) ? '<span class="pod-badge">×'+(p.rebuyCount+1)+'</span>' : '';
     // BET表示: フォールド済みでも今フェーズのbetを表示
-    var betHtml=p.bet?'<div class="pod-bet">'+p.bet+'</div>':'<div class="pod-bet" style="visibility:hidden;">0</div>';
+    var betHtml=p.bet?'<div class="pod-bet">'+p.bet+'</div>':'';
     s.innerHTML=av+'<div class="sname">'+escN(p.name)+(p.isMe?'<span class="you">YOU</span>':'')+rebuyBadge+'</div>'+
       '<div class="pod-stack schips">'+p.chips+'</div>'+
       betHtml+stHtml+ch;
@@ -3229,6 +3356,13 @@ function _animateCommCards(newCards, cb){
   var delay=newCards?(newCards.length*280+650):0;
   setTimeout(function(){ if(cb) cb(); }, delay);
 }
+
+// レイズ入力欄を閉じる
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.raise-close'):null;
+  if(!b) return;
+  var box=b.closest('#ap,#cc-ap');if(box) box.classList.remove('raising');
+});
 
 // ─── 遊び方・役の一覧 ───
 function showGuide(){
@@ -4011,14 +4145,15 @@ function ccRenderAll(){
   var n=cc.players.length;
   // テーブルサイズを人数に応じて調整（シートが下のUIに被らない様に余裕を持たせる）
   var tableH=n<=2?300:n<=3?340:n<=4?380:n<=5?410:440;
-  wrap.style.height=tableH+'px';
+  wrap.style.maxHeight=(tableH+40)+'px';
   var html='';
   // SB/BBはラウンド開始時に保存した値を使用（全フェーズで表示）
   var sbIdx=(typeof cc._sbIdx!=='undefined')?cc._sbIdx:ccNextActive2(cc.dealerIdx);
   var bbIdx=(typeof cc._bbIdx!=='undefined')?cc._bbIdx:ccNextActive2(sbIdx);
   // 楕円の半径（人数に応じて調整、左右が見切れないよう制限）
-  var rx=n<=3?38:n<=4?40:41;
-  var ry=n<=3?38:42;
+  var rx=n<=3?40:n<=4?42:43.5;
+  var ry=50;
+  seatsEl.className=n>=7?'dense':'';
   var cx=50,cy=50;
   var seatW=n<=3?100:n<=4?92:86;
   // ハンド決着後（ポット配分済み）はベット表示を出さない
@@ -4029,10 +4164,9 @@ function ccRenderAll(){
     var xPct=cx+rx*Math.cos(angleRad);
     var yPct=cy+ry*Math.sin(angleRad);
     var pos='position:absolute;left:'+xPct.toFixed(1)+'%;top:'+yPct.toFixed(1)+'%;transform:translate(-50%,-50%);width:'+seatW+'px;z-index:2;';
-    var av='<div class="pod-av" style="--h:'+((i*47+150)%360)+'">'+esc((p.name||'?').trim().charAt(0)||'?');
+    var av='<div class="pod-av" style="--h:'+((i*47+150)%360)+'">'+esc((p.name||'?').trim().charAt(0)||'?')+'</div>';
     if(i===sbIdx) av+='<span class="pod-pos sb">SB</span>';
     else if(i===bbIdx) av+='<span class="pod-pos bb">BB</span>';
-    av+='</div>';
     if(p.eliminated){
       html+='<div class="seat pod folded" style="'+pos+'opacity:.25;">'+av+'<div class="sname">'+esc(p.name)+'</div><div class="pod-tag tag-fold">脱落</div></div>';
       return;
@@ -4052,14 +4186,14 @@ function ccRenderAll(){
     html+='<div class="sname">'+esc(p.name)+rebuyBadge+winnerBadge+'</div>';
     html+='<div class="pod-stack schips">'+p.chips+'</div>';
     // ベット額
-    html+=(p.bet>0&&handLive&&!p.folded)?'<div class="pod-bet sbet">'+p.bet+'</div>':'<div class="pod-bet" style="visibility:hidden;">0</div>';
+    html+=(p.bet>0&&handLive&&!p.folded)?'<div class="pod-bet sbet">'+p.bet+'</div>':'';
     // 状態（フォールド／オールイン／直近のアクション）
     var tag='';
     if(p.folded) tag='<div class="pod-tag tag-fold">FOLD</div>';
     else if(p.allIn&&handLive) tag='<div class="pod-tag tag-allin sst-allin">ALL IN</div>';
     else{
       var pActs=handLive?ccGetPlayerActions(p.name):null;
-      tag=pActs?'<div class="pod-tag cc-seat-action tag-'+pActs.cls+'">'+pActs.text+'</div>':'<div class="pod-tag"></div>';
+      tag=pActs?'<div class="pod-tag cc-seat-action tag-'+pActs.cls+'">'+pActs.text+'</div>':'';
     }
     html+=tag;
     // カードモード: 手札表示
@@ -4068,7 +4202,7 @@ function ccRenderAll(){
       if(ccIsOnline&&i===ccMyIdx) showFace=true; // オンライン: 自分のカードのみ表示
       if(ccIsOnline&&cc.phase===4&&p.hole[0]&&p.hole[0].r) showFace=true; // ショーダウンで公開済み
       // オフラインは常に裏面（他プレイヤーに見えるため）
-      html+='<div class="pod-cards">'+(showFace?cH(p.hole[0],true)+cH(p.hole[1],true):cH(null,true)+cH(null,true))+'</div>';
+      html+='<div class="pod-cards">'+(showFace?cH(p.hole[0],'mini')+cH(p.hole[1],'mini'):cH(null,true)+cH(null,true))+'</div>';
     }
     html+='</div>';
   });
@@ -4078,7 +4212,7 @@ function ccRenderAll(){
   var commEl=document.getElementById('cc-community-cards');
   if(cc.cardMode&&ccCommunity.length>0){
     var commHtml='<div class="pod-cards" style="gap:3px;margin:0;">';
-    ccCommunity.forEach(function(c){commHtml+=cH(c,true);});
+    ccCommunity.forEach(function(c){commHtml+=cH(c,'mini');});
     commHtml+='</div>';
     commEl.innerHTML=commHtml;
     commEl.style.display='block';
@@ -4125,6 +4259,7 @@ function ccShowAP(){
   var summary=document.getElementById('cc-summary');
   ap.style.display='none';phBtns.style.display='none';sd.style.display='none';result.style.display='none';summary.style.display='none';
   document.getElementById('cc-rebuy-panel').style.display='none';
+  ap.classList.remove('raising'); // レイズ入力欄は手番ごとに閉じる
   turnInfo.style.display='none';
 
   if(!cc.roundActive) return;
@@ -4254,6 +4389,9 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
   b.addEventListener('click',function(){
     var act=this.dataset.act;
     if(!cc.roundActive||cc.curIdx<0) return;
+    var ccApEl=document.getElementById('cc-ap');
+    if(act==='raise'&&!ccApEl.classList.contains('raising')){ccApEl.classList.add('raising');return;}
+    if(act!=='raise') ccApEl.classList.remove('raising');
     if(ccIsOnline&&!ccIsHost){
       if(act==='raise'){
         var trV=snap5(cc.raiseAmount);
@@ -4523,7 +4661,7 @@ function ccShowCardPicker(title,subtitle,count,cb,opts){
         // 使用済みカードもクリック不可だが見た目は変えない（他プレイヤーへのカード推測を防止）
         var style='cursor:pointer;opacity:1;touch-action:manipulation;';
         if(isSel) style+='outline:2px solid var(--gold);outline-offset:0px;border-radius:3px;background:rgba(201,168,76,.2);';
-        html+='<div class="cc-pick-card" data-r="'+r+'" data-s="'+s+'" style="'+style+'">'+cH(card,true)+'</div>';
+        html+='<div class="cc-pick-card" data-r="'+r+'" data-s="'+s+'" style="'+style+'">'+cH(card,'mini')+'</div>';
       });
       html+='</div></div>';
     });
@@ -5922,6 +6060,7 @@ function ccOnState(st){
 function ccShowAP_online(){
   if(ccMyIdx<0||!cc.players[ccMyIdx]) return;
   var ap=document.getElementById('cc-ap');
+  ap.classList.remove('raising');
   ap.style.display='block';
   document.getElementById('cc-action-btns').style.display='flex';
   cc.raiseAmount=0;ccUpdateRaiseDisplay();
@@ -6377,6 +6516,10 @@ if(/[?&]test=1\b/.test(location.search)){
     totalStart:function(){return ccAllPlayers().reduce(function(s,p){return s+p.startChips;},0);}
   };
   // メインのゲーム（オンライン対戦・CPU対戦）
+  window.__deck=[];
+  ['♠','♥','♦','♣'].forEach(function(su){['A','5','8','10','J','Q','K'].forEach(function(r){window.__deck.push(cH({r:r,s:su},false,true));});});
+  ['A','7','9','Q','K'].forEach(function(r){window.__deck.push(cH({r:r,s:'♥'}));});
+  ['A','7','10','J'].forEach(function(r){window.__deck.push(cH({r:r,s:'♣'},true));});
   window.__poker={
     get players(){return players;},get pot(){return pot;},get phase(){return phase;},
     get curIdx(){return curIdx;},get myIdx(){return myIdx;},get isHost(){return isHost;},

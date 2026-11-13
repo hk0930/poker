@@ -56,14 +56,17 @@
 - 文字は `--font`（Inter + Noto Sans JP）。装飾フォント `--display`（Cinzel）はロゴとフェーズ名だけ。本文は 11px 未満にしない。JS が生成する HTML に `font-family` を直接書かない
 - 主な部品: `.btn`（主ボタン）/ `.btn-ghost`（`.gold` `.blue` `.danger`）/ `.icon-btn` / `.seg`（選択は `.sel` クラスで切替。インラインスタイルで色を変えない）/ `.panel` / `.sheet` / `.info-bar` / `.toast` / `.dialog`
 - 席は `.seat.pod`（アバター `.pod-av`、スタック `.pod-stack`、ベット `.pod-bet`、状態 `.pod-tag.tag-*`）。チップ計算は楕円配置、メインはグリッド
-- カードは `cH(card, small, large)` の SVG（左上に大きなランク＋スート、右下に大きなスート）。空きスロットは `.card-slot`
+- カードは `cH(card, small, large)` の SVG。空きスロットは `.card-slot`
 - アクションボタンは 54px 以上、色は FOLD=グレー / CHECK=青 / CALL=緑 / RAISE=金 / ALL IN=赤
 - 画面や部品の出現は CSS アニメーション（`screenIn` `riseIn` `popIn`）。`prefers-reduced-motion` で無効化
 - メインのゲームは `.mtable` の中にフェルトと `#seats` を重ね、`renderAll()` の `seatPos()` で自分を手前（下）、相手を時計回りに配置（角度表 `SEAT_ANGLES`）。自分の手札は席に大きく表示し、アクションパネル内の `#hdisp` は非表示
 - 演出: `fxChipFly(fromEl,toEl,count)`（ベット時は席→ポット、決着時はポット→勝者）。チップ計算の勝者席は `.seat.winner`
 - 結果・精算は `ccWinHead()` / `ccDiffHtml()` / `.list-row` / `.sum-row` で組む
 - 遊び方・役の一覧: `showGuide()`（ロビーの `#btn-guide`、ゲーム中の `#btn-guide-game`）
-- 画面を変えたら 390px 幅のスクリーンショットで確認する
+- ゲーム画面（`.gscreen`）は `100dvh` 固定でスクロールさせない。テーブル（`.mtable` / `.table-wrap`）が残りの高さを使い、操作まわりは下端の `.dock`（絶対配置、中身が長い時だけ内部スクロール）。`--dock-h` がテーブル下に空ける高さ。席は内側の箱（`#seats` / `#cc-seats` の inset）に対して % で置くので、はみ出さない
+- レイズは2段階: 1回目のタップで入力欄（`#ap.raising` / `#cc-ap.raising`）を開き、2回目で確定。手番が変わると閉じる
+- カード `cH()` は本物のトランプと同じ構成（四隅のインデックス、標準配置のピップ、上下対称の絵札）。20px 前後のごく小さい表示とカード選択だけ `cH(card,'mini')`（大きなランク＋スートの簡易版 `cHMini`）
+- 画面を変えたら 390x600 と 390x844 のスクリーンショットで確認する
 
 ## アーキテクチャ
 

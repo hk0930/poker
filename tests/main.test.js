@@ -220,3 +220,26 @@ test('オンライン対戦: オールインでもハンドが最後まで進む
   assert.equal(hs.sumChips, 1000);
   await closeRoom(room);
 });
+
+test('CPU対戦: 小さい画面(390x600)でもスクロールせず、自分の手札と操作ボタンが見えている', async () => {
+  const page = await startCpuGame({ cpu: 5 });
+  await page.setViewportSize({ width: 390, height: 600 });
+  for (let i = 0; i < 300 && !(await snap(page)).ap; i++) await page.clock.runFor(250);
+  const r = await page.evaluate(() => {
+    const me = document.querySelector('#seats .seat.me').getBoundingClientRect();
+    const ap = document.getElementById('ap').getBoundingClientRect();
+    const btn = document.querySelector('#brow .ab').getBoundingClientRect();
+    return { scroll: document.scrollingElement.scrollHeight - innerHeight, meBottom: me.bottom, apTop: ap.top, btnBottom: btn.bottom };
+  });
+  assert.ok(r.scroll <= 0, '縦スクロールが出ています');
+  assert.ok(r.btnBottom <= 600, '操作ボタンが画面外です');
+  assert.ok(r.meBottom <= r.apTop + 1, '自分の席が操作パネルに隠れています ' + JSON.stringify(r));
+  // レイズは2段階
+  if ((await snap(page)).btns.includes('ab-raise')) {
+    await page.click('#brow .ab-raise');
+    assert.ok(await page.evaluate(() => document.getElementById('ap').classList.contains('raising')));
+    assert.ok((await snap(page)).ap, '1回目では送信されない');
+  }
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
