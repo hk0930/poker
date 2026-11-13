@@ -20,7 +20,8 @@
 - `tests/chipcalc.test.js` — チップ計算 1台モード（進行・オールイン・サイドポット・リバイ・UNDO・表示）
 - `tests/cardmode.test.js` — カード入力で勝者自動判定
 - `tests/online.test.js` — 各自の端末モード。`tests/fakefirebase.js` の偽Firebaseでホスト＋参加者の複数画面を同時に動かす
-- アプリは `?test=1` の時だけ `window.__cc`（チップ計算の内部状態）を公開する
+- `tests/main.test.js` — メインのCPU対戦（`page.clock` で時計を早送りしてCPUの思考・演出を待たない）とオンライン対戦（偽Firebaseで2〜3画面）
+- アプリは `?test=1` の時だけ `window.__cc`（チップ計算の内部状態）と `window.__poker`（メインのゲームの状態）を公開する
 - GitHub Actions（`.github/workflows/test.yml`）で push 毎に実行
 - 修正したらテストを追加し、全件合格を確認してからコミットする
 
