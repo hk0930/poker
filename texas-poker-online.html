@@ -348,6 +348,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .mtable #comm-cards .card-wrap svg,.mtable #comm-cards .card-slot{width:clamp(38px,11.500vw,52px);}
 #hdisp{display:none!important;}
 @media (max-height:760px){.mtable{height:380px;}}
+.fx-chip{position:fixed;z-index:1090;width:14px;height:14px;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 35% 35%,#f6e2a0,var(--gold) 60%,#8d6a22);box-shadow:0 2px 5px rgba(0,0,0,.5),inset 0 0 0 2px rgba(0,0,0,.2);will-change:transform,opacity;}
+.seat.winner{border-color:var(--green);background:rgba(14,44,28,.94);animation:winGlow 1.1s ease-in-out infinite alternate;}
+.seat.winner .pod-stack{color:#8fe6b4;}
+@keyframes winGlow{from{box-shadow:0 0 10px rgba(52,199,123,.3);}to{box-shadow:0 0 0 3px rgba(52,199,123,.22),0 0 26px rgba(52,199,123,.55);}}
+.guide-fab{position:absolute;top:10px;right:10px;z-index:5;width:40px;font-size:16px;font-weight:800;border-radius:50%;padding:0;}
+#screen-game{position:relative;}
+.guide-hand{display:flex;gap:12px;align-items:flex-start;padding:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--r);margin-bottom:6px;font-size:14px;}
+.guide-rank{width:26px;height:26px;border-radius:50%;background:rgba(216,180,90,.18);color:var(--gold-light);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.guide-desc{font-size:13px;color:var(--text-2);line-height:1.6;margin-top:2px;}
+.guide-cards{display:flex;gap:3px;margin-top:8px;}
 </style>
 
 </head>
@@ -547,13 +557,15 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <div id="join-msg" class="smsg"></div>
   </div>
   </div> <!-- /panel-online -->
-  <div class="ver">v2026.11.13.48-sdk</div>
+  <button id="btn-guide" class="btn-ghost" style="max-width:480px;">遊び方 ・ 役の一覧</button>
+  <div class="ver">v2026.11.13.49-sdk</div>
 </div>
 
 <div id="screen-game" class="screen">
   <div id="back-btn-wrap" class="topbar" style="display:none;justify-content:flex-end;">
     <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ</button>
   </div>
+  <button id="btn-guide-game" class="icon-btn guide-fab" aria-label="遊び方">?</button>
   <div class="mtable">
     <div class="felt">
       <div id="phase">WAITING</div>
@@ -3097,6 +3109,7 @@ function showActionBubble(playerIdx, action, amount){
   var si=active.findIndex(function(p){return p.idx===playerIdx;});
   if(si<0||si>=seats.length) return;
   var seat=seats[si];
+  if(action==='call'||action==='raise'||action==='allin') fxChipFly(seat.querySelector('.pod-stack')||seat,document.getElementById('pot'),fxChipCount(amount||BB,BB));
   // 古いバブルを除去
   var old=seat.querySelector('.action-bubble'); if(old) old.remove();
   var lbl=ACTION_LABELS[action]||action.toUpperCase();
@@ -3216,6 +3229,106 @@ function _animateCommCards(newCards, cb){
   var delay=newCards?(newCards.length*280+650):0;
   setTimeout(function(){ if(cb) cb(); }, delay);
 }
+
+// ─── 遊び方・役の一覧 ───
+function showGuide(){
+  var old=document.getElementById('guide');if(old) old.parentNode.removeChild(old);
+  var ov=document.createElement('div');ov.id='guide';ov.className='picker';ov.style.display='block';ov.style.zIndex='1600';
+  var C=function(str,dim){ // 'A♠ K♠' → カードの並び。dim 番目以降は薄く
+    return str.split(' ').map(function(t,i){
+      return '<span'+(dim!==undefined&&i>=dim?' style="opacity:.35;"':'')+'>'+cH({r:t.slice(0,-1),s:t.slice(-1)},true)+'</span>';
+    }).join('');
+  };
+  var hands=[
+    ['ロイヤルフラッシュ','同じマークの 10・J・Q・K・A','A♠ K♠ Q♠ J♠ 10♠'],
+    ['ストレートフラッシュ','同じマークで数字が5枚続く','9♥ 8♥ 7♥ 6♥ 5♥'],
+    ['フォーカード','同じ数字が4枚','K♠ K♥ K♦ K♣ 3♠',4],
+    ['フルハウス','同じ数字3枚 ＋ 同じ数字2枚','Q♠ Q♥ Q♦ 7♣ 7♠'],
+    ['フラッシュ','同じマークが5枚','A♦ J♦ 8♦ 5♦ 2♦'],
+    ['ストレート','数字が5枚続く（マークは自由）','10♠ 9♥ 8♦ 7♣ 6♠'],
+    ['スリーカード','同じ数字が3枚','8♠ 8♥ 8♦ K♣ 4♠',3],
+    ['ツーペア','同じ数字2枚が2組','J♠ J♦ 5♥ 5♣ A♠',4],
+    ['ワンペア','同じ数字が2枚','A♠ A♥ 9♦ 6♣ 3♠',2],
+    ['ハイカード','役なし。一番大きい数字で勝負','A♠ J♦ 8♥ 5♣ 2♠',1]
+  ];
+  var h='<div style="max-width:500px;margin:0 auto;">';
+  h+='<div class="topbar"><div class="picker-title" style="margin:0;">遊び方</div><button id="guide-close" class="icon-btn">✕ 閉じる</button></div>';
+  h+='<div class="seg wide" style="margin-top:10px;"><button class="guide-tab sel" data-t="hands">役の強さ</button><button class="guide-tab" data-t="flow">進め方</button></div>';
+  h+='<div id="guide-hands">';
+  h+='<div class="code-hint" style="text-align:left;margin-bottom:8px;">上にあるほど強い役です。手札2枚と場の5枚、合わせて7枚から一番強い5枚で勝負します。</div>';
+  hands.forEach(function(x,i){
+    h+='<div class="guide-hand"><div class="guide-rank">'+(i+1)+'</div><div style="flex:1;min-width:0;"><b>'+x[0]+'</b><div class="guide-desc">'+x[1]+'</div><div class="guide-cards">'+C(x[2],x[3])+'</div></div></div>';
+  });
+  h+='</div><div id="guide-flow" style="display:none;">';
+  var steps=[
+    ['手札が配られる','全員に2枚ずつ、自分だけが見られるカードが配られます。'],
+    ['プリフロップ','最初のベット。順番に「降りる・合わせる・上げる」を選びます。'],
+    ['フロップ → ターン → リバー','場に3枚、1枚、1枚とカードが開き、そのたびにベットします。'],
+    ['ショーダウン','最後まで残った人で手を見せ合い、一番強い役の人がポットを獲得します。途中で他の全員が降りた場合は、残った1人の勝ちです。']
+  ];
+  h+='<div class="sec-label">1ハンドの流れ</div>';
+  steps.forEach(function(x,i){h+='<div class="guide-hand"><div class="guide-rank">'+(i+1)+'</div><div><b>'+x[0]+'</b><div class="guide-desc">'+x[1]+'</div></div></div>';});
+  var acts=[
+    ['fold','フォールド','降りる。このハンドは負けになりますが、これ以上チップを失いません。'],
+    ['check','チェック','チップを出さずに次の人へ回す。誰もベットしていない時だけ選べます。'],
+    ['call','コール','前の人のベットと同じ額を出して勝負を続ける。'],
+    ['raise','レイズ','ベット額を上げる。他の人はコールするか降りるかを選び直します。'],
+    ['allin','オールイン','持っているチップを全部賭ける。']
+  ];
+  h+='<div class="sec-label">選べるアクション</div>';
+  acts.forEach(function(x){h+='<div class="guide-hand"><div class="pod-tag tag-'+x[0]+'" style="width:86px;font-size:12px;text-align:left;flex-shrink:0;">'+x[1]+'</div><div class="guide-desc" style="margin:0;">'+x[2]+'</div></div>';});
+  var terms=[
+    ['D（ディーラー）','親の位置の目印。1ハンドごとに時計回りで隣へ移ります。'],
+    ['SB / BB','スモールブラインド／ビッグブラインド。カードを見る前に必ず出す参加料で、ディーラーの左隣から2人が払います。'],
+    ['ポット','そのハンドで全員が賭けたチップの合計。勝った人がもらえます。'],
+    ['リバイ','チップがなくなった時に、もう一度チップを買い足すこと。']
+  ];
+  h+='<div class="sec-label">用語</div>';
+  terms.forEach(function(x){h+='<div class="guide-hand" style="display:block;"><b>'+x[0]+'</b><div class="guide-desc">'+x[1]+'</div></div>';});
+  h+='</div></div>';
+  ov.innerHTML=h;
+  document.body.appendChild(ov);
+  ov.querySelector('#guide-close').addEventListener('click',function(){ov.parentNode.removeChild(ov);});
+  ov.querySelectorAll('.guide-tab').forEach(function(b){
+    b.addEventListener('click',function(){
+      ov.querySelectorAll('.guide-tab').forEach(function(x){x.classList.remove('sel');});
+      this.classList.add('sel');
+      ov.querySelector('#guide-hands').style.display=this.dataset.t==='hands'?'block':'none';
+      ov.querySelector('#guide-flow').style.display=this.dataset.t==='flow'?'block':'none';
+      ov.scrollTop=0;
+    });
+  });
+}
+document.getElementById('btn-guide').addEventListener('click',showGuide);
+document.getElementById('btn-guide-game').addEventListener('click',showGuide);
+
+// ─── 演出: チップが from から to へ飛ぶ（ベット時・獲得時） ───
+function fxChipFly(fromEl,toEl,count,color){
+  try{
+    if(!fromEl||!toEl||!document.body.animate) return;
+    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var a=fromEl.getBoundingClientRect(),b=toEl.getBoundingClientRect();
+    if(!a.width||!b.width) return;
+    var x0=a.left+a.width/2,y0=a.top+a.height/2,x1=b.left+b.width/2,y1=b.top+b.height/2;
+    count=Math.max(1,Math.min(count||3,6));
+    for(var i=0;i<count;i++){(function(i){
+      var c=document.createElement('i');c.className='fx-chip';if(color) c.style.background=color;
+      c.style.left=(x0-7)+'px';c.style.top=(y0-7)+'px';
+      document.body.appendChild(c);
+      var jx=(Math.random()-.5)*14,jy=(Math.random()-.5)*10;
+      var an=c.animate([
+        {transform:'translate(0,0) scale(.6)',opacity:0},
+        {transform:'translate('+((x1-x0)*.15)+'px,'+((y1-y0)*.15-8)+'px) scale(1)',opacity:1,offset:.15},
+        {transform:'translate('+(x1-x0+jx)+'px,'+(y1-y0+jy)+'px) scale(.85)',opacity:1,offset:.9},
+        {transform:'translate('+(x1-x0+jx)+'px,'+(y1-y0+jy)+'px) scale(.5)',opacity:0}
+      ],{duration:520,delay:i*55,easing:'cubic-bezier(.3,.7,.2,1)',fill:'both'});
+      an.onfinish=function(){if(c.parentNode)c.parentNode.removeChild(c);};
+      setTimeout(function(){if(c.parentNode)c.parentNode.removeChild(c);},1200+i*55);
+    })(i);}
+  }catch(e){}
+}
+// 金額に応じたチップの枚数
+function fxChipCount(amount,bb){var r=(amount||0)/Math.max(bb||10,1);return r>=20?6:r>=8?5:r>=3?4:r>=1?3:2;}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
@@ -3930,6 +4043,7 @@ function ccRenderAll(){
     if(p.folded) cls+=' folded';
     if(p.allIn&&handLive) cls+=' allin';
     if(i===cc.dealerIdx) cls+=' dealer';
+    if(!handLive&&cc.roundNum>0&&ccLastWinners.indexOf(p.name)>=0) cls+=' winner';
     var rebuyBadge=p.rebuyCount>0?'<span class="pod-badge">×'+p.rebuyCount+'</span>':'';
     var winnerBadge=(ccLastWinners.indexOf(p.name)>=0&&cc.roundNum>1)?'<span style="color:var(--gold-light);margin-left:2px;" title="前ラウンド勝者">&#9733;</span>':'';
     html+='<div class="'+cls+'" style="'+pos+'">';
@@ -4696,6 +4810,12 @@ function ccAutoShowdownEval(notFolded){
 
 // ラウンド履歴記録
 function ccRecordRoundHistory(winners){
+  // 演出: ポットから勝者の席へ
+  winners.forEach(function(w){
+    var wi=-1;cc.players.forEach(function(p,i){if(p.name===w.name) wi=i;});
+    var seat=document.querySelectorAll('#cc-seats .seat')[wi];
+    if(seat) fxChipFly(document.getElementById('cc-pot'),seat,fxChipCount(w.amount,cc.bbAmt));
+  });
   var entry={round:cc.roundNum,winners:winners,actions:ccActionLog.slice(),
     players:cc.players.map(function(p){return {name:p.name,chips:p.chips,diff:p.chips-(p._roundStartChips||0)};})};
   ccRoundHistory.push(entry);
@@ -4750,6 +4870,11 @@ function ccShowActionToast(name,action,amount){
   if(!cc._streetActions) cc._streetActions=[];
   cc._streetActions.push({name:name,action:action,amount:amount||0});
   ccPlayActionSound(action);
+  if(action==='call'||action==='raise'||action==='allin'){
+    var fxIdx=-1;cc.players.forEach(function(p,i){if(p.name===name) fxIdx=i;});
+    var fxSeat=document.querySelectorAll('#cc-seats .seat')[fxIdx];
+    if(fxSeat) fxChipFly(fxSeat.querySelector('.pod-stack')||fxSeat,document.getElementById('cc-pot'),fxChipCount(amount,cc.bbAmt));
+  }
   var msg=name+'  ';
   var color='#b9dcff';
   if(action==='fold'){msg+='FOLD';color='#d5dbd7';}
