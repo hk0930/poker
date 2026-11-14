@@ -50,6 +50,7 @@
   - 各自の端末モード: ゲーム中もルームコードで参加でき `players/{pid}.pending=true` → ホストが `ccWatchMembers()` で検知し、次のハンド開始時に `ccApplyOnlineMembership()` で着席。参加者が「ロビーへ」で抜けると `left=true` で次のハンドに席から外れる。ホストも「メンバー変更」から退席させられる
   - 参加者側は state の `players` と `left` から `ccSyncPlayers()` で席を作り直す（pid で照合）。席にいない間は「次のハンドから参加します」「退席しました」を表示し、ホスト引き継ぎもしない
 - `tests/members.test.js` — 途中参加・退席（1台モード）
+- 暫定ランキング: 上部のトロフィー `#cc-rank-btn` → `ccShowRanking()`。`ccRankingRows()` が 収支 = 持ち点 − 投入額 で並べる（持ち点はハンド中なら賭けている額 `totalBet` も含める、投入額は `startChips` = バイイン＋リバイ）。退席者（`cc.leftPlayers`）も含む。参加者の端末でも同期済みの `players`/`left` から計算する
 
 ## デザインシステム（v53〜 会員制ポーカークラブ）
 - 方向性: 墨色の地（`--ink`）＋シャンパンゴールド1色（`--accent`）。装飾は足さず、細い線（`--line`）と余白で品を出す。光沢・グラデーション文字・絵文字アイコンは使わない
