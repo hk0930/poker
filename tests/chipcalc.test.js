@@ -388,14 +388,14 @@ test('スリープ防止: ゲーム中は有効、ロビーに戻ると解除', 
 
 test('効果音: ボタンでオン/オフでき、リロード後も記憶される', async () => {
   const page = await setup({ players: 2 });
-  assert.equal(await page.textContent('#cc-sound-btn'), '🔊');
+  assert.equal(await page.getAttribute('#cc-sound-btn', 'aria-pressed'), 'true');
   await page.click('#cc-sound-btn');
-  assert.equal(await page.textContent('#cc-sound-btn'), '🔇');
+  assert.equal(await page.getAttribute('#cc-sound-btn', 'aria-pressed'), 'false');
   assert.equal(await page.evaluate(() => window.__cc.soundOn), false);
   await h.act(page, 'call'); // 音なしでもエラーにならない
   await page.reload();
   assert.equal(await page.evaluate(() => window.__cc.soundOn), false);
-  assert.equal(await page.textContent('#cc-sound-btn'), '🔇');
+  assert.equal(await page.getAttribute('#cc-sound-btn', 'aria-pressed'), 'false');
   assert.deepEqual(page.errors, []);
   await page.context().close();
 });
