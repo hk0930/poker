@@ -144,3 +144,53 @@ test('メンバー変更ボタンはハンドの途中には出ない', async ()
   assert.ok(await h.visible(page, '#cc-members-btn'));
   await page.context().close();
 });
+
+// ─── 暫定ランキング ───
+async function openRanking(page) {
+  await page.click('#cc-rank-btn');
+  await page.waitForSelector('#cc-ranking', { state: 'visible' });
+  return page.$$eval('#cc-ranking .rk-row', (rows) => rows.map((r) => ({
+    name: r.querySelector('.rk-name').childNodes[0].textContent,
+    net: r.querySelector('.rk-net').textContent,
+    detail: r.querySelector('.rk-detail').textContent.replace(/\s/g, ''),
+  })));
+}
+
+test('暫定ランキング: バイインとリバイを含めた収支で並び、退席者も載る', async () => {
+  const page = await h.openApp();
+  await h.startOffline(page, { players: 3, names: ['あ', 'い', 'う'] });
+  // 1ハンド目: あ がオールイン、い がコール、う はフォールド → い の勝ちにする
+  await h.act(page, 'allin');
+  await h.waitOverlayGone(page);
+  await h.act(page, 'call');
+  await h.act(page, 'fold');
+  await h.award(page, [1]);
+  await page.click('.cc-rebuy-btn[data-idx="0"][data-action="rebuy"]'); // あ はリバイ
+  let rows = await openRanking(page);
+  assert.deepEqual(rows.map((r) => r.name), ['い', 'う', 'あ']);
+  assert.deepEqual(rows.map((r) => r.net), ['+510', '-10', '-500']);
+  assert.equal(rows[2].detail, '持ち点500／投入1000', 'リバイ分も投入額に入る');
+  assert.match(await page.textContent('#cc-ranking .rk-stats'), /バイイン合計\s*2000/);
+  await page.click('#cc-rank-close');
+  // う が途中退席してもランキングに残る
+  await page.click('#cc-members-btn');
+  await page.click('.cc-mem-leave[data-idx="2"]');
+  await page.click('#cc-mem-close');
+  rows = await openRanking(page);
+  assert.equal(rows.length, 3);
+  assert.match(await page.textContent('#cc-ranking'), /う途中退席/);
+  await page.click('#cc-rank-close');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('暫定ランキング: ハンドの途中でも賭けているチップを持ち点に含めて表示する', async () => {
+  const page = await h.openApp();
+  await h.startOffline(page, { players: 2, names: ['あ', 'い'] });
+  await h.act(page, 'call'); // あ 10 / い 10 がポットに入っている
+  const rows = await openRanking(page);
+  assert.deepEqual(rows.map((r) => r.net), ['±0', '±0']);
+  assert.match(await page.textContent('#cc-ranking .rk-foot'), /進行中のハンド/);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});

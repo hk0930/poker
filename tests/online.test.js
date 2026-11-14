@@ -506,3 +506,18 @@ test('途中退席: ホストが結果画面から参加者を退席させられ
   assert.ok(await conserved(host));
   for (const p of room.all) { assert.deepEqual(p.errors, []); await p.context().close(); }
 });
+
+test('暫定ランキング: 参加者の端末でも同じ順位が見える', async () => {
+  const room = await setupRoom();
+  const { host } = room;
+  const g = room.guests[0];
+  await waitMyTurn(host);
+  await h.act(host, 'fold');
+  await host.waitForSelector('#cc-result', { state: 'visible' });
+  await g.waitForFunction(() => window.__cc.state.players[1].chips === 505);
+  await g.click('#cc-rank-btn');
+  const names = await g.$$eval('#cc-ranking .rk-name', (els) => els.map((e) => e.childNodes[0].textContent));
+  assert.deepEqual(names, ['ゲスト1', 'ホスト']);
+  assert.match(await g.textContent('#cc-ranking'), /\+5[\s\S]*-5/);
+  await finish(room);
+});
