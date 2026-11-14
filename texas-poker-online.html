@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
 /* ════════ デザイントークン ════════ */
 :root{
   --bg:#050b08;--bg-2:#0a1510;--surface:#101b15;--surface-2:#17251e;--surface-3:#203329;
@@ -455,6 +455,243 @@ html,body{overscroll-behavior:none;}
 .bet-display,.raise-amt{background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,.4));box-shadow:inset 0 2px 6px rgba(0,0,0,.6);border-color:rgba(216,180,90,.35);color:var(--gold-light);}
 .chip-row,.chip-selector{flex-wrap:nowrap;}
 .chip-sel-btn,.cc-chip-btn,.chip-sel-btn[data-v="clear"],.cc-chip-clr{width:min(52px,13.200vw);height:auto;aspect-ratio:1;flex-shrink:0;padding:0;}
+/* ════════════════════════════════════════════════════════════
+   v53 デザイン: 会員制ポーカークラブ
+   墨色の地・シャンパンゴールド1色・セリフの見出し・細い線と余白
+   ════════════════════════════════════════════════════════════ */
+:root{
+  --ink:#0a0d0c;--bg:#0a0d0c;--surface:#111614;--surface-2:#161c19;--surface-3:#1d2420;
+  --line:rgba(255,255,255,.07);--line-2:rgba(255,255,255,.12);
+  --text:#f1ede4;--text-2:#a8a398;--text-3:#6f6b63;
+  --accent:#d6bd89;--accent-2:#e9d6ab;--accent-ink:#1b1408;
+  --gold:#d6bd89;--gold-light:#e9d6ab;--gold-dark:#8c7448;
+  --emerald:#1f7a55;--emerald-2:#26915f;--crimson:#a8322e;--slate:#3c4a57;
+  --green:#4cc38a;--red:#e0605b;--blue:#7fb2e5;--orange:#e0a458;
+  --felt:#0f5139;--felt-light:#16684a;--felt-dark:#093325;
+  --r-sm:10px;--r:14px;--r-lg:22px;
+  --serif:"Cormorant Garamond","Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
+  --display:var(--serif);
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body{background:var(--noise) repeat,radial-gradient(130% 70% at 50% -5%,#16231d 0%,#0c1210 48%,var(--ink) 100%) fixed;background-size:160px 160px,auto;background-blend-mode:soft-light,normal;color:var(--text);letter-spacing:.01em;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;background:var(--noise);background-size:160px;opacity:.035;mix-blend-mode:overlay;z-index:0;}
+.screen{position:relative;z-index:1;}
+.gscreen{position:relative;}
+
+/* ─── ロビー ─── */
+#screen-lobby{padding-top:calc(28px + env(safe-area-inset-top,0px));}
+.brand{text-align:center;padding:18px 0 26px;width:100%;max-width:480px;}
+.brand-mark{width:54px;height:54px;margin:0 auto 14px;color:var(--accent);}
+.brand-mark svg{width:100%;height:100%;display:block;}
+.logo{font-family:var(--serif);font-weight:600;font-size:clamp(34px,10vw,46px);line-height:1;letter-spacing:.02em;color:var(--text);background:none;-webkit-text-fill-color:currentColor;text-align:center;}
+.logo em{font-style:italic;font-weight:500;color:var(--accent);}
+.logo-sub{font-size:10.5px;font-weight:600;letter-spacing:.42em;color:var(--text-3);margin-top:12px;padding-left:.42em;}
+.brand-rule{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;color:var(--text-3);font-size:11px;}
+.brand-rule::before,.brand-rule::after{content:'';width:34px;height:1px;background:linear-gradient(90deg,transparent,rgba(214,189,137,.45));}
+.brand-rule::after{transform:scaleX(-1);}
+.badge{margin:0;padding:0;background:none!important;font-size:11px;font-weight:500;letter-spacing:.04em;color:var(--text-3);}
+.badge::before{width:6px;height:6px;}
+.b-ok{color:var(--green)!important;}.b-info,.b-warn{color:var(--blue)!important;}
+.sec-head{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:baseline;margin:4px 0 10px;padding:0 4px;}
+.sec-head b{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:.01em;color:var(--text);}
+.sec-head span{font-size:11px;color:var(--text-3);letter-spacing:.12em;}
+.modes{display:flex;flex-direction:column;gap:8px;width:100%;max-width:480px;margin-bottom:22px;}
+.mode-btn{display:flex;flex-direction:row;align-items:center;gap:14px;padding:14px 16px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:18px;color:var(--text);box-shadow:none;transition:border-color .2s,background .2s,transform .12s var(--ease);}
+.mode-btn:active{transform:scale(.985);}
+.mode-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.035);border:1px solid var(--line);color:var(--text-2);flex-shrink:0;transition:all .2s;}
+.mode-btn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:1;}
+.mode-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.mode-btn b{font-size:15px;font-weight:600;letter-spacing:.02em;color:var(--text);}
+.mode-btn small{font-size:12px;font-weight:400;color:var(--text-3);line-height:1.45;}
+.mode-radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line-2);flex-shrink:0;position:relative;transition:all .2s;}
+.mode-btn.sel{background:linear-gradient(180deg,rgba(214,189,137,.075),rgba(214,189,137,.02));border-color:rgba(214,189,137,.42);box-shadow:none;}
+.mode-btn.sel .mode-ic{color:var(--accent);border-color:rgba(214,189,137,.32);background:rgba(214,189,137,.08);}
+.mode-btn.sel .mode-radio{border-color:var(--accent);}
+.mode-btn.sel .mode-radio::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--accent);}
+.mode-btn.sel small{color:var(--text-2);}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px 16px 16px;box-shadow:none;margin-bottom:12px;}
+.ptitle{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:.01em;text-transform:none;color:var(--text);text-align:left;margin:12px 0 6px;}
+.flabel{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--text-3);margin:14px 0 8px;}
+.inp{height:48px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:12px;font-size:16px;color:var(--text);}
+.inp:focus,.num-inp:focus,.sel-inp:focus{border-color:rgba(214,189,137,.55);box-shadow:0 0 0 3px rgba(214,189,137,.12);}
+.row{min-height:56px;margin:0;padding:6px 0;border-bottom:1px solid var(--line);gap:12px;}
+.panel .row:last-of-type{border-bottom:none;}
+.row>span:first-child,.row-label{font-size:14px;font-weight:500;color:var(--text);}
+.num-inp{width:84px;height:40px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;}
+.sel-inp{height:40px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;font-weight:500;}
+.check-row{min-height:52px;color:var(--text);font-size:14px;margin:4px 0 0;}
+.check-row input{accent-color:var(--accent);}
+.seg{gap:6px;}
+.seg>button{height:38px;min-width:38px;padding:0 12px;border-radius:999px;background:transparent;border:1px solid var(--line-2);color:var(--text-2);font-size:13px;font-weight:600;}
+.seg>button.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.seg.wide{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:12px;padding:3px;margin:10px 0 6px;}
+.seg.wide>button{border:none;border-radius:9px;height:38px;color:var(--text-2);}
+.seg.wide>button.sel{background:var(--surface-3);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 4px 10px rgba(0,0,0,.3);}
+.btn{min-height:54px;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700;letter-spacing:.08em;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px rgba(214,189,137,.45);margin-top:14px;}
+.btn:active:not(:disabled){transform:scale(.98);filter:brightness(.95);}
+.btn-ghost{min-height:50px;border-radius:14px;background:transparent;border:1px solid var(--line-2);color:var(--text);font-weight:600;font-size:14px;}
+.btn-ghost.gold{border-color:rgba(214,189,137,.45);color:var(--accent-2);background:rgba(214,189,137,.05);}
+.btn-ghost.blue{border-color:var(--line-2);color:var(--text);background:rgba(255,255,255,.03);}
+.btn-ghost.danger{border-color:rgba(224,96,91,.3);color:#e9908b;background:transparent;}
+.btn-ghost.ready{background:var(--accent);color:var(--accent-ink);border-color:transparent;}
+.btn-sm{height:48px;border-radius:12px;background:transparent;border:1px solid rgba(214,189,137,.5);color:var(--accent-2);}
+.code-big{font-family:var(--serif);font-weight:600;font-size:40px;letter-spacing:.24em;background:rgba(255,255,255,.025);border:1px dashed rgba(214,189,137,.3);border-radius:14px;color:var(--accent-2);}
+.link-box{background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--text-2);}
+.subpanel{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:14px;}
+.slabel,.sec-label{font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--text-3);}
+.pitem{background:rgba(255,255,255,.03);border-radius:12px;}
+.htag{background:transparent;border:1px solid rgba(214,189,137,.35);color:var(--accent-2);}
+.resume{border-color:rgba(214,189,137,.35);background:linear-gradient(180deg,rgba(214,189,137,.07),rgba(214,189,137,.015)),var(--surface);padding:16px;}
+.resume-title{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--text);}
+.lobby-foot{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 4px;}
+.text-link{background:none;border:none;color:var(--text-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:8px;padding:10px 0;}
+.text-link svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.5;}
+.ver{font-size:10px;color:var(--text-3);margin:0;letter-spacing:.06em;opacity:.8;}
+
+
+/* ─── ゲーム画面の上部 ─── */
+.icon-btn{height:38px;min-width:38px;padding:0 12px;border-radius:999px;background:rgba(10,13,12,.55);border:1px solid var(--line-2);color:var(--text-2);font-size:12px;font-weight:600;gap:6px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.icon-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.icon-btn.round{width:38px;padding:0;}
+#cc-sound-btn[aria-pressed="false"]{color:var(--text-3);}
+.topbar-title{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;color:var(--text);}
+.blind-info{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--text-3);}
+.guide-fab{width:38px;height:38px;font-family:var(--serif);font-size:19px;font-weight:600;color:var(--text-2);}
+
+/* ─── テーブル: 黒いレール＋真鍮の細線＋布の質感のフェルト ─── */
+.felt-skin{background:var(--noise),radial-gradient(ellipse at 50% 38%,var(--felt-light) 0%,var(--felt) 48%,var(--felt-dark) 100%);background-size:160px 160px,100% 100%;background-blend-mode:soft-light,normal;}
+.mtable .felt,#cc-table-felt{background:var(--noise),radial-gradient(ellipse at 50% 38%,var(--felt-light) 0%,var(--felt) 48%,var(--felt-dark) 100%);background-size:160px 160px,100% 100%;background-blend-mode:soft-light,normal;}
+.mtable .felt{border:11px solid #121513;box-shadow:0 0 0 1px rgba(214,189,137,.38),0 0 0 2px #070908,0 26px 50px -12px rgba(0,0,0,.8),inset 0 0 0 1px rgba(214,189,137,.18),inset 0 18px 50px rgba(0,0,0,.45);}
+.mtable .felt::before,#cc-table-felt::before{content:'';position:absolute;inset:12px;border-radius:inherit;border:1px solid rgba(255,255,255,.07);pointer-events:none;}
+.mtable .felt::after,#cc-table-felt::after{content:"HOLD'EM";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-family:var(--serif);font-style:italic;font-weight:600;font-size:34px;letter-spacing:.06em;color:rgba(255,255,255,.045);pointer-events:none;z-index:0;}
+.mtable .felt>*,#cc-table-felt>*{position:relative;z-index:1;}
+#cc-table-rim{inset:36px 4px;top:36px;bottom:36px;left:4px;right:4px;width:auto;min-width:0;aspect-ratio:auto;transform:none;border-radius:50%;background:linear-gradient(180deg,#1a1d1b,#0e100f);box-shadow:0 0 0 1px rgba(214,189,137,.38),0 0 0 2px #070908,0 26px 50px -12px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.06);}
+#cc-table-felt{inset:47px 15px;top:47px;bottom:47px;left:15px;right:15px;width:auto;min-width:0;aspect-ratio:auto;transform:none;box-shadow:inset 0 0 0 1px rgba(214,189,137,.18),inset 0 18px 50px rgba(0,0,0,.45);}
+#phase,.table-phase{font-size:10px;font-weight:600;letter-spacing:.32em;color:rgba(255,255,255,.42);}
+#pot,.table-pot{background:rgba(5,10,8,.45);border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:5px 14px 5px 8px;font-size:17px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums;box-shadow:none;}
+#pot .lbl,.table-pot .lbl{font-size:9px;font-weight:600;letter-spacing:.2em;color:rgba(255,255,255,.5);}
+.table-sub{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.04em;}
+.card-slot{border:1px dashed rgba(255,255,255,.14);background:rgba(0,0,0,.08);border-radius:5px;}
+
+/* ─── 席: アバター＋名札（名前とチップ） ─── */
+.seat.pod{background:none!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important;width:auto!important;min-width:0;gap:0;animation:none!important;display:flex;flex-direction:column;align-items:center;}
+.seat.pod::before{display:none!important;}
+.pod-avw{position:relative;width:42px;height:42px;flex-shrink:0;}
+.pod-av{width:42px;height:42px;margin:0;border-radius:50%;font-size:15px;font-weight:600;letter-spacing:0;color:#fff;background:var(--av,#4a5a52);box-shadow:0 0 0 2px #0a0d0c,0 0 0 3px rgba(255,255,255,.12),0 8px 18px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+.pod-plate{position:relative;margin-top:-7px;min-width:74px;max-width:96px;padding:5px 10px 5px;border-radius:11px;background:rgba(9,12,11,.94);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 18px rgba(0,0,0,.5);text-align:center;z-index:1;}
+.pod-plate .sname{font-size:10.5px;font-weight:500;color:var(--text-2);line-height:1.3;max-width:100%;}
+.pod-plate .pod-stack{font-size:14px;font-weight:600;color:#fff;line-height:1.25;font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+.pod-plate .pod-tag{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);min-height:0;padding:1px 7px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.1em;background:#0a0d0c;border:1px solid rgba(255,255,255,.1);white-space:nowrap;line-height:1.5;}
+.tag-fold{color:var(--text-3)!important;}.tag-check{color:#a9c9ea!important;}.tag-call{color:#8fd8b2!important;}.tag-raise{color:var(--accent-2)!important;}.tag-allin{color:#f08a85!important;border-color:rgba(224,96,91,.45)!important;}
+.pod-d{position:absolute;left:-7px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#d8d4cb);color:#1a1a1a;font-size:10px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.6);z-index:3;}
+.pod-pos{position:absolute;right:-9px!important;top:-4px!important;bottom:auto!important;padding:1px 5px!important;border-radius:6px!important;font-size:9px!important;font-weight:700;letter-spacing:.04em;line-height:1.4;z-index:3;}
+.pod-pos.sb{background:#e9e3d6!important;color:#1a1a1a!important;}.pod-pos.bb{background:var(--accent)!important;color:var(--accent-ink)!important;}
+.pod-bet{position:absolute;left:50%;top:21px;transform:translate(-50%,-50%) translate(var(--bx,0px),var(--by,0px));display:inline-flex;align-items:center;gap:5px;padding:2px 9px 2px 3px;border-radius:999px;background:rgba(5,10,8,.62);border:1px solid rgba(255,255,255,.07);font-size:12px;font-weight:600;color:#fff;white-space:nowrap;z-index:4;min-height:0;font-variant-numeric:tabular-nums;}
+.pod-bet::before{width:15px!important;height:15px!important;}
+.seat.myturn .pod-av{box-shadow:0 0 0 2px #0a0d0c,0 0 0 4px var(--accent),0 0 26px rgba(214,189,137,.55);animation:turnRing 1.4s ease-in-out infinite;}
+@keyframes turnRing{50%{box-shadow:0 0 0 2px #0a0d0c,0 0 0 4px var(--accent-2),0 0 34px rgba(214,189,137,.75);}}
+.seat.myturn .pod-plate{border-color:rgba(214,189,137,.5);}
+.seat.folded{opacity:.4;}
+.seat.allin .pod-plate{border-color:rgba(224,96,91,.55);}
+.seat.winner .pod-plate{border-color:rgba(76,195,138,.6);box-shadow:0 0 0 1px rgba(76,195,138,.25),0 0 24px rgba(76,195,138,.35);}
+.seat.winner .pod-av{box-shadow:0 0 0 2px #0a0d0c,0 0 0 4px var(--green),0 0 26px rgba(76,195,138,.5);}
+.seat.winner .pod-stack{color:#8fe6b4;}
+.pod-turn{display:none!important;}
+.pod-badge{font-size:9px;font-weight:700;color:var(--accent-2);background:transparent;border:1px solid rgba(214,189,137,.35);border-radius:4px;padding:0 3px;margin-left:3px;}
+/* 相手の伏せ札（アバターの右上に重ねる） */
+.pod-avw .pod-cards{position:absolute!important;right:-15px!important;top:-6px!important;left:auto!important;margin:0!important;display:flex;z-index:2;}
+.pod-avw .pod-cards .card-wrap svg{width:15px!important;height:22px!important;border-radius:2px!important;box-shadow:0 2px 4px rgba(0,0,0,.6)!important;}
+.pod-avw .pod-cards .card-wrap:first-child{transform:rotate(-8deg);}
+.pod-avw .pod-cards .card-wrap+.card-wrap{margin-left:-8px!important;transform:rotate(8deg);}
+#cc-seats .pod-avw .pod-cards .card-wrap svg{width:17px!important;height:25px!important;}
+/* メイン: 自分の席（大きな手札＋名札） */
+.mtable #seats .seat.me{width:auto!important;flex-direction:column!important;flex-wrap:nowrap!important;}
+.mtable #seats .seat.me .pod-avw{display:none;}
+.mtable #seats .seat.me .scards{order:0;width:auto;margin:0 0 0;gap:6px;}
+.mtable #seats .seat.me .pod-plate{margin-top:8px;}
+.mtable #seats .seat.me .pod-bet{top:-16px;transform:translate(-50%,-50%);}
+.mtable #seats .seat.me .scards .card-wrap svg{width:54px;height:79px;border-radius:6px;}
+.mtable #seats .seat.me.myturn .scards .card-wrap svg{box-shadow:0 0 0 1.5px var(--accent),0 10px 24px rgba(0,0,0,.6),0 0 24px rgba(214,189,137,.35);}
+.mtable #seats .seat.me .pod-d{left:auto;right:-26px;bottom:4px;top:auto;}
+.mtable #seats .seat:not(.me){width:auto!important;}
+.mtable #seats .seat .scards{display:none;}
+.mtable #seats .seat.me .scards{display:flex;}
+.mtable #seats .seat:not(.me).show-cards .scards{display:flex;position:absolute;top:-28px;left:50%;transform:translateX(-50%);gap:2px;z-index:5;}
+@media (max-height:720px){.mtable #seats .seat.me .scards .card-wrap svg{width:44px;height:64px;}}
+
+/* ─── 下部: 手番の表示とアクション ─── */
+.dock .info-bar,#cc-turn-info{width:fit-content;max-width:100%;margin:0 auto 10px;padding:6px 14px;border-radius:999px;background:rgba(9,12,11,.86);border:1px solid var(--line-2);font-size:13px;font-weight:500;color:var(--text);letter-spacing:.02em;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+#ibar,#cpu-bar{width:fit-content;max-width:100%;margin:0 auto 10px;padding:6px 14px;border-radius:999px;background:rgba(9,12,11,.86);border:1px solid var(--line-2);}
+#ibar-t,#cpu-bar-text{font-size:13px;font-weight:500;color:var(--text);}
+.cpu-track{display:none;}
+.sheet,#ap,.dock .sheet{background:linear-gradient(180deg,rgba(22,28,25,.97),rgba(14,18,16,.98))!important;border:1px solid var(--line-2);border-radius:24px;padding:14px;box-shadow:0 -10px 40px rgba(0,0,0,.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+#ap-who{font-size:13px;font-weight:600;color:var(--text);}
+#ap-info{font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums;}
+.cc-act-btn,.ab{min-height:58px;padding:6px 4px;border-radius:15px;border:1px solid transparent!important;background:var(--bf)!important;color:var(--bt)!important;text-shadow:none!important;letter-spacing:.12em;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 6px 16px -6px rgba(0,0,0,.6)!important;transition:transform .1s var(--ease),filter .15s;}
+.cc-act-btn::before,.ab::before{display:none!important;}
+.cc-act-btn:active,.ab:active{transform:scale(.965)!important;filter:brightness(.92);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)!important;}
+.cc-act-btn[data-act="fold"],.ab-fold{--bf:rgba(255,255,255,.035);--bt:var(--text-2);border-color:var(--line-2)!important;box-shadow:none!important;}
+.cc-act-btn[data-act="check"],.ab-check,.cc-act-btn[data-act="call"],.ab-call{--bf:linear-gradient(180deg,#26915f,#1c754c);--bt:#fff;}
+.cc-act-btn[data-act="raise"],.ab-raise{--bf:linear-gradient(180deg,#e2cb98,#cbae74);--bt:var(--accent-ink);}
+.cc-act-btn[data-act="allin"],.ab-allin{--bf:linear-gradient(180deg,#b83a35,#952a26);--bt:#fff;}
+.ab-l{font-size:11px;font-weight:700;letter-spacing:.16em;opacity:.92;}
+.ab-l:only-child{font-size:13px;letter-spacing:.16em;opacity:1;}
+.ab-v{font-size:19px;font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums;}
+#ap.raising .ab-raise::after,#cc-ap.raising .cc-act-btn[data-act="raise"]::after{font-size:14px;font-weight:700;letter-spacing:.1em;}
+.cc-preset-btn,.pbtn{height:36px;border-radius:999px;background:transparent!important;border:1px solid var(--line-2)!important;box-shadow:none!important;color:var(--text-2);font-size:12px;font-weight:600;}
+.cc-preset-btn[data-preset="max"]{color:#e9908b;border-color:rgba(224,96,91,.3)!important;}
+.raise-amt,.bet-display{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--accent-2)!important;background:rgba(0,0,0,.25)!important;border:1px solid var(--line)!important;box-shadow:none!important;border-radius:14px;font-variant-numeric:tabular-nums;}
+.raise-top .lbl,.raise-min,.raise-remain,.bet-sub,.raise-head{font-size:11px;letter-spacing:.06em;color:var(--text-3);}
+.chip-sel-btn[data-v="clear"],.cc-chip-clr{border:1px dashed var(--line-2)!important;background:transparent!important;color:var(--text-3);}
+
+/* ─── モーダル・シート・トースト ─── */
+.mcard,.dialog,#confirm-box,#phase-card{background:linear-gradient(180deg,#171d1a,#0f1311);border:1px solid var(--line-2);border-radius:26px;box-shadow:0 40px 90px rgba(0,0,0,.65);}
+.mtitle,.dialog-title,.picker-title{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--text);letter-spacing:.01em;}
+#phase-name{font-family:var(--serif);font-weight:600;font-size:30px;letter-spacing:.24em;background:none;-webkit-text-fill-color:var(--accent-2);color:var(--accent-2);}
+.ptitle{color:var(--text);}
+.sheet .ptitle{font-size:20px;text-align:center;margin:4px 0 12px;}
+.toast{background:rgba(9,12,11,.94);border:1px solid var(--line-2);color:var(--tc,#fff);font-size:13px;font-weight:600;letter-spacing:.08em;}
+.win-name{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--text);}
+.win-amt{font-family:var(--serif);font-size:44px;font-weight:600;color:#8fe6b4;}
+.list-row{background:rgba(255,255,255,.025);border-radius:12px;}
+.sum-row{background:rgba(255,255,255,.025);border-radius:12px;}
+.sum-crown{background:var(--accent);color:var(--accent-ink);}
+.picker{background:var(--ink)!important;}
+.guide-rank{background:rgba(214,189,137,.12);color:var(--accent-2);}
+.guide-hand{background:rgba(255,255,255,.025);border-color:var(--line);}
+.mnext{background:var(--accent);color:var(--accent-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);border-radius:14px;}
+.action-bubble{background:rgba(9,12,11,.94)!important;border:1px solid var(--line-2)!important;font-size:11px;letter-spacing:.1em;}
+.fx-chip{width:16px;height:16px;}
+
+@media (max-height:720px){
+  #cc-seats.dense .pod-av{display:flex!important;width:32px;height:32px;font-size:13px;}
+  #cc-seats.dense .pod-avw{width:32px;height:32px;}
+  #cc-seats.dense .pod-bet{top:16px;}
+  #cc-seats.dense .pod-plate{padding:3px 8px;min-width:66px;}
+}
+.mode-radio{width:20px;min-width:20px;max-width:20px;height:20px;aspect-ratio:1;box-sizing:border-box;}
+.mode-radio::after{inset:4px!important;}
+html{background:var(--ink);}
+body{background-color:var(--ink);}
+.logo,.ptitle,.mtitle,.dialog-title,.picker-title,.topbar-title,.win-name,.win-amt,.code-big,.raise-amt,.bet-display,.resume-title,.sec-head b,#phase-name{font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum" 1,"tnum" 1;}
+.mtable #seats .seat.me .pod-plate{max-width:160px;}
+.pod-plate .sname{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;overflow:hidden;}
+.you{flex-shrink:0;font-size:8.5px;letter-spacing:.08em;background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:0 4px;margin:0;}
+.pod-d{left:-15px;top:12px;bottom:auto;}
+.ptitle,.mtitle,.dialog-title,.picker-title,.sec-head b,.resume-title,.win-name{font-family:var(--font);font-weight:700;letter-spacing:.02em;}
+.ptitle{font-size:16px;margin:14px 0 6px;}
+.sheet .ptitle{font-size:16px;}
+.mtitle,.picker-title,.dialog-title{font-size:19px;}
+.sec-head b{font-size:16px;}
+.resume-title{font-size:15px;}
+.win-name{font-size:18px;}
+.toast{top:calc(58px + env(safe-area-inset-top,0px));}
+@media (max-height:720px){
+  .mtable #seats .seat:not(.me) .pod-av{width:32px!important;height:32px!important;font-size:13px!important;display:flex!important;}
+  .mtable #seats .seat:not(.me) .pod-avw{width:32px;height:32px;}
+  .mtable #seats .seat:not(.me) .pod-bet{top:16px;}
+}
 </style>
 
 </head>
@@ -463,25 +700,29 @@ html,body{overscroll-behavior:none;}
 <!-- ロビー -->
 
 <div id="screen-lobby" class="screen active">
-  <header class="hero">
-    <div class="hero-suits"><span>♠</span><span>♥</span><span>♣</span><span>♦</span></div>
-    <div class="logo">TEXAS HOLD'EM</div>
-    <div class="logo-sub">ONLINE POKER</div>
-    <div id="conn-badge" class="badge b-err">オフラインで遊べます</div>
+  <header class="brand">
+    <div class="brand-mark"><svg viewBox="0 0 56 56" fill="none" stroke="currentColor"><circle cx="28" cy="28" r="27" stroke-width=".9"/><circle cx="28" cy="28" r="22.5" stroke-width=".6" stroke-dasharray="1.2 2.6"/><path d="M28 14.5c-2.900 4.400-9.200 7.600-9.200 12.900 0 3.100 2.300 5.100 4.900 5.100 1.700 0 3-.7 3.700-1.900-.3 2.400-1.300 4.400-3.100 5.900h7.400c-1.800-1.500-2.800-3.500-3.100-5.900.7 1.200 2 1.900 3.700 1.900 2.600 0 4.900-2 4.900-5.100 0-5.300-6.300-8.500-9.200-12.900z" fill="currentColor" stroke="none"/></svg></div>
+    <div class="logo">Texas <em>Hold'em</em></div>
+    <div class="logo-sub">POKER ROOM</div>
+    <div class="brand-rule"><span id="conn-badge" class="badge b-err">オフラインで遊べます</span></div>
   </header>
 
+  <div class="sec-head"><b>テーブルを選ぶ</b></div>
   <nav class="modes" aria-label="モードを選択">
-    <button id="btn-mode-online" class="mode-btn">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 2.6 4.2 5.6 4.2 9s-1.4 6.4-4.2 9c-2.8-2.6-4.2-5.6-4.2-9S9.200 5.600 12 3z"/></svg>
-      <b>オンライン</b><small>ルームで対戦</small>
-    </button>
     <button id="btn-mode-offline" class="mode-btn sel">
-      <svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V4.500M9.500 13v1.500M14.500 13v1.500M2.500 12.500v3M21.500 12.500v3"/><circle cx="12" cy="3.500" r="1"/></svg>
-      <b>ひとりで</b><small>CPUと対戦</small>
+      <span class="mode-ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="9.5" height="13.5" rx="1.600" transform="rotate(-12 8.250 13.250)"/><rect x="10.5" y="4" width="9.5" height="13.5" rx="1.600" transform="rotate(9 15.250 10.750)"/></svg></span>
+      <span class="mode-txt"><b>ひとりで</b><small>CPUと対戦。いつでもすぐに始められます</small></span>
+      <span class="mode-radio"></span>
+    </button>
+    <button id="btn-mode-online" class="mode-btn">
+      <span class="mode-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.500"/><path d="M3.500 12h17M12 3.500c2.400 2.300 3.600 5.100 3.600 8.500s-1.200 6.200-3.600 8.500c-2.400-2.300-3.600-5.100-3.600-8.500s1.200-6.200 3.600-8.500z"/></svg></span>
+      <span class="mode-txt"><b>オンライン</b><small>ルームコードで友だちと対戦</small></span>
+      <span class="mode-radio"></span>
     </button>
     <button id="btn-mode-chipcalc" class="mode-btn">
-      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="7.500" ry="3.200"/><path d="M4.500 7v5c0 1.800 3.400 3.200 7.500 3.200s7.500-1.400 7.500-3.200V7M4.500 12v5c0 1.800 3.400 3.200 7.500 3.200s7.500-1.400 7.500-3.200v-5"/></svg>
-      <b>チップ計算</b><small>本物のカードで</small>
+      <span class="mode-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="4.200"/><path d="M12 3.500v2.600M12 17.900v2.600M3.500 12h2.600M17.900 12h2.600M6 6l1.800 1.800M16.200 16.200L18 18M6 18l1.800-1.800M16.200 7.800L18 6"/></svg></span>
+      <span class="mode-txt"><b>チップ計算</b><small>本物のカードで遊ぶ時の点数係</small></span>
+      <span class="mode-radio"></span>
     </button>
   </nav>
 
@@ -654,13 +895,15 @@ html,body{overscroll-behavior:none;}
     <div id="join-msg" class="smsg"></div>
   </div>
   </div> <!-- /panel-online -->
-  <button id="btn-guide" class="btn-ghost" style="max-width:480px;">遊び方 ・ 役の一覧</button>
-  <div class="ver">v2026.11.13.52-sdk</div>
+  <div class="lobby-foot">
+    <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
+    <div class="ver">v2026.11.14.53-sdk</div>
+  </div>
 </div>
 
 <div id="screen-game" class="screen gscreen">
   <div id="back-btn-wrap" class="topbar" style="display:none;justify-content:flex-end;">
-    <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');">✕ ロビーへ</button>
+    <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>ロビー</button>
   </div>
   <button id="btn-guide-game" class="icon-btn guide-fab" aria-label="遊び方">?</button>
   <div class="mtable">
@@ -726,12 +969,12 @@ html,body{overscroll-behavior:none;}
 <!-- チップ計算モード画面 -->
 <div id="screen-chipcalc" class="screen gscreen">
   <div class="topbar">
-    <button id="cc-btn-lobby" class="icon-btn">✕ ロビーへ</button>
+    <button id="cc-btn-lobby" class="icon-btn"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>ロビー</button>
     <div id="cc-round-info" class="topbar-title">ROUND 1</div>
     <div class="gap" style="gap:6px;">
-      <button id="cc-sound-btn" class="icon-btn" aria-label="効果音">🔊</button>
-      <button id="cc-history-btn" class="icon-btn" style="display:none;">履歴</button>
-      <button id="cc-undo-btn" class="icon-btn" style="display:none;">↩ 戻す</button>
+      <button id="cc-sound-btn" class="icon-btn round" aria-label="効果音" aria-pressed="true"></button>
+      <button id="cc-history-btn" class="icon-btn" style="display:none;"><svg viewBox="0 0 24 24"><path d="M5 6.5h14M5 12h14M5 17.5h9"/></svg>履歴</button>
+      <button id="cc-undo-btn" class="icon-btn" style="display:none;"><svg viewBox="0 0 24 24"><path d="M8.5 6.5L4 11l4.5 4.5"/><path d="M4.5 11h10a5 5 0 0 1 0 10h-2"/></svg>戻す</button>
     </div>
   </div>
   <!-- ブラインド表示 -->
@@ -3021,6 +3264,21 @@ function send(action,amount){
 // ════════════════════════════════════════
 // 描画
 // ════════════════════════════════════════
+// 席のアバター: 「プレイヤー3」は数字、それ以外は頭文字。色は落ち着いた8色から
+var AV_COLORS=['#55678a','#8a6a4a','#4c7a68','#8a5867','#665f92','#8c774b','#497688','#7a5a58'];
+function avInfo(name,i){
+  var n=String(name||'?').trim();
+  var m=n.match(/^(?:プレイヤー|player|p)\s*(\d+)$/i);
+  var t=m?m[1]:(n.charAt(0)||'?');
+  if(/^[a-z]$/.test(t)) t=t.toUpperCase();
+  return {t:t,c:AV_COLORS[((i%AV_COLORS.length)+AV_COLORS.length)%AV_COLORS.length]};
+}
+// ベット額を席からテーブル中央寄りに置くためのずらし量（角度は画面座標、90°=真下）
+function betVec(angDeg){
+  var r=angDeg*Math.PI/180,dx=-Math.cos(r),dy=-Math.sin(r);
+  return '--bx:'+Math.round(dx*58)+'px;--by:'+Math.round(dy>0?dy*76:dy*40)+'px;';
+}
+
 function renderAll(){
   var area=document.getElementById('seats');area.innerHTML='';
   // apVisible を forEach の外で1回だけ取得（シートクラス付与より前）
@@ -3035,19 +3293,20 @@ function renderAll(){
     var ang=rel===0?90:(SEAT_ANGLES[meAt>=0?n-1:n]||SEAT_ANGLES[7])[rel-1];
     if(ang===undefined) ang=270;
     var r=ang*Math.PI/180;
-    return 'left:'+(50+44*Math.cos(r)).toFixed(1)+'%;top:'+(50+50*Math.sin(r)).toFixed(1)+'%;';
+    return 'left:'+(50+44*Math.cos(r)).toFixed(1)+'%;top:'+(50+50*Math.sin(r)).toFixed(1)+'%;'+betVec(ang);
   }
   var escN=function(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   players.forEach(function(p,i){
-    var av='<div class="pod-av" style="--h:'+((i*47+150)%360)+'">'+escN((p.name||'?').trim().charAt(0)||'?')+'</div>';
+    var ai=avInfo(p.name,i);
+    var av='<div class="pod-av" style="--av:'+ai.c+'">'+escN(ai.t)+'</div>';
     if(p.eliminated){
       // 脱落プレイヤーを薄く表示
-      var s=document.createElement('div');s.className='seat folded';s.style.cssText=seatPos(i)+'opacity:.3;';
-      s.innerHTML=av+'<div class="sname">'+escN(p.name)+'</div><div class="pod-tag tag-fold">脱落</div>';
+      var s=document.createElement('div');s.className='seat pod folded';s.style.cssText=seatPos(i)+'opacity:.3;';
+      s.innerHTML='<div class="pod-avw">'+av+'</div><div class="pod-plate"><div class="sname">'+escN(p.name)+'</div><div class="pod-stack">0</div><div class="pod-tag tag-fold">OUT</div></div>';
       area.appendChild(s); return;
     }
     if(!p.active)return;
-    var s=document.createElement('div');s.className='seat'+(p.isMe?' me':'');s.style.cssText=seatPos(i);
+    var s=document.createElement('div');s.className='seat pod'+(p.isMe?' me':'');s.style.cssText=seatPos(i);
     if(i===dealerIdx) s.classList.add('dealer');
     if(p.folded){
       s.classList.add('folded');
@@ -3065,8 +3324,9 @@ function renderAll(){
     else if(!p.folded&&(phase>=4||_allInRevealed)&&p.hole&&p.hole.length===2){ h=p.hole; }
     else { h=null; }
     var show=h&&h.length===2;
-    var ch=show?('<div class="scards">'+cH(h[0],p.isMe?false:'mini')+cH(h[1],p.isMe?false:'mini')+'</div>')
-               :('<div class="pod-cards" style="margin-top:5px;'+(p.folded?'visibility:hidden;':'')+'">'+cH(null,true)+cH(null,true)+'</div>');
+    var ch=show?('<div class="scards">'+cH(h[0],p.isMe?false:'mini')+cH(h[1],p.isMe?false:'mini')+'</div>'):'';
+    var backs=(!show&&!p.isMe&&!p.folded)?'<div class="pod-cards">'+cH(null,true)+cH(null,true)+'</div>':'';
+    if(show&&!p.isMe) s.classList.add('show-cards');
     // アクション状態表示
     var stHtml='';
     if(p.folded){
@@ -3078,11 +3338,11 @@ function renderAll(){
       // アクションパネル表示中は自分のターン確定
       s.classList.remove('waiting');
       s.classList.add('myturn');
-      stHtml='<div class="pod-tag tag-raise">あなたの番</div>';
+      stHtml='';
     } else if(i===curIdx && !apVisible){
       // アクションパネル非表示時のみcurIdxを参照
-      if(p.isMe) stHtml='<div class="pod-tag tag-raise">あなたの番</div>';
-      else stHtml='<div class="pod-tag" style="color:var(--orange);">考え中…</div>';
+      if(p.isMe) stHtml='';
+      else stHtml='<div class="pod-tag" style="color:var(--text-2);">考え中…</div>';
     } else {
       // 直近アクション表示
       var la=_lastActionMap[i];
@@ -3095,9 +3355,10 @@ function renderAll(){
     var rebuyBadge = (p.rebuyCount&&p.rebuyCount>0) ? '<span class="pod-badge">×'+(p.rebuyCount+1)+'</span>' : '';
     // BET表示: フォールド済みでも今フェーズのbetを表示
     var betHtml=p.bet?'<div class="pod-bet">'+p.bet+'</div>':'';
-    s.innerHTML=av+'<div class="sname">'+escN(p.name)+(p.isMe?'<span class="you">YOU</span>':'')+rebuyBadge+'</div>'+
-      '<div class="pod-stack schips">'+p.chips+'</div>'+
-      betHtml+stHtml+ch;
+    var dBtn=i===dealerIdx?'<span class="pod-d">D</span>':'';
+    s.innerHTML=(p.isMe?ch:'<div class="pod-avw">'+av+dBtn+backs+'</div>'+ch)+
+      '<div class="pod-plate">'+(p.isMe?dBtn:'')+'<div class="sname">'+escN(p.name)+(p.isMe?'<span class="you">YOU</span>':'')+rebuyBadge+'</div>'+
+      '<div class="pod-stack schips">'+p.chips+'</div>'+stHtml+'</div>'+betHtml;
     area.appendChild(s);
   });
   // アニメーション中はcomm-cardsを上書きしない（新カードが表向きになるのを防ぐ）
@@ -3743,7 +4004,7 @@ function ccUndo(){
 function ccUpdateUndoBtn(){
   var btn=document.getElementById('cc-undo-btn');
   if(ccIsOnline&&!ccIsHost){btn.style.display='none';return;}
-  btn.style.display=ccHistory.length>0?'inline-block':'none';
+  btn.style.display=ccHistory.length>0?'inline-flex':'none';
 }
 
 document.getElementById('cc-undo-btn').addEventListener('click',function(){ ccUndo(); });
@@ -4226,12 +4487,14 @@ function ccRenderAll(){
     var angleRad=(-90+(i*(360/n)))*Math.PI/180;
     var xPct=cx+rx*Math.cos(angleRad);
     var yPct=cy+ry*Math.sin(angleRad);
-    var pos='position:absolute;left:'+xPct.toFixed(1)+'%;top:'+yPct.toFixed(1)+'%;transform:translate(-50%,-50%);width:'+seatW+'px;z-index:2;';
-    var av='<div class="pod-av" style="--h:'+((i*47+150)%360)+'">'+esc((p.name||'?').trim().charAt(0)||'?')+'</div>';
+    var pos='position:absolute;left:'+xPct.toFixed(1)+'%;top:'+yPct.toFixed(1)+'%;transform:translate(-50%,-50%);z-index:2;'+betVec(-90+(i*(360/n)));
+    var ai=avInfo(p.name,i);
+    var av='<div class="pod-av" style="--av:'+ai.c+'">'+esc(ai.t)+'</div>';
     if(i===sbIdx) av+='<span class="pod-pos sb">SB</span>';
     else if(i===bbIdx) av+='<span class="pod-pos bb">BB</span>';
+    if(i===cc.dealerIdx) av+='<span class="pod-d">D</span>';
     if(p.eliminated){
-      html+='<div class="seat pod folded" style="'+pos+'opacity:.25;">'+av+'<div class="sname">'+esc(p.name)+'</div><div class="pod-tag tag-fold">脱落</div></div>';
+      html+='<div class="seat pod folded" style="'+pos+'opacity:.3;"><div class="pod-avw">'+av+'</div><div class="pod-plate"><div class="sname">'+esc(p.name)+'</div><div class="pod-stack">0</div><div class="pod-tag tag-fold">脱落</div></div></div>';
       return;
     }
     var myTurn=(i===cc.curIdx&&cc.roundActive&&cc.phase<4);
@@ -4243,13 +4506,20 @@ function ccRenderAll(){
     if(!handLive&&cc.roundNum>0&&ccLastWinners.indexOf(p.name)>=0) cls+=' winner';
     var rebuyBadge=p.rebuyCount>0?'<span class="pod-badge">×'+p.rebuyCount+'</span>':'';
     var winnerBadge=(ccLastWinners.indexOf(p.name)>=0&&cc.roundNum>1)?'<span style="color:var(--gold-light);margin-left:2px;" title="前ラウンド勝者">&#9733;</span>':'';
+    // カードモード: 手札（アバターの右上に重ねる）
+    var holeHtml='';
+    if(cc.cardMode&&p.hole&&p.hole.length===2&&!p.folded){
+      var showFace=false;
+      if(ccIsOnline&&i===ccMyIdx) showFace=true; // オンライン: 自分のカードのみ表示
+      if(ccIsOnline&&cc.phase===4&&p.hole[0]&&p.hole[0].r) showFace=true; // ショーダウンで公開済み
+      // オフラインは常に裏面（他プレイヤーに見えるため）
+      holeHtml='<div class="pod-cards">'+(showFace?cH(p.hole[0],'mini')+cH(p.hole[1],'mini'):cH(null,true)+cH(null,true))+'</div>';
+    }
     html+='<div class="'+cls+'" style="'+pos+'">';
-    if(myTurn) html+='<div class="pod-turn">▼</div>';
-    html+=av;
+    html+='<div class="pod-avw">'+av+holeHtml+'</div>';
+    html+='<div class="pod-plate">';
     html+='<div class="sname">'+esc(p.name)+rebuyBadge+winnerBadge+'</div>';
     html+='<div class="pod-stack schips">'+p.chips+'</div>';
-    // ベット額
-    html+=(p.bet>0&&handLive&&!p.folded)?'<div class="pod-bet sbet">'+p.bet+'</div>':'';
     // 状態（フォールド／オールイン／直近のアクション）
     var tag='';
     if(p.folded) tag='<div class="pod-tag tag-fold">FOLD</div>';
@@ -4258,15 +4528,9 @@ function ccRenderAll(){
       var pActs=handLive?ccGetPlayerActions(p.name):null;
       tag=pActs?'<div class="pod-tag cc-seat-action tag-'+pActs.cls+'">'+pActs.text+'</div>':'';
     }
-    html+=tag;
-    // カードモード: 手札表示
-    if(cc.cardMode&&p.hole&&p.hole.length===2&&!p.folded){
-      var showFace=false;
-      if(ccIsOnline&&i===ccMyIdx) showFace=true; // オンライン: 自分のカードのみ表示
-      if(ccIsOnline&&cc.phase===4&&p.hole[0]&&p.hole[0].r) showFace=true; // ショーダウンで公開済み
-      // オフラインは常に裏面（他プレイヤーに見えるため）
-      html+='<div class="pod-cards">'+(showFace?cH(p.hole[0],'mini')+cH(p.hole[1],'mini'):cH(null,true)+cH(null,true))+'</div>';
-    }
+    html+=tag+'</div>';
+    // ベット額（テーブル中央寄り）
+    html+=(p.bet>0&&handLive&&!p.folded)?'<div class="pod-bet sbet">'+p.bet+'</div>':'';
     html+='</div>';
   });
   seatsEl.innerHTML=html;
@@ -4297,7 +4561,7 @@ function ccRenderAll(){
   if(saEl) saEl.innerHTML='';
   document.getElementById('cc-round-info').textContent='ROUND '+cc.roundNum;
   ccUpdateBlindInfo();
-  document.getElementById('cc-history-btn').style.display=ccRoundHistory.length>0?'inline-block':'none';
+  document.getElementById('cc-history-btn').style.display=ccRoundHistory.length>0?'inline-flex':'none';
   ccAutoSave();
 }
 
@@ -4604,8 +4868,10 @@ var ccSoundOn=true;
 try{ccSoundOn=localStorage.getItem('cc_sound')!=='0';}catch(e){}
 function ccUpdateSoundBtn(){
   var b=document.getElementById('cc-sound-btn');
-  b.textContent=ccSoundOn?'🔊':'🔇';
-  b.style.opacity=ccSoundOn?'1':'.6';
+  b.innerHTML=ccSoundOn
+    ?'<svg viewBox="0 0 24 24"><path d="M4 9.5h3.500L12 6v12l-4.500-3.500H4z"/><path d="M15.500 9.200a4 4 0 0 1 0 5.600M18 6.800a7.500 7.500 0 0 1 0 10.400"/></svg>'
+    :'<svg viewBox="0 0 24 24"><path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="M16 9.500l5 5M21 9.500l-5 5"/></svg>';
+  b.setAttribute('aria-pressed',ccSoundOn?'true':'false');
 }
 document.getElementById('cc-sound-btn').addEventListener('click',function(){
   ccSoundOn=!ccSoundOn;

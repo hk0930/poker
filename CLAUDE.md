@@ -51,6 +51,15 @@
   - 参加者側は state の `players` と `left` から `ccSyncPlayers()` で席を作り直す（pid で照合）。席にいない間は「次のハンドから参加します」「退席しました」を表示し、ホスト引き継ぎもしない
 - `tests/members.test.js` — 途中参加・退席（1台モード）
 
+## デザインシステム（v53〜 会員制ポーカークラブ）
+- 方向性: 墨色の地（`--ink`）＋シャンパンゴールド1色（`--accent`）。装飾は足さず、細い線（`--line`）と余白で品を出す。光沢・グラデーション文字・絵文字アイコンは使わない
+- 文字: 本文と日本語の見出しは `--font`（Inter + Noto Sans JP）。セリフ `--serif`（Cormorant Garamond）はロゴ・ROUND表記・金額などラテン文字と数字だけ（日本語に使うと明朝に置き換わって崩れる）
+- アイコンは線画 SVG（stroke 1.4〜1.6、`currentColor`）。ボタンは `.icon-btn`（丸は `.round`）
+- 背景とフェルトには `--noise`（SVGのノイズ）を重ねて質感を出す。フェルトは黒いレール＋真鍮の細線＋内側の印刷線＋中央に薄い HOLD'EM
+- 席: `.pod-avw`（アバター `.pod-av`、ディーラー `.pod-d`、SB/BB `.pod-pos`、伏せ札 `.pod-cards`）＋名札 `.pod-plate`（名前・チップ・状態 `.pod-tag`）。アバターは `avInfo(name,i)`（「プレイヤーN」は数字）。ベット額 `.pod-bet` は `betVec(角度)` でテーブル中央寄りに置く
+- アクションボタンは落ち着いた単色: FOLD=線だけ / CHECK・CALL=エメラルド / RAISE=シャンパン / ALL IN=深紅
+- v53 のスタイルは `<style>` の後半にまとめて上書きしている（前半は v48〜52 の名残）
+
 ## デザインシステム（v48〜）
 - 先頭の `<style>` にトークン（`--bg` `--surface` `--text` `--gold` `--green` `--red` `--r` など）と部品をまとめている。色・角丸・フォントは必ずトークンを使う
 - 文字は `--font`（Inter + Noto Sans JP）。装飾フォント `--display`（Cinzel）はロゴとフェーズ名だけ。本文は 11px 未満にしない。JS が生成する HTML に `font-family` を直接書かない
