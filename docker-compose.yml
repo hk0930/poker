@@ -1,0 +1,16 @@
+# Texas Hold'em Online — NAS 上の Docker 構成
+#
+# 使い方 (Praxoria から):
+#   python3 -m scripts.nas_deploy up poker_game
+#
+# 単一 HTML を nginx で配るだけ。オンライン対戦の状態は Firebase が中継するので
+# サーバー側に DB やバックエンドは無い。
+
+name: poker
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-7300}:80"
