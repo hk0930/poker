@@ -512,3 +512,27 @@ test('オンライン: 「考えています」の表示は1つだけ', async ()
   }
   await closeRoom(room);
 });
+
+test('オンライン: ゲームから抜けてロビーに戻ると、古いルームの表示が消えて案内が出る', async () => {
+  const room = await setupOnline();
+  await playHandOnline(room);
+  const host = room.host;
+  await host.evaluate(() => { document.getElementById('mover').classList.remove('show'); window._pokerGoLobby(); });
+  const v = await host.evaluate(() => ({
+    created: document.getElementById('room-created').style.display,
+    start: document.getElementById('btn-start').style.display,
+    msg: document.getElementById('join-msg').textContent,
+  }));
+  assert.equal(v.created, 'none', '古いルームの表示は消える');
+  assert.equal(v.start, 'none', 'ゲーム開始ボタンも消える');
+  assert.match(v.msg, /ゲームから抜けました/);
+  // 万一、古い開始ボタンが押されても黙って何もしないのではなく知らせる
+  await host.evaluate(() => { window.__autoDialog = true; window.__dialogs = []; document.getElementById('btn-start').click(); });
+  const d = await host.evaluate(() => window.__dialogs);
+  assert.match(d[0].message, /このルームはもう使えません/);
+  // ルームを作り直せば、また開始できる
+  await host.click('#btn-create');
+  await host.waitForFunction(() => document.getElementById('room-created').style.display === 'block');
+  assert.ok(await host.isVisible('#btn-start'));
+  await closeRoom(room);
+});

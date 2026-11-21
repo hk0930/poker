@@ -87,6 +87,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
 .htag{font-size:10px;font-weight:700;border-radius:6px;padding:2px 8px;margin-left:auto;}
 .smsg{font-size:13px;text-align:center;padding:8px;border-radius:8px;margin-top:6px;}
+.smsg:empty{display:none;}
 .s-ok{color:var(--green);}.s-err{color:#ff9d9a;}.s-info{color:var(--blue);}
 .resume-title{margin-bottom:4px;}
 #cc-resume-info{font-size:13px;color:var(--text-2);margin-bottom:12px;}
@@ -945,7 +946,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.22.66-sdk</div>
+    <div class="ver">v2026.11.22.67-sdk</div>
   </div>
 </div>
 
@@ -2190,8 +2191,25 @@ function renderPlistWithCpu(ps, cpuCnt, cpuDiff, readyMap){
 // 後方互換
 function renderPlist(ps){ renderPlistWithCpu(ps, onlineCpuCount, onlineCpuDifficulty, {}); }
 
+// オンラインのルームの表示を作る前の状態に戻す（ゲームから抜けた後に古いルームの表示が残らないように）
+function resetRoomUI(msg){
+  document.getElementById('room-created').style.display='none';
+  document.getElementById('invite-url-wrap').style.display='none';
+  document.getElementById('host-settings').style.display='none';
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-ready').style.display='none';
+  document.getElementById('plist').innerHTML='';
+  document.getElementById('code-disp').textContent='------';
+  var rmsg=document.getElementById('room-msg');rmsg.textContent='参加者を待っています…';rmsg.style.color='';
+  if(msg) setJM(msg,'info'); else setJM('','info');
+}
+
 document.getElementById('btn-start').addEventListener('click', function(){
-  if(!isHost) return;
+  if(!isHost||!roomPath){
+    appAlert('このルームはもう使えません（ゲームから抜けたため、ホストではなくなりました）。\nもう一度遊ぶには、ルームを作成し直してください。');
+    resetRoomUI();
+    return;
+  }
   fbGet(roomPath+'/players', function(ps){
     var arr = Object.values(ps||{}).sort(function(a,b){return a.seat-b.seat;});
     // 重複名チェック（CPUを除く）
@@ -3911,6 +3929,7 @@ window._pokerShowScreen = showScreen;
 window._pokerGoLobby = function(){
   bgmSetTension(false);
   endGameTimers();
+  ['deal-overlay','phase-overlay','mover'].forEach(function(id){var el=document.getElementById(id);if(el) el.classList.remove('show');}); // ゲームの演出を残さない
   document.getElementById('back-btn-wrap').style.display='none';
   // オンラインのFirebaseリスナーを全て停止
   if(gamePath){
@@ -3948,7 +3967,9 @@ window._pokerGoLobby = function(){
   _nullStateCount=0;
   gamePath=''; holePfx=''; roomPath=''; isHost=false;
   offlineMode=false;
+  var wasOnline=!!document.getElementById('room-created')&&document.getElementById('room-created').style.display==='block';
   players=[]; myHole=[]; _initialChips=0; _handNo=0;
+  resetRoomUI(wasOnline?'ゲームから抜けました。もう一度遊ぶには、ルームを作成するか、ルームコードで参加してください。':'');
   showScreen('screen-lobby');
 };
 

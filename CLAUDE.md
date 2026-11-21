@@ -55,6 +55,7 @@
 ## ゲームを出た後の予約処理（v66〜）
 - CPUの思考・演出の後の続きは `setTimeout` で予約している。ゲームを出たら `endGameTimers()`（`_gameGen` を進め、CPUキューと「考えています」を消す）。予約する時は `gameGuard(fn)` で包み、世代が変わっていたら何もしない
 - `endGameTimers()` はロビーへ戻る `_pokerGoLobby()`・CPU対戦の開始 `launchOffline()`・`resetOfflineGame()` で呼ぶ。オンラインの `_launch()` は参加者側で何度も呼ばれるので呼ばない（`hideCpuBar()` だけ）
+- ロビーへ戻る時は演出（`#deal-overlay` `#phase-overlay` `#mover`）も消し、オンラインのルーム表示は `resetRoomUI(msg)` で作る前の状態に戻す（戻った時点でホストでもルームの一員でもなくなるため。古い「ゲーム開始」が残ると押しても動かなかった）。`#btn-start` はホストでない時に黙って終わらず、ルームを作り直すよう知らせる
 - 「考えています」は1か所だけ: CPU対戦は `#cpu-bar`（`showCpuThinking`）、オンラインは `#ibar`（`showInfo`）。片方を出す時にもう片方を消す
 
 ## タイトル画面（v61〜）
