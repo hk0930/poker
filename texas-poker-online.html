@@ -674,8 +674,7 @@ body{background-color:var(--ink);}
 .ttl-rule i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(214,189,137,.5));}
 .ttl-rule i:last-child{background:linear-gradient(90deg,rgba(214,189,137,.5),transparent);}
 .ttl-rule span{padding-left:.3em;opacity:.8;}
-.ttl-tag{font-size:13px;color:var(--text-2);letter-spacing:.14em;margin:16px 0 0;animation:riseIn .7s var(--ease) 1.25s both;}
-.ttl-start{max-width:280px;margin:40px auto 0;font-size:16px;letter-spacing:.3em;padding-left:calc(16px + .3em);animation:riseIn .7s var(--ease) 1.35s both,ttlGlow 2.8s ease-in-out 2.2s infinite;}
+.ttl-start{max-width:280px;margin:44px auto 0;font-size:16px;letter-spacing:.3em;padding-left:calc(16px + .3em);animation:riseIn .7s var(--ease) 1.35s both,ttlGlow 2.8s ease-in-out 2.2s infinite;}
 @keyframes ttlGlow{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px rgba(214,189,137,.45);}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 34px -6px rgba(214,189,137,.7);}}
 .ttl-guide{margin-top:14px;animation:riseIn .7s var(--ease) 1.45s both;}
 .ttl-guide svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;}
@@ -686,7 +685,7 @@ body{background-color:var(--ink);}
   .ttl .brand-mark{display:none;}
   .ttl-logo{font-size:clamp(40px,12vw,52px);}
   .ttl-rule{margin-top:16px;}
-  .ttl-start{margin-top:26px;}
+  .ttl-start{margin-top:30px;}
 }
 #screen-title.leaving{animation:ttlOut .45s var(--ease) both;}
 @keyframes ttlOut{to{opacity:0;transform:scale(1.03);}}
@@ -731,7 +730,6 @@ body{background-color:var(--ink);}
     <h1 class="logo ttl-logo">Texas <em>Hold'em</em></h1>
     <div class="logo-sub">POKER ROOM</div>
     <div class="ttl-rule" aria-hidden="true"><i></i><span>♠ ♥ ♦ ♣</span><i></i></div>
-    <p class="ttl-tag">ひとりでも、仲間とでも。</p>
     <button id="btn-title-start" class="btn ttl-start">はじめる</button>
     <button id="btn-title-guide" class="text-link ttl-guide"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
   </div>
@@ -936,7 +934,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.22.61-sdk</div>
+    <div class="ver">v2026.11.22.62-sdk</div>
   </div>
 </div>
 
