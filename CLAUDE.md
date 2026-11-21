@@ -52,6 +52,19 @@
 - `tests/members.test.js` — 途中参加・退席（1台モード）
 - 暫定ランキング: 上部のトロフィー `#cc-rank-btn` → `ccShowRanking()`。`ccRankingRows()` が 収支 = 持ち点 − 投入額 で並べる（持ち点はハンド中なら賭けている額 `totalBet` も含める、投入額は `startChips` = バイイン＋リバイ）。退席者（`cc.leftPlayers`）も含む。参加者の端末でも同期済みの `players`/`left` から計算する
 
+## 効果音・BGM（v55〜、メインのゲームとチップ計算で共通）
+- コードはチップ計算の IIFE の外（「効果音・BGM（メインのゲームとチップ計算で共通）」）に置いている。メインのゲームから呼ぶので、チップ計算の IIFE の中に戻さない
+- 設定: 効果音 `ccSoundOn`（localStorage `cc_sound`）、BGM `bgmOn`（`poker_bgm`、`?test=1` では既定オフ）。ボタンは `.sfx-btn` / `.bgm-btn` クラスで全画面ぶんまとめて `ccUpdateSoundBtn()` が更新（メイン `#g-sound-btn` `#g-bgm-btn`、チップ計算 `#cc-sound-btn` `#cc-bgm-btn`）
+- AudioContext は `sndCtx()` で1つだけ作る。効果音は `ccAudio()`（効果音オフなら null）
+- 効果音の呼び出し場所: アクション `showActionBubble()` → `ccPlayActionSound()`、配札 `showDealOverlay()` → `sndDeal()`、フロップ等のめくり `showPhaseOverlay()` → `ccPlayCardSound()`、自分の手番 `renderAction()` / `renderActionOffline()` → `sndMyTurn()`、結果 `showMsg()` → `sndForResult()`（本文の `.wn` に自分の名前があれば `sndWin()`、なければ `sndLose()`）
+- BGM: 音源ファイルなしで Web Audio でその場で鳴らすラウンジジャズ（`BGM_PROG` のコード進行、エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）。`bgmTick()` が 120ms ごとに 0.4 秒先まで予約。`bgmSync()` がゲーム画面（`screen-game` / `screen-chipcalc`）かつ表示中の時だけ流す。`showScreen()` と `visibilitychange` で呼ぶ
+
+## ランキング（メインのゲーム、v55〜）
+- ゲーム画面右上のトロフィー `#g-rank-btn` と結果モーダルの「ランキングを見る」`#mnext-rank` → `showGameRanking()`
+- `gameRankingRows()`: 持ち点 = チップ＋進行中のハンドで賭けている額（フォールドした人の分は数えない。結果モーダル表示中はポット配分済みなので数えない）、投入 = `_initialChips` ×（リバイ回数＋1）、収支の順に並べる
+- `_handNo` は CPU対戦のハンド数（`startRoundOffline()` で加算、`launchOffline()` とロビーに戻る時に 0）
+- `?test=1` の `window.__poker` に `sfxOn` `bgmOn` `bgmPlaying` `handNo` `rankingRows()` を追加
+
 ## デザインシステム（v53〜 会員制ポーカークラブ）
 - 方向性: 墨色の地（`--ink`）＋シャンパンゴールド1色（`--accent`）。装飾は足さず、細い線（`--line`）と余白で品を出す。光沢・グラデーション文字・絵文字アイコンは使わない
 - 文字: 本文と日本語の見出しは `--font`（Inter + Noto Sans JP）。セリフ `--serif`（Cormorant Garamond）はロゴ・ROUND表記・金額などラテン文字と数字だけ（日本語に使うと明朝に置き換わって崩れる）

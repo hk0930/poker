@@ -554,7 +554,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;background:var
 .icon-btn{height:38px;min-width:38px;padding:0 12px;border-radius:999px;background:rgba(10,13,12,.55);border:1px solid var(--line-2);color:var(--text-2);font-size:12px;font-weight:600;gap:6px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .icon-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
 .icon-btn.round{width:38px;padding:0;}
-#cc-sound-btn[aria-pressed="false"]{color:var(--text-3);}
+.sfx-btn[aria-pressed="false"],.bgm-btn[aria-pressed="false"]{color:var(--text-3);}
+.game-tools{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:5;display:flex;gap:6px;}
+.game-tools .guide-fab{position:static;}
+.mrank{align-self:center;flex-shrink:0;margin-top:6px;}
 .topbar-title{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;color:var(--text);}
 .blind-info{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--text-3);}
 .guide-fab{width:38px;height:38px;font-family:var(--serif);font-size:19px;font-weight:600;color:var(--text-2);}
@@ -692,6 +695,8 @@ body{background-color:var(--ink);}
   .mtable #seats .seat:not(.me) .pod-avw{width:32px;height:32px;}
   .mtable #seats .seat:not(.me) .pod-bet{top:16px;}
 }
+.rk-row.me .rk-name{color:var(--accent);}
+.rk-stats b small{font-size:13px;color:var(--text-3);}
 .rk-sub{font-size:11px;color:var(--text-3);letter-spacing:.06em;margin-top:2px;}
 .rk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 12px;}
 .rk-stats>div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;}
@@ -917,7 +922,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.14.54-sdk</div>
+    <div class="ver">v2026.11.21.55-sdk</div>
   </div>
 </div>
 
@@ -925,7 +930,12 @@ body{background-color:var(--ink);}
   <div id="back-btn-wrap" class="topbar" style="display:none;justify-content:flex-end;">
     <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>ロビー</button>
   </div>
-  <button id="btn-guide-game" class="icon-btn guide-fab" aria-label="遊び方">?</button>
+  <div class="game-tools">
+    <button id="g-rank-btn" class="icon-btn round" aria-label="ランキング" title="ランキング"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.500a3 3 0 0 0 3 4M16 6h2.500a3 3 0 0 1-3 4M12 13v4M8.500 20h7M10 17h4"/></svg></button>
+    <button id="g-sound-btn" class="icon-btn round sfx-btn" aria-label="効果音" title="効果音" aria-pressed="true"></button>
+    <button id="g-bgm-btn" class="icon-btn round bgm-btn" aria-label="BGM" title="BGM" aria-pressed="true"></button>
+    <button id="btn-guide-game" class="icon-btn guide-fab" aria-label="遊び方">?</button>
+  </div>
   <div class="mtable">
     <div class="felt">
       <div id="phase">WAITING</div>
@@ -981,6 +991,7 @@ body{background-color:var(--ink);}
     <div class="mcards" id="mcards"></div>
     <div class="mbody" id="mbody"></div>
     <button class="mnext" id="mnext">次のラウンド</button>
+    <button id="mnext-rank" class="text-link mrank"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.500a3 3 0 0 0 3 4M16 6h2.500a3 3 0 0 1-3 4M12 13v4M8.500 20h7M10 17h4"/></svg>ランキングを見る</button>
     <button id="mnext-end" class="btn-ghost danger" style="display:none;flex-shrink:0;">ゲームを終了する</button>
     <button id="mnext-lobby" class="btn-ghost" style="display:none;flex-shrink:0;">ロビーへ戻る</button>
   </div>
@@ -992,7 +1003,8 @@ body{background-color:var(--ink);}
     <button id="cc-btn-lobby" class="icon-btn round" aria-label="ロビーへ戻る" title="ロビーへ戻る"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg></button>
     <div id="cc-round-info" class="topbar-title">ROUND 1</div>
     <div class="gap" style="gap:6px;">
-      <button id="cc-sound-btn" class="icon-btn round" aria-label="効果音" aria-pressed="true"></button>
+      <button id="cc-sound-btn" class="icon-btn round sfx-btn" aria-label="効果音" title="効果音" aria-pressed="true"></button>
+      <button id="cc-bgm-btn" class="icon-btn round bgm-btn" aria-label="BGM" title="BGM" aria-pressed="true"></button>
       <button id="cc-rank-btn" class="icon-btn round" aria-label="暫定ランキング" title="暫定ランキング"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.500a3 3 0 0 0 3 4M16 6h2.500a3 3 0 0 1-3 4M12 13v4M8.500 20h7M10 17h4"/></svg></button>
       <button id="cc-history-btn" class="icon-btn round" style="display:none;" aria-label="ハンド履歴" title="ハンド履歴"><svg viewBox="0 0 24 24"><path d="M5 6.5h14M5 12h14M5 17.5h9"/></svg></button>
       <button id="cc-undo-btn" class="icon-btn" style="display:none;"><svg viewBox="0 0 24 24"><path d="M8.5 6.5L4 11l4.5 4.5"/><path d="M4.5 11h10a5 5 0 0 1 0 10h-2"/></svg>戻す</button>
@@ -1746,7 +1758,7 @@ document.getElementById('btn-start-offline').addEventListener('click',function()
 });
 
 function launchOffline(ps){
-  players=ps;
+  players=ps;_handNo=0;
   ps.forEach(function(p,i){if(p.isMe)myIdx=i;});
   gamePath=''; holePfx='';
   document.getElementById('back-btn-wrap').style.display='block';
@@ -1818,6 +1830,7 @@ function startRoundOffline(){
     showMsg('ゲーム終了','<span class="wn">'+w.name+'</span>の優勝！','もう一度',function(){document.getElementById('back-btn-wrap').style.display='none';showScreen('screen-lobby');offlineMode=false;});
     return;
   }
+  _handNo++;
   dealerIdx=(dealerIdx+1)%players.length;
   while(!players[dealerIdx].active)dealerIdx=(dealerIdx+1)%players.length;
   var myPlayer=null;
@@ -1960,6 +1973,7 @@ function doShowdownOffline(){
 
 function renderActionOffline(){
   var p=players[myIdx];if(!p)return;
+  sndMyTurn();
   document.getElementById('ap-who').textContent=p.name+' のターン（あなた）';
   var toC=curBet-p.bet;
   document.getElementById('ap-info').innerHTML='<span style="opacity:.6">手持ち</span> '+p.chips+' &nbsp;<span style="opacity:.6">コール</span> '+Math.min(toC,p.chips);
@@ -3121,6 +3135,64 @@ function finishSD(cont,holes){
 }
 
 
+// ─── ランキング（メインのゲーム: CPU対戦・オンライン対戦） ───
+// 持ち点 = 手元のチップ＋進行中のハンドで賭けている額（フォールドした人の分は戻らないので数えない）
+// 投入額 = 最初のチップ ×（リバイ回数＋1）、収支 = 持ち点 − 投入額
+var _handNo=0;
+function gameHandLive(){
+  return (pot||0)>0&&!document.getElementById('mover').classList.contains('show');
+}
+function gameRankingRows(){
+  var live=gameHandLive();
+  var rows=players.map(function(p,i){
+    var stack=(p.chips||0)+(live&&p.active&&!p.folded?(p.totalBet||0):0);
+    var buyin=(_initialChips||p.chipsBefore||p.chips||0)*((p.rebuyCount||0)+1);
+    return {p:p,i:i,stack:stack,buyin:buyin,net:stack-buyin};
+  });
+  rows.sort(function(a,b){return b.net-a.net||b.stack-a.stack;});
+  return rows;
+}
+function gEsc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function gDiffHtml(d){return '<span class="'+(d>0?'pos':d<0?'neg':'zero')+'">'+(d>0?'+'+d:d===0?'±0':''+d)+'</span>';}
+function showGameRanking(){
+  var old=document.getElementById('g-ranking');if(old) old.parentNode.removeChild(old);
+  if(!players||!players.length) return;
+  var rows=gameRankingRows(),live=gameHandLive();
+  var myPos=rows.findIndex(function(r){return r.p.isMe;});
+  var alive=players.filter(function(p){return !p.eliminated&&(p.chips>0||live&&p.active);}).length;
+  var maxAbs=rows.reduce(function(m,r){return Math.max(m,Math.abs(r.net));},1);
+  var ov=document.createElement('div');
+  ov.id='g-ranking';ov.className='picker';ov.style.display='block';ov.style.zIndex='1300';
+  var h='<div style="max-width:500px;margin:0 auto;">';
+  h+='<div class="topbar"><div><div class="picker-title" style="margin:0;">ランキング</div>';
+  h+='<div class="rk-sub">'+(offlineMode&&_handNo?'HAND '+_handNo+' 時点・':'')+'リバイ込みの収支</div></div>';
+  h+='<button id="g-rank-close" class="icon-btn">✕ 閉じる</button></div>';
+  h+='<div class="rk-stats"><div><span>あなたの順位</span><b>'+(myPos>=0?(myPos+1)+'<small> / '+rows.length+'</small>':'—')+'</b></div>';
+  h+='<div><span>残っている人</span><b>'+alive+'人</b></div>';
+  h+='<div><span>あなたの収支</span><b>'+(myPos>=0?(rows[myPos].net>0?'+'+rows[myPos].net:rows[myPos].net===0?'±0':''+rows[myPos].net):'—')+'</b></div></div>';
+  rows.forEach(function(r,k){
+    var p=r.p,ai=avInfo(p.name,r.i),notes=[];
+    if(p.isMe) notes.push('あなた');
+    else if(p.isCpu) notes.push('CPU');
+    if(p.rebuyCount>0) notes.push('リバイ'+p.rebuyCount+'回');
+    if(p.eliminated) notes.push('脱落');
+    var barPct=Math.round(Math.abs(r.net)/maxAbs*100);
+    h+='<div class="rk-row'+(k===0&&r.net>0?' top':'')+(p.eliminated?' out':'')+(p.isMe?' me':'')+'">';
+    h+='<div class="rk-pos">'+(k+1)+'</div>';
+    h+='<div class="pod-av rk-av" style="--av:'+ai.c+'">'+gEsc(ai.t)+'</div>';
+    h+='<div class="rk-main"><div class="rk-name">'+gEsc(p.name)+(notes.length?'<span class="rk-note">'+notes.join('・')+'</span>':'')+'</div>';
+    h+='<div class="rk-detail">持ち点 '+r.stack+'<span>／</span>投入 '+r.buyin+'</div>';
+    h+='<div class="sum-bar"><i class="'+(r.net>=0?'up':'down')+'" style="width:'+barPct+'%;"></i></div></div>';
+    h+='<div class="rk-net">'+gDiffHtml(r.net)+'</div>';
+    h+='</div>';
+  });
+  h+='<div class="rk-foot">'+(live?'進行中のハンドで賭けているチップは、まだ本人の持ち点として数えています（フォールドした分は除く）。':'ハンドとハンドの間の時点です。')+'投入は最初のチップとリバイの合計です。</div>';
+  h+='</div>';
+  ov.innerHTML=h;
+  document.body.appendChild(ov);
+  ov.querySelector('#g-rank-close').addEventListener('click',function(){ov.parentNode.removeChild(ov);});
+}
+
 // ════════════════════════════════════════
 // ゲーム終了サマリー表示
 // ════════════════════════════════════════
@@ -3231,6 +3303,7 @@ function renderAction(){
   _dbg('renderAction myIdx='+myIdx);
   hideInfo(); // CPU思考中表示を確実にクリア
   var p=players[myIdx];if(!p)return;
+  sndMyTurn();
   document.getElementById('ap-who').textContent=p.name+' のターン（あなた）';
   var toC=curBet-p.bet;
   document.getElementById('ap-info').innerHTML='<span style="opacity:.6">手持ち</span> '+p.chips+' &nbsp;<span style="opacity:.6">コール</span> '+Math.min(toC,p.chips);
@@ -3397,6 +3470,7 @@ function showMsg(title,body,lbl,fn,ch,commCards,endFn){
   if(gamePath) document.getElementById('back-btn-wrap').style.display='block';
   document.getElementById('mtitle').textContent=title;
   document.getElementById('mbody').innerHTML=body;
+  sndForResult(title,document.getElementById('mbody'));
   document.getElementById('mcards').innerHTML=ch||'';
   var mcomm=document.getElementById('mcomm');
   if(commCards&&commCards.length){
@@ -3451,6 +3525,7 @@ function showDealOverlay(hole, cb){
   var ov = document.getElementById('deal-overlay');
   var row = document.getElementById('deal-cards-row');
   row.innerHTML = '';
+  sndDeal(hole.length);
   hole.forEach(function(c){
     var d = document.createElement('div');
     d.className = 'deal-card-anim';
@@ -3568,6 +3643,7 @@ function checkEliminated(afterRoundCb){
 var ACTION_LABELS={fold:'FOLD',check:'CHECK',call:'CALL',raise:'RAISE',allin:'ALL IN'};
 var ACTION_CLS={fold:'ab-fold',check:'ab-check',call:'ab-call',raise:'ab-raise',allin:'ab-allin'};
 function showActionBubble(playerIdx, action, amount){
+  ccPlayActionSound(action);
   // 座席DOMを取得
   var seats=document.querySelectorAll('#seats .seat');
   var active=players.filter(function(p){return p.active||p.eliminated;});
@@ -3634,7 +3710,7 @@ function showPhaseOverlay(phaseName, newCards, cb){
 
   // 150ms後から1枚ずつ180msおきにフリップ
   cardInners.forEach(function(inner, i){
-    setTimeout(function(){ inner.style.transform='rotateY(0deg)'; }, 250 + i*320);
+    setTimeout(function(){ inner.style.transform='rotateY(0deg)'; ccPlayCardSound(); }, 250 + i*320);
   });
 
   // 全カードフリップ後に少し見せてからオーバーレイを閉じてcb
@@ -3780,6 +3856,8 @@ function showGuide(){
 }
 document.getElementById('btn-guide').addEventListener('click',showGuide);
 document.getElementById('btn-guide-game').addEventListener('click',showGuide);
+document.getElementById('g-rank-btn').addEventListener('click',showGameRanking);
+document.getElementById('mnext-rank').addEventListener('click',showGameRanking);
 
 // ─── 演出: チップが from から to へ飛ぶ（ベット時・獲得時） ───
 function fxChipFly(fromEl,toEl,count,color){
@@ -3814,6 +3892,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   // ゲーム中は画面を消さない、ロビーに戻ったら解除
   if(id==='screen-lobby') noSleepOff(); else noSleepOn();
+  bgmSync(); // BGM はゲーム画面（メイン・チップ計算）だけで流す
 }
 
 // グローバルに公開（ボタンのonclickから呼び出せるよう）
@@ -3856,9 +3935,282 @@ window._pokerGoLobby = function(){
   _nullStateCount=0;
   gamePath=''; holePfx=''; roomPath=''; isHost=false;
   offlineMode=false;
-  players=[]; myHole=[]; _initialChips=0;
+  players=[]; myHole=[]; _initialChips=0; _handNo=0;
   showScreen('screen-lobby');
 };
+
+// ════════════════════════════════════════
+// 効果音・BGM（メインのゲームとチップ計算で共通）
+// ════════════════════════════════════════
+// ─── 音（効果音・BGM）のオン/オフ（端末に記憶） ───
+// 効果音は cc_sound（チップ計算と共通）、BGM は poker_bgm。テスト（?test=1）では BGM を既定でオフ
+var ccSoundOn=true;
+try{ccSoundOn=localStorage.getItem('cc_sound')!=='0';}catch(e){}
+var bgmOn=!/[?&]test=1\b/.test(location.search);
+try{var _bgmSaved=localStorage.getItem('poker_bgm');if(_bgmSaved!==null) bgmOn=_bgmSaved==='1';}catch(e){}
+var SVG_SFX_ON='<svg viewBox="0 0 24 24"><path d="M4 9.5h3.500L12 6v12l-4.500-3.500H4z"/><path d="M15.500 9.200a4 4 0 0 1 0 5.600M18 6.800a7.500 7.500 0 0 1 0 10.400"/></svg>';
+var SVG_SFX_OFF='<svg viewBox="0 0 24 24"><path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="M16 9.500l5 5M21 9.500l-5 5"/></svg>';
+var SVG_BGM_ON='<svg viewBox="0 0 24 24"><path d="M9 17.500V6l10-2v11.500"/><circle cx="6.500" cy="17.500" r="2.500"/><circle cx="16.500" cy="15.500" r="2.500"/></svg>';
+var SVG_BGM_OFF='<svg viewBox="0 0 24 24"><path d="M9 17.500V6l10-2v11.500"/><circle cx="6.500" cy="17.500" r="2.500"/><circle cx="16.500" cy="15.500" r="2.500"/><path d="M3.500 3.500l17 17"/></svg>';
+function ccUpdateSoundBtn(){
+  document.querySelectorAll('.sfx-btn').forEach(function(b){
+    b.innerHTML=ccSoundOn?SVG_SFX_ON:SVG_SFX_OFF;
+    b.setAttribute('aria-pressed',ccSoundOn?'true':'false');
+    b.title=ccSoundOn?'効果音: オン':'効果音: オフ';
+  });
+  document.querySelectorAll('.bgm-btn').forEach(function(b){
+    b.innerHTML=bgmOn?SVG_BGM_ON:SVG_BGM_OFF;
+    b.setAttribute('aria-pressed',bgmOn?'true':'false');
+    b.title=bgmOn?'BGM: オン':'BGM: オフ';
+  });
+}
+document.querySelectorAll('.sfx-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    ccSoundOn=!ccSoundOn;
+    try{localStorage.setItem('cc_sound',ccSoundOn?'1':'0');}catch(e){}
+    ccUpdateSoundBtn();
+    if(ccSoundOn) ccPlayActionSound('check');
+  });
+});
+document.querySelectorAll('.bgm-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    bgmOn=!bgmOn;
+    try{localStorage.setItem('poker_bgm',bgmOn?'1':'0');}catch(e){}
+    ccUpdateSoundBtn();
+    bgmSync();
+  });
+});
+ccUpdateSoundBtn();
+
+// Web Audio の共通部分（効果音と BGM で1つの AudioContext を共有）
+var _ccAudioCtx=null;
+function sndCtx(){
+  try{
+    if(!_ccAudioCtx){
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return null;
+      _ccAudioCtx=new AC();
+    }
+    if(_ccAudioCtx.state==='suspended') _ccAudioCtx.resume();
+    return _ccAudioCtx;
+  }catch(e){return null;}
+}
+function ccAudio(){
+  if(!ccSoundOn) return null;
+  return sndCtx();
+}
+// iOS などは最初のタップまで音を出せないので、タップで再開して BGM を始め直す
+document.addEventListener('pointerdown',function(){
+  if(_ccAudioCtx&&_ccAudioCtx.state==='suspended') _ccAudioCtx.resume();
+  if(bgmOn&&!BGM.timer) bgmSync();
+},true);
+// 短い音を1つ鳴らす（type: 波形, f: 周波数, dur: 長さ, vol: 音量, delay: 開始の遅れ）
+function ccTone(ctx,type,f,dur,vol,delay){
+  var t=ctx.currentTime+(delay||0);
+  var o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g);g.connect(ctx.destination);
+  o.start(t);o.stop(t+dur);
+}
+// アクションの効果音
+function ccPlayActionSound(action){
+  try{
+    var ctx=ccAudio();if(!ctx) return;
+    if(action==='check'){ // テーブルを2回ノック
+      ccTone(ctx,'sine',180,0.07,0.35,0);ccTone(ctx,'sine',170,0.07,0.3,0.11);
+    }else if(action==='call'||action==='raise'){ // チップの音
+      var n=action==='raise'?3:2;
+      for(var i=0;i<n;i++){ccTone(ctx,'triangle',2400+i*180,0.05,0.12,i*0.06);ccTone(ctx,'sine',3600+i*120,0.03,0.06,i*0.06);}
+    }else if(action==='allin'){ // チップの山＋低音
+      for(var j=0;j<6;j++) ccTone(ctx,'triangle',2200+Math.random()*900,0.05,0.1,j*0.045);
+      ccTone(ctx,'sawtooth',90,0.4,0.12,0);
+    }else if(action==='fold'){
+      ccTone(ctx,'sine',320,0.12,0.12,0);
+    }
+  }catch(e){}
+}
+
+// カードオープン音（Web Audio API）
+function ccPlayCardSound(){
+  try{
+    if(!ccAudio()) return;
+    var ctx=_ccAudioCtx;
+    var t=ctx.currentTime;
+    // カードめくり音: 短いノイズバースト + 軽いクリック
+    var dur=0.08;
+    var buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+    var data=buf.getChannelData(0);
+    for(var i=0;i<data.length;i++){
+      var env=1-i/data.length;
+      data[i]=(Math.random()*2-1)*env*env*0.3;
+    }
+    var src=ctx.createBufferSource();
+    src.buffer=buf;
+    var filt=ctx.createBiquadFilter();
+    filt.type='bandpass';filt.frequency.value=3000;filt.Q.value=1.5;
+    var gain=ctx.createGain();
+    gain.gain.setValueAtTime(0.4,t);
+    gain.gain.exponentialRampToValueAtTime(0.01,t+dur);
+    src.connect(filt);filt.connect(gain);gain.connect(ctx.destination);
+    src.start(t);src.stop(t+dur);
+  }catch(e){}
+}
+
+// ─── メインのゲームの効果音 ───
+function sndDeal(n){ // 配られるカードの音
+  for(var i=0;i<(n||2);i++) setTimeout(ccPlayCardSound,i*140);
+}
+var _sndTurnAt=0;
+function sndMyTurn(){ // 自分の手番（同じ手番で何度も鳴らさない）
+  var now=Date.now();if(now-_sndTurnAt<1200) return;_sndTurnAt=now;
+  try{var ctx=ccAudio();if(!ctx) return;
+    ccTone(ctx,'sine',880,0.35,0.12,0);ccTone(ctx,'sine',1318.5,0.5,0.1,0.12);
+  }catch(e){}
+}
+function sndChipsIn(){ // ポットのチップが手元に来る音
+  try{var ctx=ccAudio();if(!ctx) return;
+    for(var i=0;i<8;i++) ccTone(ctx,'triangle',2100+Math.random()*1100,0.05,0.08,0.25+i*0.05);
+  }catch(e){}
+}
+function sndWin(big){ // 勝ち: 明るい分散和音（ゲームの優勝はもう1段上まで）
+  try{var ctx=ccAudio();if(!ctx) return;
+    var ns=big?[523.25,659.25,783.99,1046.5,1318.5]:[523.25,659.25,783.99,1046.5];
+    ns.forEach(function(f,i){ccTone(ctx,'triangle',f,0.5,0.16,i*0.09);ccTone(ctx,'sine',f*2,0.3,0.03,i*0.09);});
+    if(big) [523.25,659.25,783.99].forEach(function(f){ccTone(ctx,'triangle',f,1.4,0.1,ns.length*0.09+0.05);});
+  }catch(e){}
+  sndChipsIn();
+}
+function sndLose(){ // 負け: 控えめに下がる2音
+  try{var ctx=ccAudio();if(!ctx) return;
+    ccTone(ctx,'sine',392,0.3,0.12,0);ccTone(ctx,'sine',311.13,0.55,0.12,0.18);
+  }catch(e){}
+}
+// 結果モーダルの勝者名（.wn）に自分が入っているかで勝ち負けの音を選ぶ
+function sndForResult(title,bodyEl){
+  var me=(myIdx>=0&&players[myIdx])?players[myIdx].name:null;
+  var wn=bodyEl.querySelector('.wn');
+  if(!wn||!me){ if(/終了/.test(title)) sndChipsIn(); return; }
+  var names=wn.textContent.split(' & ');
+  if(names.indexOf(me)>=0) sndWin(/ゲーム終了/.test(title)); else sndLose();
+}
+
+// ─── BGM: その場で作るラウンジジャズ（Web Audio、音源ファイルなし） ───
+// 8分音符ごとに少し先まで予約する。ii-V-I の進行にエレピのコンプ、ウォーキングベース、ブラシのライド、ときどきヴィブラフォン
+var BGM={timer:null,master:null,filter:null,next:0,step:0,bar:0,noise:null,comp:[]};
+var BGM_TEMPO=84;
+var BGM_PROG=[ // [ベースの根音(MIDI), コードの構成音(根音からの半音数)]
+  [38,[3,7,10,14]],[43,[4,10,14,21]],[36,[4,7,11,14]],[45,[4,7,10,13]],   // Dm9 G13 Cmaj9 A7(b9)
+  [38,[3,7,10,14]],[43,[4,10,14,21]],[40,[3,7,10,14]],[45,[4,10,13,19]],   // Dm9 G13 Em9 A7
+  [41,[4,7,11,14]],[46,[4,7,10,14]],[40,[3,7,10,14]],[45,[4,7,10,13]],     // Fmaj9 Bb9 Em9 A7(b9)
+  [38,[3,7,10,14]],[43,[5,10,14,17]],[36,[4,7,11,14]],[36,[4,7,11,14]]     // Dm9 G7sus Cmaj9 Cmaj9
+];
+var BGM_COMP=[[0],[0,3],[1,4],[0,5],[2,6],[3,7],[0,6]]; // 1小節(8分×8)のうちコードを鳴らす位置
+function midiF(m){return 440*Math.pow(2,(m-69)/12);}
+function bgmShouldPlay(){
+  if(!bgmOn||document.hidden) return false;
+  var a=document.querySelector('.screen.active');
+  return !!a&&(a.id==='screen-game'||a.id==='screen-chipcalc');
+}
+function bgmSync(){ if(bgmShouldPlay()) bgmStart(); else bgmStop(); }
+function bgmStart(){
+  if(BGM.timer) return;
+  var ctx=sndCtx();if(!ctx) return;
+  var comp=ctx.createDynamicsCompressor();comp.connect(ctx.destination);
+  var master=ctx.createGain();master.gain.setValueAtTime(0.0001,ctx.currentTime);
+  master.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+1.5);
+  var filt=ctx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=2600;
+  filt.connect(master);master.connect(comp);
+  if(!BGM.noise){
+    var buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.5),ctx.sampleRate),d=buf.getChannelData(0);
+    for(var i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    BGM.noise=buf;
+  }
+  BGM.master=master;BGM.filter=filt;BGM.comp=comp;
+  BGM.next=ctx.currentTime+0.1;BGM.step=0;BGM.bar=Math.floor(Math.random()*4)*4;
+  BGM.timer=setInterval(bgmTick,120);
+  bgmTick();
+}
+function bgmStop(){
+  if(!BGM.timer) return;
+  clearInterval(BGM.timer);BGM.timer=null;
+  var ctx=_ccAudioCtx,m=BGM.master,c=BGM.comp;
+  BGM.master=null;BGM.filter=null;
+  if(!ctx||!m) return;
+  try{
+    m.gain.cancelScheduledValues(ctx.currentTime);
+    m.gain.setValueAtTime(Math.max(m.gain.value,0.0001),ctx.currentTime);
+    m.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.5);
+  }catch(e){}
+  setTimeout(function(){try{m.disconnect();c.disconnect();}catch(e){}},700);
+}
+function bgmTick(){
+  var ctx=_ccAudioCtx;if(!ctx||!BGM.master) return;
+  if(BGM.next<ctx.currentTime-0.2) BGM.next=ctx.currentTime+0.05; // 一時停止から戻ったら今から再開
+  while(BGM.next<ctx.currentTime+0.4){ bgmStep(ctx,BGM.next,BGM.step); bgmAdvance(); }
+}
+function bgmAdvance(){
+  var beat=60/BGM_TEMPO;
+  BGM.next+=(BGM.step%2===0)?beat*2/3:beat/3; // スイング（3連の長短）
+  BGM.step++;
+  if(BGM.step>=8){BGM.step=0;BGM.bar=(BGM.bar+1)%BGM_PROG.length;}
+}
+function bgmStep(ctx,t,step){
+  var ch=BGM_PROG[BGM.bar],nx=BGM_PROG[(BGM.bar+1)%BGM_PROG.length],beat=60/BGM_TEMPO;
+  if(step===0) BGM.pattern=BGM_COMP[Math.floor(Math.random()*BGM_COMP.length)];
+  // ブラシのライド: 1・2・2裏・3・4・4裏
+  if(step!==2&&step!==6) bgmRide(ctx,t,(step%2)?0.05:0.08);
+  // ウォーキングベース（4分音符）: 根音 → 構成音 → 構成音 → 次の根音への半音アプローチ
+  if(step%2===0){
+    var b=step/2,root=ch[0],n;
+    if(b===0) n=root;
+    else if(b===3) n=nx[0]+(Math.random()<0.5?-1:1);
+    else n=root+[7,ch[1][0],ch[1][1],12][Math.floor(Math.random()*4)];
+    while(n>48) n-=12;
+    bgmBass(ctx,t,midiF(n),beat*0.95);
+  }
+  // エレピのコンプ
+  if(BGM.pattern.indexOf(step)>=0){
+    var dur=(step%2)?beat*0.9:beat*1.6;
+    ch[1].forEach(function(o,k){bgmKeys(ctx,t+k*0.012,midiF(ch[0]+12+o),dur,0.05);});
+  }
+  // ときどきヴィブラフォンの短いフレーズ（コードの音から）
+  if(BGM.bar%2===1&&step%2===0&&Math.random()<0.3){
+    var o2=ch[1][Math.floor(Math.random()*ch[1].length)];
+    var m2=ch[0]+24+o2;while(m2<69) m2+=12;while(m2>84) m2-=12;
+    bgmVibe(ctx,t,midiF(m2),beat*1.5);
+  }
+}
+function bgmKeys(ctx,t,f,dur,vol){
+  var g=ctx.createGain(),o=ctx.createOscillator(),o2=ctx.createOscillator(),g2=ctx.createGain();
+  o.type='sine';o.frequency.value=f;o2.type='sine';o2.frequency.value=f*2;g2.gain.value=0.25;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.015);
+  g.gain.exponentialRampToValueAtTime(vol*0.35,t+0.25);g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.3);
+  o.connect(g);o2.connect(g2);g2.connect(g);g.connect(BGM.filter);
+  o.start(t);o2.start(t);o.stop(t+dur+0.35);o2.stop(t+dur+0.35);
+}
+function bgmBass(ctx,t,f,dur){
+  var g=ctx.createGain(),o=ctx.createOscillator();
+  o.type='triangle';o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.32,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.12,t+0.18);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(BGM.filter);o.start(t);o.stop(t+dur+0.05);
+}
+function bgmRide(ctx,t,vol){
+  var s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+  s.buffer=BGM.noise;f.type='highpass';f.frequency.value=7000;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+  s.connect(f);f.connect(g);g.connect(BGM.master);s.start(t,Math.random()*0.3);s.stop(t+0.18);
+}
+function bgmVibe(ctx,t,f,dur){
+  var g=ctx.createGain(),o=ctx.createOscillator(),trem=ctx.createOscillator(),tg=ctx.createGain();
+  o.type='sine';o.frequency.value=f;trem.frequency.value=5.5;tg.gain.value=0.012;
+  trem.connect(tg);tg.connect(g.gain);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.045,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(BGM.filter);o.start(t);trem.start(t);o.stop(t+dur+0.05);trem.stop(t+dur+0.05);
+}
+document.addEventListener('visibilitychange',bgmSync);
 
 // ════════════════════════════════════════
 // チップ計算モード (Chip Calculator)
@@ -4885,85 +5237,6 @@ document.querySelectorAll('.cc-preset-btn').forEach(function(b){
   });
 });
 
-// 効果音のオン/オフ（端末に記憶）
-var ccSoundOn=true;
-try{ccSoundOn=localStorage.getItem('cc_sound')!=='0';}catch(e){}
-function ccUpdateSoundBtn(){
-  var b=document.getElementById('cc-sound-btn');
-  b.innerHTML=ccSoundOn
-    ?'<svg viewBox="0 0 24 24"><path d="M4 9.5h3.500L12 6v12l-4.500-3.500H4z"/><path d="M15.500 9.200a4 4 0 0 1 0 5.600M18 6.800a7.500 7.500 0 0 1 0 10.400"/></svg>'
-    :'<svg viewBox="0 0 24 24"><path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="M16 9.500l5 5M21 9.500l-5 5"/></svg>';
-  b.setAttribute('aria-pressed',ccSoundOn?'true':'false');
-}
-document.getElementById('cc-sound-btn').addEventListener('click',function(){
-  ccSoundOn=!ccSoundOn;
-  try{localStorage.setItem('cc_sound',ccSoundOn?'1':'0');}catch(e){}
-  ccUpdateSoundBtn();
-  if(ccSoundOn) ccPlayActionSound('check');
-});
-ccUpdateSoundBtn();
-
-// Web Audio の共通部分
-var _ccAudioCtx=null;
-function ccAudio(){
-  if(!ccSoundOn) return null;
-  if(!_ccAudioCtx) _ccAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(_ccAudioCtx.state==='suspended') _ccAudioCtx.resume();
-  return _ccAudioCtx;
-}
-// 短い音を1つ鳴らす（type: 波形, f: 周波数, dur: 長さ, vol: 音量, delay: 開始の遅れ）
-function ccTone(ctx,type,f,dur,vol,delay){
-  var t=ctx.currentTime+(delay||0);
-  var o=ctx.createOscillator(),g=ctx.createGain();
-  o.type=type;o.frequency.setValueAtTime(f,t);
-  g.gain.setValueAtTime(vol,t);
-  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
-  o.connect(g);g.connect(ctx.destination);
-  o.start(t);o.stop(t+dur);
-}
-// アクションの効果音
-function ccPlayActionSound(action){
-  try{
-    var ctx=ccAudio();if(!ctx) return;
-    if(action==='check'){ // テーブルを2回ノック
-      ccTone(ctx,'sine',180,0.07,0.35,0);ccTone(ctx,'sine',170,0.07,0.3,0.11);
-    }else if(action==='call'||action==='raise'){ // チップの音
-      var n=action==='raise'?3:2;
-      for(var i=0;i<n;i++){ccTone(ctx,'triangle',2400+i*180,0.05,0.12,i*0.06);ccTone(ctx,'sine',3600+i*120,0.03,0.06,i*0.06);}
-    }else if(action==='allin'){ // チップの山＋低音
-      for(var j=0;j<6;j++) ccTone(ctx,'triangle',2200+Math.random()*900,0.05,0.1,j*0.045);
-      ccTone(ctx,'sawtooth',90,0.4,0.12,0);
-    }else if(action==='fold'){
-      ccTone(ctx,'sine',320,0.12,0.12,0);
-    }
-  }catch(e){}
-}
-
-// カードオープン音（Web Audio API）
-function ccPlayCardSound(){
-  try{
-    if(!ccAudio()) return;
-    var ctx=_ccAudioCtx;
-    var t=ctx.currentTime;
-    // カードめくり音: 短いノイズバースト + 軽いクリック
-    var dur=0.08;
-    var buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
-    var data=buf.getChannelData(0);
-    for(var i=0;i<data.length;i++){
-      var env=1-i/data.length;
-      data[i]=(Math.random()*2-1)*env*env*0.3;
-    }
-    var src=ctx.createBufferSource();
-    src.buffer=buf;
-    var filt=ctx.createBiquadFilter();
-    filt.type='bandpass';filt.frequency.value=3000;filt.Q.value=1.5;
-    var gain=ctx.createGain();
-    gain.gain.setValueAtTime(0.4,t);
-    gain.gain.exponentialRampToValueAtTime(0.01,t+dur);
-    src.connect(filt);filt.connect(gain);gain.connect(ctx.destination);
-    src.start(t);src.stop(t+dur);
-  }catch(e){}
-}
 
 // ════════════════════════════════════════
 // カード選択・自動ハンド評価
@@ -6928,6 +7201,8 @@ if(/[?&]test=1\b/.test(location.search)){
     get players(){return players;},get pot(){return pot;},get phase(){return phase;},
     get curIdx(){return curIdx;},get myIdx(){return myIdx;},get isHost(){return isHost;},
     get comm(){return comm;},get dealerIdx(){return dealerIdx;},
+    get handNo(){return _handNo;},get sfxOn(){return ccSoundOn;},get bgmOn(){return bgmOn;},
+    get bgmPlaying(){return !!BGM.timer;},rankingRows:function(){return gameRankingRows().map(function(r){return {name:r.p.name,isMe:!!r.p.isMe,stack:r.stack,buyin:r.buyin,net:r.net};});},
     totalChips:function(){return players.reduce(function(s,p){return s+(p.chips||0);},0)+(pot||0);}
   };
 }

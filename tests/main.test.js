@@ -131,6 +131,120 @@ test('CPU対戦: オールインしてもハンドが最後まで進む', async 
   await page.context().close();
 });
 
+// ─── 効果音・BGM・ランキング（CPU対戦） ───
+
+const soundState = (page) => page.evaluate(() => ({
+  sfx: window.__poker.sfxOn, bgm: window.__poker.bgmOn, playing: window.__poker.bgmPlaying,
+  gSfx: document.getElementById('g-sound-btn').getAttribute('aria-pressed'),
+  ccSfx: document.getElementById('cc-sound-btn').getAttribute('aria-pressed'),
+  gBgm: document.getElementById('g-bgm-btn').getAttribute('aria-pressed'),
+  ccBgm: document.getElementById('cc-bgm-btn').getAttribute('aria-pressed'),
+  lsSfx: localStorage.getItem('cc_sound'), lsBgm: localStorage.getItem('poker_bgm'),
+}));
+
+test('効果音とBGM: ボタンで切り替わり、端末に記憶され、チップ計算のボタンとも揃う', async () => {
+  const page = await startCpuGame({ cpu: 1 });
+  let s = await soundState(page);
+  assert.equal(s.sfx, true);
+  assert.equal(s.bgm, false, 'テストでは BGM は既定でオフ');
+  assert.equal(s.playing, false);
+
+  await page.click('#g-bgm-btn');
+  s = await soundState(page);
+  assert.equal(s.bgm, true);
+  assert.equal(s.playing, true, 'ゲーム画面で BGM が流れる');
+  assert.equal(s.gBgm, 'true'); assert.equal(s.ccBgm, 'true');
+  assert.equal(s.lsBgm, '1');
+
+  await page.click('#g-sound-btn');
+  s = await soundState(page);
+  assert.equal(s.sfx, false);
+  assert.equal(s.gSfx, 'false'); assert.equal(s.ccSfx, 'false');
+  assert.equal(s.lsSfx, '0');
+
+  // 音を鳴らしたまま1ハンド進めてもエラーにならない
+  await page.click('#g-sound-btn');
+  await playHandCpu(page, 'call');
+  assert.deepEqual(page.errors, []);
+
+  // ロビーでは BGM を止める
+  await page.evaluate(() => window._pokerGoLobby());
+  assert.equal((await soundState(page)).playing, false);
+
+  // 再読み込みしても設定が残る
+  await page.reload();
+  s = await soundState(page);
+  assert.equal(s.bgm, true); assert.equal(s.sfx, true);
+  assert.equal(s.playing, false, 'ロビーでは流さない');
+  await page.context().close();
+});
+
+test('BGMをオフにすると止まる', async () => {
+  const page = await startCpuGame({ cpu: 1 });
+  await page.click('#g-bgm-btn');
+  assert.equal((await soundState(page)).playing, true);
+  await page.clock.runFor(3000);
+  await page.click('#g-bgm-btn');
+  const s = await soundState(page);
+  assert.equal(s.playing, false); assert.equal(s.lsBgm, '0');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+const rankingView = (page) => page.evaluate(() => {
+  const ov = document.getElementById('g-ranking');
+  if (!ov) return null;
+  return {
+    rows: [...ov.querySelectorAll('.rk-row')].map((r) => ({
+      name: r.querySelector('.rk-name').firstChild.textContent, me: r.classList.contains('me'),
+    })),
+    stats: [...ov.querySelectorAll('.rk-stats b')].map((b) => b.textContent),
+    sub: ov.querySelector('.rk-sub').textContent,
+  };
+});
+
+test('CPU対戦のランキング: 全員が収支順に並び、自分の順位がわかる', async () => {
+  const page = await startCpuGame({ cpu: 2 });
+  await playHandCpu(page, 'fold');
+  await page.click('#mnext-rank'); // 結果画面から開く
+  const v = await rankingView(page);
+  assert.ok(v, 'ランキングが開く');
+  assert.equal(v.rows.length, 3);
+  assert.equal(v.rows.filter((r) => r.me).length, 1);
+  assert.equal(v.rows.find((r) => r.me).name, 'わたし');
+  assert.match(v.sub, /HAND 1/);
+
+  const rows = await page.evaluate(() => window.__poker.rankingRows());
+  for (let i = 1; i < rows.length; i++) assert.ok(rows[i - 1].net >= rows[i].net, '収支の順に並ぶ');
+  // ハンドが終わった時点では、全員の収支の合計は 0（チップは移動しただけ）
+  assert.equal(rows.reduce((t, r) => t + r.net, 0), 0);
+  assert.equal(rows.reduce((t, r) => t + r.buyin, 0), 1500);
+  const myRank = rows.findIndex((r) => r.isMe) + 1;
+  assert.match(v.stats[0], new RegExp('^' + myRank + ' / 3'));
+
+  await page.click('#g-rank-close');
+  assert.equal(await rankingView(page), null, '閉じられる');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('CPU対戦のランキング: ハンドの途中でも賭けているチップを持ち点に数える', async () => {
+  const page = await startCpuGame({ cpu: 1 });
+  for (let i = 0; i < 100; i++) { // 自分の最初の手番まで進める
+    if ((await snap(page)).ap) break;
+    await page.clock.runFor(250);
+  }
+  const s = await snap(page);
+  assert.ok(s.ap);
+  await page.click('#g-rank-btn');
+  assert.ok(await rankingView(page));
+  const rows = await page.evaluate(() => window.__poker.rankingRows());
+  const stackSum = rows.reduce((t, r) => t + r.stack, 0);
+  assert.ok(stackSum <= 1000 && stackSum >= 1000 - s.pot, 'ポットに入った分を二重に数えない');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
 // ─── オンライン対戦 ───
 
 async function onlineDevice(db) {
