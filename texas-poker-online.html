@@ -674,6 +674,14 @@ body{background-color:var(--ink);}
 .ttl-rule i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(214,189,137,.5));}
 .ttl-rule i:last-child{background:linear-gradient(90deg,rgba(214,189,137,.5),transparent);}
 .ttl-rule span{padding-left:.3em;opacity:.8;}
+.screen-tools{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:3;display:flex;gap:6px;}
+.ttl-tap{margin:48px auto 0;background:none;border:none;color:var(--accent);font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.32em;padding:14px 24px 14px calc(24px + .32em);animation:riseIn .7s var(--ease) 1.35s both,ttlBlink 2.2s ease-in-out 2.1s infinite;}
+@keyframes ttlBlink{0%,100%{opacity:1;}50%{opacity:.35;}}
+#screen-title:not(.ready){cursor:pointer;}
+#screen-title:not(.ready) .ttl-start,#screen-title:not(.ready) .ttl-guide{display:none;}
+#screen-title.ready .ttl-tap{display:none;}
+#screen-title.ready .ttl-start{animation:riseIn .5s var(--ease) both,ttlGlow 2.8s ease-in-out .8s infinite;}
+#screen-title.ready .ttl-guide{animation:riseIn .5s var(--ease) .08s both;}
 .ttl-start{max-width:280px;margin:44px auto 0;font-size:16px;letter-spacing:.3em;padding-left:calc(16px + .3em);animation:riseIn .7s var(--ease) 1.35s both,ttlGlow 2.8s ease-in-out 2.2s infinite;}
 @keyframes ttlGlow{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -10px rgba(214,189,137,.45);}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 34px -6px rgba(214,189,137,.7);}}
 .ttl-guide{margin-top:14px;animation:riseIn .7s var(--ease) 1.45s both;}
@@ -685,7 +693,7 @@ body{background-color:var(--ink);}
   .ttl .brand-mark{display:none;}
   .ttl-logo{font-size:clamp(40px,12vw,52px);}
   .ttl-rule{margin-top:16px;}
-  .ttl-start{margin-top:30px;}
+  .ttl-start,.ttl-tap{margin-top:30px;}
 }
 #screen-title.leaving{animation:ttlOut .45s var(--ease) both;}
 @keyframes ttlOut{to{opacity:0;transform:scale(1.03);}}
@@ -724,12 +732,14 @@ body{background-color:var(--ink);}
 
 <div id="screen-title" class="screen" aria-label="タイトル">
   <div class="ttl-glow" aria-hidden="true"></div>
+  <div class="screen-tools"><button class="icon-btn round bgm-btn" aria-label="BGM" title="BGM" aria-pressed="true"></button></div>
   <div class="ttl">
     <div id="ttl-cards" class="ttl-cards" aria-hidden="true"></div>
     <div class="brand-mark"><svg viewBox="0 0 56 56" fill="none" stroke="currentColor"><circle cx="28" cy="28" r="27" stroke-width=".9"/><circle cx="28" cy="28" r="22.5" stroke-width=".6" stroke-dasharray="1.2 2.6"/><path d="M28 14.5c-2.900 4.400-9.200 7.600-9.200 12.900 0 3.100 2.300 5.100 4.900 5.100 1.700 0 3-.7 3.700-1.900-.3 2.400-1.300 4.400-3.100 5.900h7.400c-1.800-1.500-2.800-3.500-3.100-5.900.7 1.200 2 1.900 3.700 1.900 2.600 0 4.900-2 4.900-5.100 0-5.300-6.300-8.500-9.200-12.900z" fill="currentColor" stroke="none"/></svg></div>
     <h1 class="logo ttl-logo">Texas <em>Hold'em</em></h1>
     <div class="logo-sub">POKER ROOM</div>
     <div class="ttl-rule" aria-hidden="true"><i></i><span>♠ ♥ ♦ ♣</span><i></i></div>
+    <button id="btn-title-tap" class="ttl-tap">TAP TO START</button>
     <button id="btn-title-start" class="btn ttl-start">はじめる</button>
     <button id="btn-title-guide" class="text-link ttl-guide"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
   </div>
@@ -737,6 +747,7 @@ body{background-color:var(--ink);}
 </div>
 
 <div id="screen-lobby" class="screen active">
+  <div class="screen-tools"><button class="icon-btn round bgm-btn" aria-label="BGM" title="BGM" aria-pressed="true"></button></div>
   <header class="brand">
     <div class="brand-mark"><svg viewBox="0 0 56 56" fill="none" stroke="currentColor"><circle cx="28" cy="28" r="27" stroke-width=".9"/><circle cx="28" cy="28" r="22.5" stroke-width=".6" stroke-dasharray="1.2 2.6"/><path d="M28 14.5c-2.900 4.400-9.200 7.600-9.200 12.900 0 3.100 2.300 5.100 4.900 5.100 1.700 0 3-.7 3.700-1.900-.3 2.400-1.300 4.400-3.100 5.900h7.400c-1.800-1.500-2.800-3.500-3.100-5.900.7 1.200 2 1.900 3.700 1.900 2.600 0 4.900-2 4.900-5.100 0-5.300-6.300-8.500-9.200-12.900z" fill="currentColor" stroke="none"/></svg></div>
     <div class="logo">Texas <em>Hold'em</em></div>
@@ -934,7 +945,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.22.64-sdk</div>
+    <div class="ver">v2026.11.22.65-sdk</div>
   </div>
 </div>
 
@@ -3882,7 +3893,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   // ゲーム中は画面を消さない、ロビーに戻ったら解除
   if(id==='screen-lobby'||id==='screen-title') noSleepOff(); else noSleepOn();
-  bgmSync(); // 画面に合わせて BGM を切り替える（ゲーム画面だけで流す）
+  bgmSync(); // 画面に合わせて BGM を切り替える（タイトル・ロビー / ゲーム / オールイン）
 }
 
 // グローバルに公開（ボタンのonclickから呼び出せるよう）
@@ -4123,8 +4134,9 @@ function sndForResult(title,bodyEl){
 }
 
 // ─── BGM（Web Audio でその場で作る。音源ファイルなし） ───
-// 曲は2つ（ゲーム画面だけで流す）。bgmSync() が状況から選び、変わる時はクロスフェードする
-// タイトル・ロビーでは流さない（スマホは最初のタップまで音が出せず、タイトルの最初のタップは「はじめる」なので聞こえないため）
+// 曲は3つ。bgmSync() が画面と状況から選び、変わる時はクロスフェードする
+//   title : タイトル・ロビー。ピアノのアルペジオとパッドだけの静かな曲
+//           スマホは最初のタップまで音が出せないので、タイトルは「TAP TO START」でまずタップしてもらい、そこで流し始める
 //   lounge: ゲーム中。ii-V-I のラウンジジャズ（エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）
 //   allin : 誰かがオールインした時。短調の刻むベース・心音のキック・ハイハット・せり上がるノイズ
 // どの曲も8分音符ごとに 0.4 秒先まで予約する（bgmTick）
@@ -4136,14 +4148,19 @@ var BGM_SONGS={
     [38,[3,7,10,14]],[43,[4,10,14,21]],[40,[3,7,10,14]],[45,[4,10,13,19]],   // Dm9 G13 Em9 A7
     [41,[4,7,11,14]],[46,[4,7,10,14]],[40,[3,7,10,14]],[45,[4,7,10,13]],     // Fmaj9 Bb9 Em9 A7(b9)
     [38,[3,7,10,14]],[43,[5,10,14,17]],[36,[4,7,11,14]],[36,[4,7,11,14]]]},  // Dm9 G7sus Cmaj9 Cmaj9
+  title:{tempo:70,swing:false,vol:0.36,cutoff:3200,prog:[
+    [41,[4,7,11,14]],[40,[3,7,10,14]],[38,[3,7,10,14]],[36,[4,7,11,14]],     // Fmaj9 Em9 Dm9 Cmaj9
+    [46,[4,7,11,14]],[45,[3,7,10,14]],[43,[3,7,10,14]],[36,[5,10,14,17]]]},  // Bbmaj9 Am9 Gm9 C9sus
   allin:{tempo:112,swing:false,vol:0.2,cutoff:2200,prog:[
     [38,[3,7,12,14]],[38,[3,7,12,14]],[34,[4,7,12,14]],[33,[4,7,10,13]]]}    // Dm(add9) Dm Bb(add9) A7(b9)
 };
 var BGM_COMP=[[0],[0,3],[1,4],[0,5],[2,6],[3,7],[0,6]]; // ラウンジ: 1小節(8分×8)のうちコードを鳴らす位置
+var BGM_ARP=[0,1,2,3,4,3,2,1]; // タイトル: アルペジオの順番（構成音の番号、4 は1オクターブ上の根音）
 function midiF(m){return 440*Math.pow(2,(m-69)/12);}
 function bgmWanted(){
   if(!bgmOn||document.hidden) return null;
   var a=document.querySelector('.screen.active');if(!a) return null;
+  if(a.id==='screen-title'||a.id==='screen-lobby') return 'title';
   if(a.id==='screen-game'||a.id==='screen-chipcalc') return BGM_TENSION?'allin':'lounge';
   return null;
 }
@@ -4201,7 +4218,8 @@ function bgmTick(){
   if(BGM.next<ctx.currentTime-0.2) BGM.next=ctx.currentTime+0.05; // 一時停止から戻ったら今から再開
   while(BGM.next<ctx.currentTime+0.4){
     var song=BGM_SONGS[BGM.mode];
-    if(BGM.mode==='allin') bgmStepAllin(ctx,BGM.next,BGM.step,song);
+    if(BGM.mode==='title') bgmStepTitle(ctx,BGM.next,BGM.step,song);
+    else if(BGM.mode==='allin') bgmStepAllin(ctx,BGM.next,BGM.step,song);
     else bgmStep(ctx,BGM.next,BGM.step,song);
     bgmAdvance(song);
   }
@@ -4237,6 +4255,26 @@ function bgmStep(ctx,t,step,song){
     var o2=ch[1][Math.floor(Math.random()*ch[1].length)];
     var m2=ch[0]+24+o2;while(m2<69) m2+=12;while(m2>84) m2-=12;
     bgmVibe(ctx,t,midiF(m2),beat*1.5);
+  }
+}
+// タイトル・ロビー: パッドの上でピアノがゆっくりアルペジオ。ドラムなし
+function bgmStepTitle(ctx,t,step,song){
+  var ch=song.prog[BGM.bar],beat=60/song.tempo,bar=beat*4;
+  if(step===0){
+    bgmPad(ctx,t,ch[1].map(function(o){return midiF(ch[0]+12+o);}),bar*1.05,0.018);
+    bgmBass(ctx,t,midiF(ch[0]>45?ch[0]-12:ch[0]),bar*0.95,0.16);
+  }
+  // アルペジオ: 構成音を上がって下りる。小節の最後の拍はときどき休む
+  if(!(step===7&&Math.random()<0.4)){
+    var idx=BGM_ARP[step],o=idx===4?12:ch[1][idx];
+    var m=ch[0]+24+o;while(m>79) m-=12;
+    bgmKeys(ctx,t,midiF(m),beat*1.6,step===0?0.05:0.034);
+  }
+  // 2小節ごとに高い音で短いフレーズ
+  if(BGM.bar%2===1&&(step===2||step===5)&&Math.random()<0.55){
+    var o2=ch[1][Math.floor(Math.random()*ch[1].length)];
+    var m2=ch[0]+36+o2;while(m2>91) m2-=12;
+    bgmVibe(ctx,t,midiF(m2),beat*2.2);
   }
 }
 // オールイン: 8分で刻むベース、心音のキック、ハイハット、パッドの持続音、4小節目でせり上がる
@@ -7371,6 +7409,16 @@ if(/[?&]test=1\b/.test(location.search)){
   var sess=null;try{sess=ccGetSavedSession();}catch(e){}
   var skip=params.get('join')||params.get('ccroom')||(sess&&sess.roomCode)||(/[?&]test=1\b/.test(INITIAL_SEARCH)&&!window.__showTitle);
   if(!skip&&document.getElementById('screen-lobby').classList.contains('active')) showScreen('screen-title');
+  else bgmSync(); // タイトルを飛ばした時（招待リンクなど）はロビーの曲を選ぶ。スマホは最初のタップで鳴り始める
+  // TAP TO START: 最初のタップで音を使えるようにしてタイトル曲を流し、「はじめる」を出す
+  var ttl=document.getElementById('screen-title');
+  ttl.addEventListener('click',function(e){
+    if(ttl.classList.contains('ready')) return;
+    ttl.classList.add('ready');
+    var ctx=sndCtx();if(ctx&&ctx.state==='suspended') ctx.resume();
+    bgmSync();
+    if(!e.target.closest('.bgm-btn')&&ccSoundOn&&ctx){try{[523.25,783.99].forEach(function(f,i){ccTone(ctx,'sine',f,0.5,0.07,i*0.09);});}catch(_){}}
+  });
   document.getElementById('btn-title-start').addEventListener('click',function(){
     sndCtx(); // スマホはこのタップから音が出せるようになる
     if(ccSoundOn){try{var ctx=ccAudio();[392,523.25,659.25,783.99].forEach(function(f,i){ccTone(ctx,'triangle',f,0.6,0.09,i*0.07);});}catch(e){}}

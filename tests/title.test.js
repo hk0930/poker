@@ -25,6 +25,10 @@ test('タイトル: 開くとタイトルが出て、はじめるでロビーへ
   assert.equal(await active(page), 'screen-title');
   assert.equal(await page.locator('#ttl-cards .ttl-card').count(), 5, 'カード5枚');
   assert.match(await page.textContent('.ttl-ver'), /^v\d{4}\.\d+\.\d+\.\d+-sdk$/, 'バージョンが出る');
+  assert.ok(!(await page.isVisible('#btn-title-start')), '最初は「はじめる」はまだ出ない');
+  assert.ok(await page.isVisible('#btn-title-tap'), 'TAP TO START が出る');
+  await page.click('#btn-title-tap');
+  assert.ok(!(await page.isVisible('#btn-title-tap')));
   await page.click('#btn-title-start');
   await page.waitForFunction(() => document.getElementById('screen-lobby').classList.contains('active'));
   assert.ok(await page.isVisible('#btn-mode-offline'));
@@ -34,6 +38,7 @@ test('タイトル: 開くとタイトルが出て、はじめるでロビーへ
 
 test('タイトル: 遊び方を開ける', async () => {
   const page = await open();
+  await page.click('.ttl-cards', { force: true }); // 画面のどこをタップしても始まる
   await page.click('#btn-title-guide');
   assert.ok(await page.isVisible('#guide-close'));
   assert.deepEqual(page.errors, []);
@@ -52,15 +57,36 @@ test('タイトル: テストでは既定で出さない（ほかのテストは
   await page.context().close();
 });
 
-test('タイトル: BGM がオンでもタイトルとロビーでは流さない', async () => {
+test('タイトル: タップするとタイトル曲が流れ、ロビーでも続き、ゲームでラウンジに変わる', async () => {
   const page = await open();
   await page.evaluate(() => { localStorage.setItem('poker_bgm', '1'); });
   await page.reload();
+  const mode = () => page.evaluate(() => window.__poker.bgmMode);
   assert.equal(await active(page), 'screen-title');
-  assert.equal(await page.evaluate(() => window.__poker.bgmMode), null);
+  await page.click('#btn-title-tap');
+  assert.equal(await mode(), 'title', 'タップでタイトル曲');
   await page.click('#btn-title-start');
   await page.waitForFunction(() => document.getElementById('screen-lobby').classList.contains('active'));
+  assert.equal(await mode(), 'title', 'ロビーでも続けて流れる');
+  // ロビーの BGM ボタンで止められる
+  await page.click('#screen-lobby .bgm-btn');
+  assert.equal(await mode(), null);
+  assert.equal(await page.getAttribute('#screen-lobby .bgm-btn', 'aria-pressed'), 'false');
+  await page.click('#screen-lobby .bgm-btn');
+  await page.click('#btn-mode-offline');
+  await page.click('#btn-start-offline');
+  assert.equal(await mode(), 'lounge', 'ゲームが始まるとラウンジ');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('タイトル: タイトルの BGM ボタンでオフにして始めると曲は流れない', async () => {
+  const page = await open();
+  await page.evaluate(() => { localStorage.setItem('poker_bgm', '1'); });
+  await page.reload();
+  await page.click('#screen-title .bgm-btn');
   assert.equal(await page.evaluate(() => window.__poker.bgmMode), null);
+  assert.ok(await page.isVisible('#btn-title-start'), 'ボタンのタップでも始まる');
   assert.deepEqual(page.errors, []);
   await page.context().close();
 });
