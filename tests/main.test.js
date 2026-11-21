@@ -20,6 +20,7 @@ async function newPage({ clock = false, db } = {}) {
   await page.route(/^https?:\/\//, (r) => r.abort());
   if (db) await db.attach(page);
   if (clock) await page.clock.install();
+  await page.addInitScript(() => { window.__autoDialog = true; }); // アプリ内ダイアログは自動で OK
   await page.goto(APP);
   return page;
 }

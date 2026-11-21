@@ -21,6 +21,7 @@ async function device(db) {
   page.on('dialog', async (d) => { page.dialogs.push(d.message()); await d.accept(); });
   await page.route(/^https?:\/\//, (r) => r.abort());
   await db.attach(page);
+  await page.addInitScript(() => { window.__autoDialog = true; }); // アプリ内ダイアログは自動で OK
   await page.goto(APP);
   await page.click('#btn-mode-chipcalc');
   await page.click('#cc-sub-online');

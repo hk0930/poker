@@ -27,6 +27,7 @@ async function openApp() {
     await d.accept();
   });
   await page.route(/^https?:\/\//, (r) => r.abort());
+  await page.addInitScript(() => { window.__autoDialog = true; }); // アプリ内ダイアログは自動で OK
   await page.goto(APP);
   page.errors = errors;
   page.dialogs = dialogs;

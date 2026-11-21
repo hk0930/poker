@@ -59,6 +59,11 @@
 - 効果音の呼び出し場所: アクション `showActionBubble()` → `ccPlayActionSound()`、配札 `showDealOverlay()` → `sndDeal()`、フロップ等のめくり `showPhaseOverlay()` → `ccPlayCardSound()`、自分の手番 `renderAction()` / `renderActionOffline()` → `sndMyTurn()`、結果 `showMsg()` → `sndForResult()`（本文の `.wn` に自分の名前があれば `sndWin()`、なければ `sndLose()`）
 - BGM: 音源ファイルなしで Web Audio でその場で鳴らすラウンジジャズ（`BGM_PROG` のコード進行、エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）。`bgmTick()` が 120ms ごとに 0.4 秒先まで予約。`bgmSync()` がゲーム画面（`screen-game` / `screen-chipcalc`）かつ表示中の時だけ流す。`showScreen()` と `visibilitychange` で呼ぶ
 
+## お知らせ・確認ダイアログ（v56〜）
+- ブラウザ標準の `alert()` / `confirm()` は使わない（見た目がアプリと合わず、表示中は JS が止まって BGM も途切れる）。代わりに `appAlert(msg)` / `appConfirm(msg, onOk, {ok, cancel, danger, onCancel})`。確認は**コールバック**で続きを書く（戻り値で分岐しない）
+- 中身は `appDialog()`（`#app-dlg`、`.dialog-ov` + `.dialog`）。効果音・BGM と同じく IIFE の外に置いている
+- テスト: `?test=1` で `window.__autoDialog=true` なら表示せず `window.__dialogs` に記録して自動で OK。各テストのページ作成時に `addInitScript` で立てている。実際の表示を確かめるテストは `__autoDialog=false` にして `#app-dlg-ok` / `#app-dlg-cancel` を押す（`#app-dlg` は fixed なので表示判定は `#app-dlg-msg` で行う）
+
 ## ランキング（メインのゲーム、v55〜）
 - ゲーム画面右上のトロフィー `#g-rank-btn` と結果モーダルの「ランキングを見る」`#mnext-rank` → `showGameRanking()`
 - `gameRankingRows()`: 持ち点 = チップ＋進行中のハンドで賭けている額（フォールドした人の分は数えない。結果モーダル表示中はポット配分済みなので数えない）、投入 = `_initialChips` ×（リバイ回数＋1）、収支の順に並べる

@@ -79,7 +79,9 @@ test('BBオプション: 全員リンプでもBBにチェック/レイズの機�
 test('最小レイズ未満のレイズは拒否される', async () => {
   const page = await setup({ players: 2 });
   await h.raiseTo(page, 15); // 最小は20
-  assert.ok(page.dialogs.some((d) => d.message.includes('最小レイズ')));
+  const dialogs = await page.evaluate(() => window.__dialogs || []);
+  assert.ok(dialogs.some((d) => d.message.includes('最小レイズ')), 'アプリ内ダイアログで知らせる');
+  assert.equal(page.dialogs.length, 0, 'ブラウザ標準のダイアログは使わない');
   const s = await h.state(page);
   assert.equal(s.curIdx, 0, '手番は変わらない');
   assert.equal(s.pot, 15);
@@ -561,4 +563,36 @@ test('レイズ: RAISEを押すと入力欄が開き、もう一度押すと確�
   await page.click('#cc-ap .raise-close');
   assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')));
   await finish(page);
+});
+
+test('お知らせはアプリ内のダイアログで出し、表示中も BGM は止まらない', async () => {
+  const page = await setup({ players: 2 });
+  await page.evaluate(() => { window.__autoDialog = false; });
+  await page.click('#cc-bgm-btn'); // テストでは既定オフなのでオンにする
+  assert.equal(await page.evaluate(() => window.__poker.bgmPlaying), true);
+  await h.raiseTo(page, 15); // 最小は20
+  assert.ok(await h.visible(page, '#app-dlg-msg'), 'アプリ内ダイアログが出る');
+  assert.match(await page.textContent('#app-dlg-msg'), /最小レイズ額は 20/);
+  assert.equal(page.dialogs.length, 0, 'ブラウザ標準のダイアログは使わない');
+  assert.equal(await page.evaluate(() => window.__poker.bgmPlaying), true, 'BGM は流れたまま');
+  await page.click('#app-dlg-ok');
+  assert.ok(!(await h.visible(page, '#app-dlg-msg')), '閉じられる');
+  assert.equal((await h.state(page)).curIdx, 0, '手番は変わらない');
+  await finish(page);
+});
+
+test('確認はアプリ内のダイアログで、キャンセルすると何もしない', async () => {
+  const page = await setup({ players: 2 });
+  await page.evaluate(() => { window.__autoDialog = false; });
+  await page.click('#cc-btn-lobby'); // ハンド中なので確認が出る
+  assert.ok(await h.visible(page, '#app-dlg-msg'));
+  assert.match(await page.textContent('#app-dlg-msg'), /中断してロビーに戻りますか/);
+  await page.click('#app-dlg-cancel');
+  assert.ok(await h.visible(page, '#screen-chipcalc'), 'キャンセルならゲームに残る');
+  await page.click('#cc-btn-lobby');
+  await page.click('#app-dlg-ok');
+  assert.ok(await h.visible(page, '#screen-lobby'), 'OK でロビーへ');
+  assert.equal(page.dialogs.length, 0);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
 });

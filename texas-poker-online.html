@@ -307,6 +307,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .dialog-ov{position:fixed;inset:0;background:rgba(2,6,4,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;animation:fadeIn .2s both;}
 .dialog{width:100%;max-width:360px;background:linear-gradient(180deg,#18261f,#0e1813);border:1px solid rgba(216,180,90,.5);border-radius:var(--r-lg);padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:popIn .28s var(--ease) both;}
 .dialog-title{font-size:16px;font-weight:800;color:var(--gold-light);text-align:center;margin-bottom:10px;}
+.app-dlg-btns{display:flex;gap:10px;}
+.app-dlg-btns>button{flex:1;margin:0;min-height:48px;}
+#app-dlg{z-index:10001;}
+#app-dlg-msg{font-size:15px;color:var(--text);margin-bottom:18px;}
 .dialog-text{font-size:13px;color:var(--text-2);line-height:1.6;text-align:center;margin-bottom:16px;}
 .list-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:rgba(0,0,0,.25);border-radius:var(--r-sm);margin-bottom:4px;font-size:14px;}
 .sec-label{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.12em;margin:14px 0 8px;text-transform:uppercase;}
@@ -922,7 +926,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.21.55-sdk</div>
+    <div class="ver">v2026.11.21.56-sdk</div>
   </div>
 </div>
 
@@ -2039,7 +2043,7 @@ function genCode(){var c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',s='';for(var i=0;i<6
 document.getElementById('btn-create').addEventListener('click', function(){
   if(document.getElementById('conn-badge').className.includes('b-err')){
     // 接続テスト失敗でも試みる（コメントアウト）
-    // alert('オンライン接続できません。オフラインモードをお使いください。');return;
+    // appAlert('オンライン接続できません。オフラインモードをお使いください。');return;
   }
   myName = document.getElementById('my-name').value.trim()||'プレイヤー1';
   myChips = +document.getElementById('my-chips').value||1000;
@@ -3939,6 +3943,40 @@ window._pokerGoLobby = function(){
   showScreen('screen-lobby');
 };
 
+// ─── アプリ内のお知らせ・確認ダイアログ（ブラウザの alert/confirm の代わり） ───
+// ブラウザ標準のダイアログは見た目がアプリと合わず、表示中は JS が止まって BGM も途切れるので使わない
+// テスト（?test=1）で window.__autoDialog が true なら、内容を window.__dialogs に記録して自動で OK する
+function appDialog(msg,opts){
+  opts=opts||{};
+  var ov=document.getElementById('app-dlg');
+  if(!ov){
+    ov=document.createElement('div');ov.id='app-dlg';ov.className='dialog-ov';
+    ov.setAttribute('role','alertdialog');ov.setAttribute('aria-modal','true');
+    ov.innerHTML='<div class="dialog"><div class="dialog-text" id="app-dlg-msg"></div><div class="app-dlg-btns"><button id="app-dlg-cancel" class="btn-ghost"></button><button id="app-dlg-ok" class="btn"></button></div></div>';
+    document.body.appendChild(ov);
+  }
+  if(/[?&]test=1\b/.test(location.search)&&window.__autoDialog){
+    (window.__dialogs=window.__dialogs||[]).push({type:opts.cancel?'confirm':'alert',message:String(msg)});
+    if(opts.onOk) Promise.resolve().then(opts.onOk);
+    return;
+  }
+  document.getElementById('app-dlg-msg').innerHTML=String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  var ok=document.getElementById('app-dlg-ok'),cancel=document.getElementById('app-dlg-cancel');
+  ok.textContent=opts.ok||'OK';ok.classList.toggle('danger',!!opts.danger);
+  cancel.textContent=opts.cancel||'';cancel.style.display=opts.cancel?'':'none';
+  function close(fn){ov.style.display='none';if(fn) fn();}
+  ok.onclick=function(){close(opts.onOk);};
+  cancel.onclick=function(){close(opts.onCancel);};
+  ov.style.display='flex';
+  if(opts.cancel) ccPlayActionSound('check');
+  setTimeout(function(){try{ok.focus();}catch(e){}},0);
+}
+function appAlert(msg){ appDialog(msg,{ok:'閉じる'}); }
+function appConfirm(msg,onOk,opts){
+  opts=opts||{};
+  appDialog(msg,{ok:opts.ok||'OK',cancel:opts.cancel||'キャンセル',onOk:onOk,onCancel:opts.onCancel,danger:opts.danger});
+}
+
 // ════════════════════════════════════════
 // 効果音・BGM（メインのゲームとチップ計算で共通）
 // ════════════════════════════════════════
@@ -4310,8 +4348,9 @@ function ccResumeOffline(){
 }
 document.getElementById('cc-resume-btn').addEventListener('click',ccResumeOffline);
 document.getElementById('cc-resume-discard').addEventListener('click',function(){
-  if(!confirm('中断したゲームを破棄しますか？')) return;
-  ccClearSave();ccRefreshResumeBanner();
+  appConfirm('中断したゲームを破棄しますか？',function(){
+    ccClearSave();ccRefreshResumeBanner();
+  },{ok:'破棄する',danger:true});
 });
 
 function ccSaveState(){
@@ -4596,11 +4635,12 @@ function ccRenderMembersPanel(){
   ov.innerHTML=h;
   ov.querySelectorAll('.cc-mem-leave').forEach(function(b){
     b.addEventListener('click',function(){
-      var p=cc.players[+this.dataset.idx];
-      if(!confirm(p.name+' を退席させますか？\n（チップ '+p.chips+' は精算に残ります）')) return;
-      if(ccIsOnline){var pt={};pt['players/'+p.pid+'/left']=true;fbPatch(ccRoomPath,pt);}
-      ccRemovePlayer(+this.dataset.idx);
-      ccMembersChanged();
+      var idx=+this.dataset.idx,p=cc.players[idx];
+      appConfirm(p.name+' を退席させますか？\n（チップ '+p.chips+' は精算に残ります）',function(){
+        if(ccIsOnline){var pt={};pt['players/'+p.pid+'/left']=true;fbPatch(ccRoomPath,pt);}
+        ccRemovePlayer(idx);
+        ccMembersChanged();
+      },{ok:'退席させる'});
     });
   });
   ov.querySelectorAll('.cc-mem-back').forEach(function(b){
@@ -4613,7 +4653,7 @@ function ccRenderMembersPanel(){
   var add=document.getElementById('cc-mem-add');
   if(add) add.addEventListener('click',function(){
     var name=document.getElementById('cc-mem-name').value.trim();
-    if(!name){alert('名前を入力してください');return;}
+    if(!name){appAlert('名前を入力してください');return;}
     var chips=snap5(+document.getElementById('cc-mem-chips').value)||cc.initialChips;
     ccAddPlayer(ccUniqueName(name),chips);
     ccMembersChanged();
@@ -5100,7 +5140,7 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
         if(trV<=0){ccShakeRaiseDisplay();return;}
         var minR=cc.curBet+cc.lastRaise;
         var myP=cc.players[ccMyIdx];
-        if(trV<minR&&trV<myP.bet+myP.chips){alert('最小レイズ額は '+minR+' です');return;}
+        if(trV<minR&&trV<myP.bet+myP.chips){appAlert('最小レイズ額は '+minR+' です');return;}
       }
       ccSend(act,act==='raise'?cc.raiseAmount:0);return;
     }
@@ -5129,7 +5169,7 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
       var minRaise=cc.curBet+cc.lastRaise;
       // 最小レイズ額チェック（オールインの場合は免除）
       if(totalRaise<minRaise&&totalRaise<p.bet+p.chips){
-        alert('最小レイズ額は '+minRaise+' です（現在のベット+前回レイズ額以上）');
+        appAlert('最小レイズ額は '+minRaise+' です（現在のベット+前回レイズ額以上）');
         return;
       }
       var additional=totalRaise-p.bet;
@@ -5645,7 +5685,7 @@ function ccShowRanking(){
 }
 
 function ccShowHistory(){
-  if(ccRoundHistory.length===0){alert('まだ履歴がありません');return;}
+  if(ccRoundHistory.length===0){appAlert('まだ履歴がありません');return;}
   var ov=document.createElement('div');
   ov.className='picker';ov.style.display='block';ov.style.zIndex='1300';
   var html='<div style="max-width:500px;margin:0 auto;">';
@@ -6022,7 +6062,7 @@ document.getElementById('cc-award-btn').addEventListener('click',function(){
     });
   });
   if(!valid){
-    alert('各ポットの勝者を1人以上選んでください');return;
+    appAlert('各ポットの勝者を1人以上選んでください');return;
   }
   // 配分内容を確認
   var confirmLines=[];
@@ -6031,24 +6071,25 @@ document.getElementById('cc-award-btn').addEventListener('click',function(){
     confirmLines.push(cc.players[+idx].name+': +'+awards[idx]);
   });
   var confirmMsg='以下の配分で確定しますか？\n\n'+confirmLines.join('\n');
-  if(!confirm(confirmMsg)) return;
-  var resultLines=[];
-  var winnersList=[];
-  Object.keys(awards).forEach(function(idx){
-    var i=+idx;
-    cc.players[i].chips+=awards[idx];
-    resultLines.push(esc(cc.players[i].name)+': +'+awards[idx]);
-    winnersList.push({name:cc.players[i].name,amount:awards[idx]});
-  });
-  ccLastWinners=winnersList.map(function(w){return w.name;});
-  ccRecordRoundHistory(winnersList);
-  cc.pot=0;
-  document.getElementById('cc-showdown').style.display='none';
-  ccRenderAll();
-  var head=totalWinners===1
-    ?ccWinHead(esc(winnersList[0].name),winnersList[0].amount,'')
-    :ccWinHead(winnersList.map(function(w){return esc(w.name)+' <span class="pos">+'+w.amount+'</span>';}).join('<br>'),null,'ポットを分配');
-  ccShowResult(head);
+  appConfirm(confirmMsg,function(){
+    var resultLines=[];
+    var winnersList=[];
+    Object.keys(awards).forEach(function(idx){
+      var i=+idx;
+      cc.players[i].chips+=awards[idx];
+      resultLines.push(esc(cc.players[i].name)+': +'+awards[idx]);
+      winnersList.push({name:cc.players[i].name,amount:awards[idx]});
+    });
+    ccLastWinners=winnersList.map(function(w){return w.name;});
+    ccRecordRoundHistory(winnersList);
+    cc.pot=0;
+    document.getElementById('cc-showdown').style.display='none';
+    ccRenderAll();
+    var head=totalWinners===1
+      ?ccWinHead(esc(winnersList[0].name),winnersList[0].amount,'')
+      :ccWinHead(winnersList.map(function(w){return esc(w.name)+' <span class="pos">+'+w.amount+'</span>';}).join('<br>'),null,'ポットを分配');
+    ccShowResult(head);
+  },{ok:'確定する'});
 });
 
 function ccCheckEliminated(){
@@ -6254,12 +6295,13 @@ document.getElementById('cc-summary-lobby').addEventListener('click',function(){
 });
 
 document.getElementById('cc-btn-lobby').addEventListener('click',function(){
-  if(cc.roundActive){
-    if(!confirm('ゲームを中断してロビーに戻りますか？')) return;
+  function go(){
+    ccOnlineCleanup();
+    showScreen('screen-lobby');
+    ccRefreshResumeBanner();
   }
-  ccOnlineCleanup();
-  showScreen('screen-lobby');
-  ccRefreshResumeBanner();
+  if(cc.roundActive) appConfirm('ゲームを中断してロビーに戻りますか？',go,{ok:'ロビーへ戻る'});
+  else go();
 });
 
 // ════════════════════════════════════════
@@ -6291,7 +6333,7 @@ function ccSetSubMode(mode){
 document.getElementById('cc-ol-create').addEventListener('click',function(){
   offlineMode=false; // Firebase操作を確実に有効化
   var name=document.getElementById('cc-my-name').value.trim();
-  if(!name){alert('名前を入力してください');return;}
+  if(!name){appAlert('名前を入力してください');return;}
   ccRoomCode=genCode();
   ccRoomPath='ccrooms/'+ccRoomCode;
   ccGamePath=ccRoomPath+'/game';
@@ -6349,12 +6391,12 @@ document.getElementById('cc-ol-join-toggle').addEventListener('click',function()
 document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
   offlineMode=false; // Firebase操作を確実に有効化
   var name=document.getElementById('cc-my-name').value.trim();
-  if(!name){alert('名前を入力してください');return;}
+  if(!name){appAlert('名前を入力してください');return;}
   var code=document.getElementById('cc-ol-join-code').value.trim().toUpperCase();
-  if(!code||code.length!==6){alert('6文字のルームコードを入力してください');return;}
+  if(!code||code.length!==6){appAlert('6文字のルームコードを入力してください');return;}
   ccRoomCode=code;ccRoomPath='ccrooms/'+ccRoomCode;ccGamePath=ccRoomPath+'/game';ccMyPid=myId;ccIsHost=false;
   fbGet(ccRoomPath,function(data){
-    if(!data){alert('ルームが見つかりません');return;}
+    if(!data){appAlert('ルームが見つかりません');return;}
     if(data.status==='started'){
       var pdata=data.players||{};
       var mine=pdata[myId];
@@ -6367,16 +6409,16 @@ document.getElementById('cc-ol-join-btn').addEventListener('click',function(){
       }
       // 途中参加: 次のハンドから席に着く
       var seated=Object.keys(pdata).filter(function(k){return !pdata[k].left;}).length;
-      if(seated>=8){alert('ルームが満員です');return;}
+      if(seated>=8){appAlert('ルームが満員です');return;}
       var maxIdx=0;Object.keys(pdata).forEach(function(k){maxIdx=Math.max(maxIdx,pdata[k].idx||0);});
       var jp={};jp['players/'+myId]={name:name,idx:mine?mine.idx:maxIdx+1,pending:true};
       fbPatch(ccRoomPath,jp,function(){ccEnterStartedGame();});
       return;
     }
-    if(data.status!=='waiting'){alert('ゲームは既に開始されています');return;}
+    if(data.status!=='waiting'){appAlert('ゲームは既に開始されています');return;}
     var pdata=data.players||{};
     var count=Object.keys(pdata).length;
-    if(count>=8){alert('ルームが満員です');return;}
+    if(count>=8){appAlert('ルームが満員です');return;}
     var patch={};patch['players/'+myId]={name:name,idx:count};
     fbPatch(ccRoomPath,patch,function(){
       document.getElementById('cc-ol-create').style.display='none';
@@ -6490,7 +6532,7 @@ function ccEnterStartedGame(retryCount){
       if(retryCount<3){
         setTimeout(function(){ccEnterStartedGame(retryCount+1);},1000*(retryCount+1));
       }else{
-        alert('ルームデータの取得に失敗しました。再度参加してください。');
+        appAlert('ルームデータの取得に失敗しました。再度参加してください。');
         ccOnlineCleanup();
         showScreen('screen-lobby');
       }
@@ -6509,7 +6551,7 @@ function ccEnterStartedGame(retryCount){
       if(pid===myId) ccMyIdx=i;
     });
     if(ccMyIdx<0){
-      alert('ルームにあなたのデータが見つかりません。再度参加してください。');
+      appAlert('ルームにあなたのデータが見つかりません。再度参加してください。');
       ccOnlineCleanup();
       showScreen('screen-lobby');
       return;
@@ -6526,7 +6568,7 @@ function ccEnterStartedGame(retryCount){
     fbListen(ccRoomPath+'/status',function(s){
       if(s==='ended'){
         fbOff(ccRoomPath+'/status');
-        alert('ホストがゲームを終了しました');
+        appAlert('ホストがゲームを終了しました');
         ccOnlineCleanup();
         showScreen('screen-lobby');
       }
@@ -7018,7 +7060,7 @@ function ccBecomeHost(oldHostPid){
   fbOff(ccGamePath+'/state');
   fbGet(ccRoomPath,function(data){
     var st=data&&data.game&&data.game.state;
-    if(!st){alert('ゲームの状態を取得できませんでした');return;}
+    if(!st){appAlert('ゲームの状態を取得できませんでした');return;}
     ccIsHost=true;cc._hostPid=ccMyPid;
     ccApplyHostState(st);
     // 手札（カード入力モード）
@@ -7166,7 +7208,7 @@ function ccOnlineCleanup(){
       fbListen(ccRoomPath+'/status',function(s){
         if(s==='ended'){
           fbOff(ccRoomPath+'/status');
-          alert('ホストがゲームを終了しました');
+          appAlert('ホストがゲームを終了しました');
           ccOnlineCleanup();
           showScreen('screen-lobby');
         }
