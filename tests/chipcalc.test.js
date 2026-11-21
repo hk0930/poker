@@ -562,3 +562,45 @@ test('レイズ: RAISEを押すと入力欄が開き、もう一度押すと確�
   assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')));
   await finish(page);
 });
+
+// ─── 効果音 ───
+const sfx = (page) => page.evaluate(() => window.__sfxLog.splice(0));
+
+test('効果音: 操作ごとに対応する音が鳴り、オフにすると鳴らない', async () => {
+  const page = await h.openApp();
+  await h.startOffline(page, { players: 3 });
+  assert.ok((await sfx(page)).includes('shuffle'), 'ハンド開始でシャッフル');
+  await h.act(page, 'call');
+  assert.ok((await sfx(page)).includes('chips'), 'コールでチップの音');
+  await h.act(page, 'fold');
+  assert.ok((await sfx(page)).includes('fold'), 'フォールドの音');
+  await h.act(page, 'check');
+  assert.ok((await sfx(page)).includes('knock'), 'チェックでノック');
+  await h.nextPhase(page);
+  assert.equal((await sfx(page)).filter((x) => x === 'deal').length, 3, 'フロップは3枚配る音');
+  await h.act(page, 'allin');
+  await h.waitOverlayGone(page);
+  assert.ok((await sfx(page)).includes('allin'), 'オールインの音');
+  await h.act(page, 'fold');
+  await page.waitForSelector('#cc-result', { state: 'visible' });
+  assert.ok((await sfx(page)).includes('win'), '決着でチップを集める音');
+  // オフにすると何も鳴らない
+  await page.click('#cc-sound-btn');
+  await sfx(page);
+  await h.nextHand(page);
+  await h.act(page, 'call');
+  assert.deepEqual(await sfx(page), []);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('効果音: ロビーのボタンで切り替えると、ゲーム画面のボタンにも反映される', async () => {
+  const page = await h.openApp();
+  assert.equal(await page.getAttribute('#btn-sound-lobby', 'aria-pressed'), 'true');
+  await page.click('#btn-sound-lobby');
+  assert.equal(await page.getAttribute('#btn-sound-lobby', 'aria-pressed'), 'false');
+  await h.startOffline(page, { players: 2 });
+  assert.equal(await page.getAttribute('#cc-sound-btn', 'aria-pressed'), 'false');
+  assert.equal(await page.evaluate(() => window.__cc.soundOn), false);
+  await page.context().close();
+});

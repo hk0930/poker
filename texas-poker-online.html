@@ -712,6 +712,8 @@ body{background-color:var(--ink);}
 .rk-net{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;flex-shrink:0;}
 .rk-foot{font-size:11.5px;color:var(--text-3);line-height:1.7;margin:10px 4px 0;}
 .topbar-title{flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+#btn-sound-lobby{width:38px;height:38px;margin-right:6px;}
+.snd-btn[aria-pressed="false"]{color:var(--text-3);}
 </style>
 
 </head>
@@ -916,8 +918,9 @@ body{background-color:var(--ink);}
   </div>
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
-    <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.14.54-sdk</div>
+    <div class="gap" style="gap:4px;"><button id="btn-sound-lobby" class="icon-btn round snd-btn" aria-pressed="true"></button>
+    <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button></div>
+    <div class="ver">v2026.11.21.55-sdk</div>
   </div>
 </div>
 
@@ -926,6 +929,7 @@ body{background-color:var(--ink);}
     <button id="btn-back-lobby" class="icon-btn" onclick="document.getElementById('confirm-overlay').classList.add('show');"><svg viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>ロビー</button>
   </div>
   <button id="btn-guide-game" class="icon-btn guide-fab" aria-label="遊び方">?</button>
+  <button id="btn-sound-game" class="icon-btn round snd-btn guide-fab" style="right:56px;" aria-pressed="true"></button>
   <div class="mtable">
     <div class="felt">
       <div id="phase">WAITING</div>
@@ -1295,6 +1299,195 @@ function _noSleepDisable(){
 // ゲーム画面にいる間はスリープ防止を維持する
 // ・アプリ切替などでOSが解除しても、戻ってきた時に再取得
 // ・ユーザー操作なしで有効化できなかった場合は、次のタップで再試行
+// ════════════════════════════════════════
+// 効果音エンジン（録音素材なし。Web Audio でノイズと共鳴音を合成して実物に近い音を作る）
+//   chip  : 陶器チップが当たる「カチッ」      chips : チップを数枚置く／積む
+//   flip  : カードをめくる「パシッ」          deal  : カードがフェルトを滑る
+//   knock : テーブルを指で2回たたく（チェック）  fold  : カードを投げて降りる
+//   allin : チップの山を押し出す              win   : ポットのチップをかき集める
+//   shuffle: リフルシャッフル                 turn  : 自分の番の合図
+//   tap   : ボタンを押した時の小さな音
+// ════════════════════════════════════════
+var SFX=(function(){
+  var ctx=null,master=null,noiseBuf=null,on=true,lastPlay={};
+  var TEST=/[?&]test=1\b/.test(location.search);
+  try{on=localStorage.getItem('cc_sound')!=='0';}catch(e){}
+  if(TEST) window.__sfxLog=[];
+  function ac(){
+    if(!ctx){
+      var C=window.AudioContext||window.webkitAudioContext;if(!C) return null;
+      try{ctx=new C();}catch(e){return null;}
+      master=ctx.createGain();master.gain.value=0.9;
+      // 小さい音も聞こえ、重なっても割れないように軽く圧縮
+      var comp=ctx.createDynamicsCompressor();
+      comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=3.5;comp.attack.value=0.002;comp.release.value=0.12;
+      master.connect(comp);comp.connect(ctx.destination);
+    }
+    if(ctx.state==='suspended'){try{ctx.resume();}catch(e){}}
+    return ctx;
+  }
+  function noise(){
+    if(!noiseBuf){
+      noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+      var d=noiseBuf.getChannelData(0);for(var i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    }
+    return noiseBuf;
+  }
+  var R=function(a,b){return a+Math.random()*(b-a);};
+  // ノイズを filter に通して、短く鳴らす
+  function burst(t,o){
+    var src=ctx.createBufferSource();src.buffer=noise();
+    var f=ctx.createBiquadFilter();f.type=o.type||'bandpass';f.frequency.setValueAtTime(o.f,t);f.Q.value=o.q||1;
+    if(o.f2) f.frequency.exponentialRampToValueAtTime(o.f2,t+o.dur);
+    var g=ctx.createGain(),a=o.a||0.001;
+    g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(o.g,t+a);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+o.dur);
+    src.connect(f);f.connect(g);g.connect(master);
+    src.start(t,Math.random()*1.5);src.stop(t+o.dur+0.03);
+  }
+  // 減衰する純音（共鳴・胴鳴り用）。f2 があれば音程が下がる
+  function tone(t,o){
+    var osc=ctx.createOscillator();osc.type=o.type||'sine';
+    osc.frequency.setValueAtTime(o.f,t);if(o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2,t+o.dur);
+    var g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(o.g,t+(o.a||0.002));
+    g.gain.exponentialRampToValueAtTime(0.0001,t+o.dur);
+    osc.connect(g);g.connect(master);osc.start(t);osc.stop(t+o.dur+0.03);
+  }
+  var fx={};
+  // 陶器のポーカーチップ同士が当たる音: 高い「チッ」＋硬い共鳴＋胴鳴り
+  fx.chip=function(t,v){
+    v=v||1;
+    burst(t,{type:'highpass',f:R(5500,7500),q:.7,dur:.012,g:.55*v});
+    burst(t,{type:'bandpass',f:R(3300,4700),q:R(7,11),dur:R(.045,.07),g:1.6*v});
+    tone(t,{f:R(2900,3600),dur:R(.03,.05),g:.12*v,type:'triangle'});
+    burst(t+.001,{type:'bandpass',f:R(1500,2100),q:4,dur:.03,g:.55*v});
+  };
+  // チップを n 枚置く（最初が強く、少しずつ弱く、間隔はばらつく）
+  fx.chips=function(t,n){
+    n=Math.max(1,Math.min(n||3,14));var x=t;
+    for(var i=0;i<n;i++){fx.chip(x,(i===0?1:R(.45,.85))*(1-i/(n*1.8)));x+=R(.028,.07);}
+  };
+  // カードをめくる: 紙が空気を切る音＋パシッという弾き
+  fx.flip=function(t){
+    burst(t,{type:'bandpass',f:1200,f2:2600,q:.8,dur:.07,g:.12,a:.02});
+    burst(t+.05,{type:'highpass',f:R(2200,3000),q:.8,dur:.045,g:.36});
+    burst(t+.05,{type:'bandpass',f:R(800,1100),q:1.2,dur:.06,g:.18});
+    tone(t+.05,{f:180,f2:110,dur:.05,g:.08});
+  };
+  // カードがフェルトの上を滑って止まる
+  fx.deal=function(t){
+    burst(t,{type:'bandpass',f:R(2200,2800),f2:700,q:.9,dur:.17,g:.45,a:.035});
+    burst(t+.15,{type:'lowpass',f:520,q:.7,dur:.05,g:.32});
+    tone(t+.15,{f:120,f2:80,dur:.05,g:.12});
+  };
+  // チェック: フェルトを指で2回たたく
+  fx.knock=function(t){
+    [0,.13].forEach(function(d,i){
+      var v=i?.8:1;
+      tone(t+d,{f:115,f2:62,dur:.13,g:.9*v});
+      burst(t+d,{type:'lowpass',f:480,q:.8,dur:.05,g:.45*v});
+      burst(t+d,{type:'bandpass',f:1400,q:1.5,dur:.015,g:.08*v});
+    });
+  };
+  // フォールド: カードを放って滑らせる（控えめ）
+  fx.fold=function(t){
+    burst(t,{type:'bandpass',f:2600,f2:900,q:.8,dur:.14,g:.2,a:.02});
+    burst(t+.12,{type:'lowpass',f:450,q:.7,dur:.04,g:.2});
+  };
+  // オールイン: 山を押し出す擦れ＋たくさんのチップ
+  fx.allin=function(t){
+    burst(t,{type:'bandpass',f:900,f2:2200,q:.7,dur:.32,g:.28,a:.08});
+    fx.chips(t+.12,9);
+    tone(t,{f:70,f2:48,dur:.35,g:.25});
+  };
+  // ポットをかき集める: 擦れ＋チップが積み重なる
+  fx.win=function(t){
+    burst(t,{type:'bandpass',f:1600,f2:700,q:.7,dur:.4,g:.18,a:.1});
+    fx.chips(t+.15,11);
+    fx.chips(t+.75,3);
+  };
+  // リフルシャッフル: 細かい弾きが連続→最後にまとめる音
+  fx.shuffle=function(t){
+    var x=t;
+    for(var i=0;i<30;i++){burst(x,{type:'highpass',f:R(2000,3200),q:.8,dur:.014,g:R(.06,.16)*(i<4?(i+1)/4:1)});x+=R(.014,.022);}
+    burst(x+.03,{type:'bandpass',f:1400,f2:600,q:.8,dur:.16,g:.25,a:.04});
+    burst(x+.18,{type:'lowpass',f:500,q:.7,dur:.05,g:.35});
+  };
+  // 自分の番: 小さなガラスのような2音
+  fx.turn=function(t){
+    tone(t,{f:1318.5,dur:.45,g:.07});tone(t,{f:2637,dur:.25,g:.018});
+    tone(t+.11,{f:1760,dur:.55,g:.07});tone(t+.11,{f:3520,dur:.25,g:.015});
+  };
+  // ボタン: 指先で押した小さな「トッ」
+  fx.tap=function(t){
+    burst(t,{type:'bandpass',f:1900,q:2.2,dur:.02,g:.16});
+    tone(t,{f:520,f2:380,dur:.03,g:.05});
+  };
+  function play(name,arg,delay){
+    if(!on||!fx[name]) return;
+    // 同じ音が一瞬で重なりすぎないように（連打・再描画対策）
+    var now=Date.now(),key=name+(arg||'');
+    if(name==='turn'&&lastPlay[key]&&now-lastPlay[key]<1500) return;
+    lastPlay[key]=now;
+    if(TEST){window.__sfxLog.push(name);if(window.__sfxLog.length>200) window.__sfxLog.shift();}
+    var c=ac();if(!c) return;
+    try{fx[name](c.currentTime+0.01+(delay||0),arg);}catch(e){}
+  }
+  function refresh(){
+    document.querySelectorAll('.snd-btn').forEach(function(b){
+      b.innerHTML=on
+        ?'<svg viewBox="0 0 24 24"><path d="M4 9.5h3.500L12 6v12l-4.500-3.500H4z"/><path d="M15.500 9.200a4 4 0 0 1 0 5.600M18 6.800a7.500 7.500 0 0 1 0 10.400"/></svg>'
+        :'<svg viewBox="0 0 24 24"><path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="M16 9.500l5 5M21 9.500l-5 5"/></svg>';
+      b.setAttribute('aria-pressed',on?'true':'false');
+      b.setAttribute('aria-label',on?'効果音: オン':'効果音: オフ');
+    });
+  }
+  function setOn(v){
+    on=!!v;try{localStorage.setItem('cc_sound',on?'1':'0');}catch(e){}
+    refresh();if(on) play('chip');
+  }
+  // iOS などは最初のタップまで音を出せないので、そこで準備しておく
+  function unlock(){
+    if(!on) return;var c=ac();if(!c) return;
+    try{var b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0);}catch(e){}
+  }
+  document.addEventListener('pointerdown',unlock,{passive:true});
+  document.addEventListener('touchend',unlock,{passive:true});
+  // ボタンを押した時の音（アクション・チップ・効果音ボタンは専用の音があるので除く）
+  document.addEventListener('pointerdown',function(e){
+    var b=e.target&&e.target.closest?e.target.closest('button,.cc-pick-card,.check-row'):null;
+    if(!b||b.disabled) return;
+    if(b.matches('.cc-act-btn,.ab,.snd-btn')) return;
+    if(b.matches('.chip-sel-btn,.cc-chip-btn')){play('chip');return;}
+    if(b.matches('.cc-pick-card')) return;
+    play('tap');
+  },{passive:true});
+  document.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest?e.target.closest('.snd-btn'):null;
+    if(b) setOn(!on);
+  });
+  // テスト用: 音をファイルに書き出して確認する（?test=1 の時だけ）
+  if(TEST) window.__sfxBounce=function(name,arg,secs){
+    var keep=[ctx,master,noiseBuf];
+    var off=new OfflineAudioContext(1,Math.round(44100*(secs||1.2)),44100);
+    ctx=off;noiseBuf=null;master=off.createGain();master.gain.value=0.9;
+    var comp=off.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=3.5;comp.attack.value=0.002;comp.release.value=0.12;
+    master.connect(comp);comp.connect(off.destination);
+    fx[name](0.02,arg);
+    ctx=keep[0];master=keep[1];noiseBuf=keep[2];
+    return off.startRendering().then(function(b){return Array.from(b.getChannelData(0));});
+  };
+  return {play:play,setOn:setOn,isOn:function(){return on;},refresh:refresh};
+})();
+// アクション名 → 効果音
+function sfxAction(action,amount,bb){
+  if(action==='check') SFX.play('knock');
+  else if(action==='call') SFX.play('chips',Math.max(2,Math.min(6,Math.round((amount||bb||10)/Math.max(bb||10,1))+1)));
+  else if(action==='raise') SFX.play('chips',Math.max(4,Math.min(10,Math.round((amount||0)/Math.max(bb||10,1)/2)+3)));
+  else if(action==='allin') SFX.play('allin');
+  else if(action==='fold') SFX.play('fold');
+}
+
 var _noSleepWanted = false;
 function noSleepOn(){ _noSleepWanted = true; _noSleepEnable(); }
 function noSleepOff(){ _noSleepWanted = false; _noSleepDisable(); }
@@ -1959,6 +2152,7 @@ function doShowdownOffline(){
 }
 
 function renderActionOffline(){
+  SFX.play('turn');
   var p=players[myIdx];if(!p)return;
   document.getElementById('ap-who').textContent=p.name+' のターン（あなた）';
   var toC=curBet-p.bet;
@@ -3228,6 +3422,7 @@ function handleResult(rr){
 // アクションUI
 // ════════════════════════════════════════
 function renderAction(){
+  SFX.play('turn');
   _dbg('renderAction myIdx='+myIdx);
   hideInfo(); // CPU思考中表示を確実にクリア
   var p=players[myIdx];if(!p)return;
@@ -3393,6 +3588,7 @@ function renderAll(){
 function showInfo(m){_dbg('showInfo:'+m.substring(0,25));document.getElementById('ibar').classList.add('show');document.getElementById('ibar-t').textContent=m;}
 function hideInfo(){document.getElementById('ibar').classList.remove('show');}
 function showMsg(title,body,lbl,fn,ch,commCards,endFn){
+  if(/ショーダウン|ラウンド終了|勝利/.test(String(title)+String(body))) SFX.play('win');
   document.getElementById('mover').classList.add('show');
   if(gamePath) document.getElementById('back-btn-wrap').style.display='block';
   document.getElementById('mtitle').textContent=title;
@@ -3458,6 +3654,7 @@ function showDealOverlay(hole, cb){
     row.appendChild(d);
   });
   ov.classList.add('show');
+  SFX.play('shuffle');SFX.play('deal',null,.72);SFX.play('deal',null,.9);
   setTimeout(function(){
     ov.classList.remove('show');
     if(cb) cb();
@@ -3574,6 +3771,7 @@ function showActionBubble(playerIdx, action, amount){
   var si=active.findIndex(function(p){return p.idx===playerIdx;});
   if(si<0||si>=seats.length) return;
   var seat=seats[si];
+  sfxAction(action,amount,BB);
   if(action==='call'||action==='raise'||action==='allin') fxChipFly(seat.querySelector('.pod-stack')||seat,document.getElementById('pot'),fxChipCount(amount||BB,BB));
   // 古いバブルを除去
   var old=seat.querySelector('.action-bubble'); if(old) old.remove();
@@ -3634,7 +3832,7 @@ function showPhaseOverlay(phaseName, newCards, cb){
 
   // 150ms後から1枚ずつ180msおきにフリップ
   cardInners.forEach(function(inner, i){
-    setTimeout(function(){ inner.style.transform='rotateY(0deg)'; }, 250 + i*320);
+    setTimeout(function(){ inner.style.transform='rotateY(0deg)'; SFX.play('flip'); }, 250 + i*320);
   });
 
   // 全カードフリップ後に少し見せてからオーバーレイを閉じてcb
@@ -4412,7 +4610,7 @@ function ccStartRound(){
   }else{
     cc.curIdx=ccNextActive(bbIdx);
   }
-  ccPlayCardSound();
+  SFX.play('shuffle');
   // カードモード: 使用済みカードリセット、コミュニティリセット
   ccUsedCards={};ccCommunity=[];cc._dealSent=false;
   cc.players.forEach(function(p){p.hole=null;});
@@ -4885,85 +5083,16 @@ document.querySelectorAll('.cc-preset-btn').forEach(function(b){
   });
 });
 
-// 効果音のオン/オフ（端末に記憶）
-var ccSoundOn=true;
-try{ccSoundOn=localStorage.getItem('cc_sound')!=='0';}catch(e){}
-function ccUpdateSoundBtn(){
-  var b=document.getElementById('cc-sound-btn');
-  b.innerHTML=ccSoundOn
-    ?'<svg viewBox="0 0 24 24"><path d="M4 9.5h3.500L12 6v12l-4.500-3.500H4z"/><path d="M15.500 9.200a4 4 0 0 1 0 5.600M18 6.800a7.500 7.500 0 0 1 0 10.400"/></svg>'
-    :'<svg viewBox="0 0 24 24"><path d="M4 9.500h3.500L12 6v12l-4.500-3.500H4z"/><path d="M16 9.500l5 5M21 9.500l-5 5"/></svg>';
-  b.setAttribute('aria-pressed',ccSoundOn?'true':'false');
-}
-document.getElementById('cc-sound-btn').addEventListener('click',function(){
-  ccSoundOn=!ccSoundOn;
-  try{localStorage.setItem('cc_sound',ccSoundOn?'1':'0');}catch(e){}
-  ccUpdateSoundBtn();
-  if(ccSoundOn) ccPlayActionSound('check');
-});
+// 効果音（エンジンは SFX。オン/オフは全モード共通で端末に記憶）
+var ccSoundOn=SFX.isOn();
+function ccUpdateSoundBtn(){ccSoundOn=SFX.isOn();SFX.refresh();}
+document.getElementById('cc-sound-btn').classList.add('snd-btn');
+document.getElementById('cc-sound-btn').addEventListener('click',function(){setTimeout(ccUpdateSoundBtn,0);});
 ccUpdateSoundBtn();
-
-// Web Audio の共通部分
-var _ccAudioCtx=null;
-function ccAudio(){
-  if(!ccSoundOn) return null;
-  if(!_ccAudioCtx) _ccAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(_ccAudioCtx.state==='suspended') _ccAudioCtx.resume();
-  return _ccAudioCtx;
-}
-// 短い音を1つ鳴らす（type: 波形, f: 周波数, dur: 長さ, vol: 音量, delay: 開始の遅れ）
-function ccTone(ctx,type,f,dur,vol,delay){
-  var t=ctx.currentTime+(delay||0);
-  var o=ctx.createOscillator(),g=ctx.createGain();
-  o.type=type;o.frequency.setValueAtTime(f,t);
-  g.gain.setValueAtTime(vol,t);
-  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
-  o.connect(g);g.connect(ctx.destination);
-  o.start(t);o.stop(t+dur);
-}
 // アクションの効果音
-function ccPlayActionSound(action){
-  try{
-    var ctx=ccAudio();if(!ctx) return;
-    if(action==='check'){ // テーブルを2回ノック
-      ccTone(ctx,'sine',180,0.07,0.35,0);ccTone(ctx,'sine',170,0.07,0.3,0.11);
-    }else if(action==='call'||action==='raise'){ // チップの音
-      var n=action==='raise'?3:2;
-      for(var i=0;i<n;i++){ccTone(ctx,'triangle',2400+i*180,0.05,0.12,i*0.06);ccTone(ctx,'sine',3600+i*120,0.03,0.06,i*0.06);}
-    }else if(action==='allin'){ // チップの山＋低音
-      for(var j=0;j<6;j++) ccTone(ctx,'triangle',2200+Math.random()*900,0.05,0.1,j*0.045);
-      ccTone(ctx,'sawtooth',90,0.4,0.12,0);
-    }else if(action==='fold'){
-      ccTone(ctx,'sine',320,0.12,0.12,0);
-    }
-  }catch(e){}
-}
-
-// カードオープン音（Web Audio API）
-function ccPlayCardSound(){
-  try{
-    if(!ccAudio()) return;
-    var ctx=_ccAudioCtx;
-    var t=ctx.currentTime;
-    // カードめくり音: 短いノイズバースト + 軽いクリック
-    var dur=0.08;
-    var buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
-    var data=buf.getChannelData(0);
-    for(var i=0;i<data.length;i++){
-      var env=1-i/data.length;
-      data[i]=(Math.random()*2-1)*env*env*0.3;
-    }
-    var src=ctx.createBufferSource();
-    src.buffer=buf;
-    var filt=ctx.createBiquadFilter();
-    filt.type='bandpass';filt.frequency.value=3000;filt.Q.value=1.5;
-    var gain=ctx.createGain();
-    gain.gain.setValueAtTime(0.4,t);
-    gain.gain.exponentialRampToValueAtTime(0.01,t+dur);
-    src.connect(filt);filt.connect(gain);gain.connect(ctx.destination);
-    src.start(t);src.stop(t+dur);
-  }catch(e){}
-}
+function ccPlayActionSound(action,amount){sfxAction(action,amount,cc.bbAmt);}
+// カードの音（めくる）
+function ccPlayCardSound(){SFX.play('flip');}
 
 // ════════════════════════════════════════
 // カード選択・自動ハンド評価
@@ -5300,6 +5429,7 @@ function ccAutoShowdownEval(notFolded){
 
 // ラウンド履歴記録
 function ccRecordRoundHistory(winners){
+  SFX.play('win');
   // 演出: ポットから勝者の席へ
   winners.forEach(function(w){
     var wi=-1;cc.players.forEach(function(p,i){if(p.name===w.name) wi=i;});
@@ -5410,7 +5540,7 @@ function ccShowActionToast(name,action,amount){
   ccActionLog.push(PHASE_NAMES[cc.phase]+' - '+logMsg);
   if(!cc._streetActions) cc._streetActions=[];
   cc._streetActions.push({name:name,action:action,amount:amount||0});
-  ccPlayActionSound(action);
+  if(action!=='allin') ccPlayActionSound(action,amount);
   if(action==='call'||action==='raise'||action==='allin'){
     var fxIdx=-1;cc.players.forEach(function(p,i){if(p.name===name) fxIdx=i;});
     var fxSeat=document.querySelectorAll('#cc-seats .seat')[fxIdx];
@@ -5555,7 +5685,8 @@ document.getElementById('cc-next-phase').addEventListener('click',function(){
   if(ccIsOnline&&!ccIsHost) return;
   ccSaveState();
   cc.phase++;
-  ccPlayCardSound();
+  // フロップは3枚、ターン・リバーは1枚を配る音
+  for(var sfi=0;sfi<(cc.phase===1?3:cc.phase<4?1:0);sfi++) SFX.play('deal',null,sfi*.14);
   cc.players.forEach(function(p){p.bet=0;});
   cc.curBet=0;cc.lastRaise=cc.bbAmt;cc.acts=[];cc._streetActions=[];cc._bbActed=true;
   // フロップ以降: ディーラーの次のアクティブプレイヤーから開始（全人数共通）
@@ -6462,6 +6593,7 @@ function ccOnState(st){
 // 非ホスト用アクションパネル表示
 function ccShowAP_online(){
   if(ccMyIdx<0||!cc.players[ccMyIdx]) return;
+  SFX.play('turn');
   var ap=document.getElementById('cc-ap');
   ap.classList.remove('raising');
   ap.style.display='block';
@@ -6912,7 +7044,7 @@ if(/[?&]test=1\b/.test(location.search)){
     get usedCards(){return ccUsedCards;},
     get community(){return ccCommunity;},
     get noSleepWanted(){return _noSleepWanted;},
-    get soundOn(){return ccSoundOn;},
+    get soundOn(){return SFX.isOn();},
     get isHost(){return ccIsHost;},
     shiftClock:function(ms){cc._gameStartTs-=ms;},
     stopHostBeat:function(){ccStopHostBeat();},

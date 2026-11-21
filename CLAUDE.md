@@ -32,7 +32,10 @@
 - UNDO: `ccSaveState()` をアクション前に積み、`ccUndo()` で戻す。オンラインはホストのみ
 - ショーダウン前に `ccRefundUncalled()` で誰もコールしていない超過ベットを本人に返す
 - 1台モードは `ccRenderAll()` のたびに `ccAutoSave()` で localStorage（`cc_offline_save_v1`）へ自動保存。ロビーの「続きから再開」で `ccResumeOffline()`。ゲーム終了（精算）と新規開始で消える
-- 効果音: `ccPlayActionSound(action)` / `ccPlayCardSound()`。オン/オフは `cc_sound`（localStorage）
+- 効果音: 全モード共通の `SFX`（メインの IIFE 内、録音素材なしで Web Audio のノイズ＋共鳴音を合成）。`SFX.play(名前, 引数, 遅延秒)`。音は chip / chips(枚数) / flip / deal / knock / fold / allin / win / shuffle / turn / tap。アクションは `sfxAction(action, amount, bb)`、チップ計算は `ccPlayActionSound()` / `ccPlayCardSound()` から呼ぶ。オン/オフは `.snd-btn`（ロビー・CPU対戦・チップ計算の3か所）で切り替え、`cc_sound`（localStorage）に記憶
+  - 鳴らす場所: ハンド開始=shuffle、場のカード=deal（フロップ3枚）、めくる=flip、アクション=各音（メインは `showActionBubble()`、チップ計算は `ccShowActionToast()`）、決着=win、自分の番=turn（1.5秒以内の重複は鳴らさない）、ボタン=tap（チップボタンは chip）
+  - iOS は最初のタップまで音が出せないので、`pointerdown` で AudioContext を準備する
+  - `?test=1` では鳴らした音の名前を `window.__sfxLog` に記録し、`window.__sfxBounce(名前)` で波形を書き出せる（音量確認用）
 - 画面スリープ防止: `showScreen()` でロビー以外なら `noSleepOn()`、ロビーで `noSleepOff()`。アプリ復帰時とタップ時に再取得
 - `tests/resume.test.js` — 自動保存と再開
 - ホスト引き継ぎ（各自の端末モード）: ホストは `ccStartHostBeat()` で `ccrooms/{code}/hostBeat` を定期更新。参加者は `ccStartHostWatch()` で値の変化を自分の時計で監視し、途絶（15秒）か `hostLeft` で引き継ぎ画面を出す
