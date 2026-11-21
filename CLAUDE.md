@@ -52,6 +52,14 @@
 - `tests/members.test.js` — 途中参加・退席（1台モード）
 - 暫定ランキング: 上部のトロフィー `#cc-rank-btn` → `ccShowRanking()`。`ccRankingRows()` が 収支 = 持ち点 − 投入額 で並べる（持ち点はハンド中なら賭けている額 `totalBet` も含める、投入額は `startChips` = バイイン＋リバイ）。退席者（`cc.leftPlayers`）も含む。参加者の端末でも同期済みの `players`/`left` から計算する
 
+## タイトル画面（v61〜）
+- `#screen-title`。開いた時に出し、「はじめる」`#btn-title-start` でロビーへ（このタップで AudioContext を有効にして短い音を鳴らす）。遊び方 `#btn-title-guide`
+- 出さない条件: 招待リンク `?join=` / `?ccroom=`、チップ計算オンラインの復帰（保存セッションに roomCode）、テスト `?test=1`（`window.__showTitle=true` の時だけ出す）
+- 判定は `INITIAL_SEARCH`（スクリプトの最初で覚えた URL のパラメータ）で行う。`?join=` の処理が `history.replaceState` で URL を消すため、`location.search` を後で読まない
+- カードは `cH()` のロイヤルストレートフラッシュを扇形に配る（`--r` 角度、`--d` 遅れ）。背の低い画面（高さ720px以下）は詰めた配置
+- タイトルとロビーでは画面スリープ防止をしない。BGM も流さない（ゲーム画面だけ）
+- `tests/title.test.js`
+
 ## 効果音・BGM（v55〜、メインのゲームとチップ計算で共通）
 - コードはチップ計算の IIFE の外（「効果音・BGM（メインのゲームとチップ計算で共通）」）に置いている。メインのゲームから呼ぶので、チップ計算の IIFE の中に戻さない
 - 設定: 効果音 `ccSoundOn`（localStorage `cc_sound`）、BGM `bgmOn`（`poker_bgm`、`?test=1` では既定オフ）。ボタンは `.sfx-btn` / `.bgm-btn` クラスで全画面ぶんまとめて `ccUpdateSoundBtn()` が更新（メイン `#g-sound-btn` `#g-bgm-btn`、チップ計算 `#cc-sound-btn` `#cc-bgm-btn`）
