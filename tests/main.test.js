@@ -144,6 +144,50 @@ test('CPU対戦: レイズを押すと最小レイズ額が入った状態で開
   await page.context().close();
 });
 
+test('レイズの規則: 最小額は「今のベット＋直前のレイズ幅」、足りないオールインは順番を戻さない', async () => {
+  const page = await newPage();
+  const R = (st, t) => page.evaluate(([a, b]) => window.__poker.testRaise(a, b), [st, t]);
+  // BB 10 に対して 15 は小さすぎるので最小の 20 になる
+  let r = await R({ curBet: 10, lastRaise: 10, acts: [1, 2], bet: 0, chips: 500 }, 15);
+  assert.equal(r.curBet, 20); assert.equal(r.lastRaise, 10); assert.deepEqual(r.acts, [9], 'フルレイズは全員に順番が戻る');
+  // 50 にレイズされた後（レイズ幅 40）の最小は 90
+  r = await R({ curBet: 50, lastRaise: 40, acts: [1], bet: 10, chips: 500 }, 60);
+  assert.equal(r.curBet, 90); assert.equal(r.lastRaise, 40);
+  // 手持ちが足りない（70 まで）オールインはレイズ幅を変えず、行動済みの人に順番を戻さない
+  r = await R({ curBet: 50, lastRaise: 40, acts: [1, 2], bet: 0, chips: 70 }, 200);
+  assert.equal(r.curBet, 70); assert.equal(r.lastRaise, 40); assert.equal(r.allIn, true);
+  assert.deepEqual(r.acts, [1, 2], '足りないオールインでは順番を戻さない');
+  // 大きいレイズはレイズ幅が更新される
+  r = await R({ curBet: 50, lastRaise: 40, acts: [1], bet: 0, chips: 500 }, 200);
+  assert.equal(r.curBet, 200); assert.equal(r.lastRaise, 150); assert.equal(r.chips, 300);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('CPU対戦の決着: 最終順位が出て、もう一度は新しい設定のチップで始まる', async () => {
+  const page = await startCpuGame({ cpu: 1, chips: 500 });
+  await playHandCpu(page, 'fold');
+  // CPU を脱落させて決着させる
+  await page.evaluate(() => { const c = window.__poker.players[1]; c.chips = 0; c.eliminated = true; c.active = false; });
+  await page.click('#mnext');
+  for (let i = 0; i < 20; i++) { if ((await snap(page)).title === 'ゲーム終了') break; await page.clock.runFor(250); }
+  const s = await snap(page);
+  assert.equal(s.title, 'ゲーム終了');
+  assert.ok(await page.isVisible('#mcards .rk-list'), '最終順位が出る');
+  assert.ok(await page.isVisible('#mnext-lobby'), 'ロビーへ戻るも選べる');
+  // ロビーの設定を変えてから「もう一度」
+  await page.evaluate(() => { document.getElementById('off-chips').value = '1000'; });
+  await page.click('#mnext');
+  await page.clock.runFor(500);
+  const after = await page.evaluate(() => ({ init: window.__poker.initialChips, total: window.__poker.totalChips(), hand: window.__poker.handNo, mover: document.getElementById('mover').classList.contains('show') }));
+  assert.equal(after.init, 1000, '前のゲームのチップ額を持ち越さない');
+  assert.equal(after.total, 2000);
+  assert.equal(after.hand, 1);
+  assert.equal(after.mover, false);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
 // ─── 効果音・BGM・ランキング（CPU対戦） ───
 
 const soundState = (page) => page.evaluate(() => ({

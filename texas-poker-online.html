@@ -702,6 +702,7 @@ body{background-color:var(--ink);}
 .sd-side{display:inline-block;font-size:12px;color:var(--text-2);margin-top:4px;}
 .sd-side .wn-side{color:var(--accent);font-weight:700;}
 .sd-note{font-size:10.5px;color:var(--text-3);margin-left:4px;}
+.rk-list{width:100%;text-align:left;}
 .rk-row.me .rk-name{color:var(--accent);}
 .rk-stats b small{font-size:13px;color:var(--text-3);}
 .rk-sub{font-size:11px;color:var(--text-3);letter-spacing:.06em;margin-top:2px;}
@@ -929,7 +930,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.21.58-sdk</div>
+    <div class="ver">v2026.11.21.59-sdk</div>
   </div>
 </div>
 
@@ -1764,7 +1765,30 @@ document.getElementById('btn-start-offline').addEventListener('click',function()
   launchOffline(ps);
 });
 
+// CPU対戦の決着: 最終順位を出し、「もう一度」は同じ設定で始め直す、「ロビーへ戻る」も選べる
+function offlineGameOver(winner){
+  var body=winner?'<span class="wn">'+gEsc(winner.name)+'</span>の優勝！':'ゲーム終了';
+  showMsg('ゲーム終了',body,'もう一度',function(){
+    resetOfflineGame();
+    document.getElementById('btn-start-offline').click(); // ロビーの設定（名前・チップ・CPU）のまま始め直す
+  },gameRankingListHtml());
+  var lb=document.getElementById('mnext-lobby');
+  lb.style.display='block';
+  lb.onclick=function(){
+    document.getElementById('mover').classList.remove('show');
+    lb.style.display='none';
+    resetOfflineGame();
+    document.getElementById('back-btn-wrap').style.display='none';
+    showScreen('screen-lobby');
+  };
+}
+// CPU対戦の状態を消す（次のゲームに前のチップ額・ハンド数を持ち越さない）
+function resetOfflineGame(){
+  offlineMode=false;players=[];myHole=[];_initialChips=0;_handNo=0;pot=0;comm=[];
+}
+
 function launchOffline(ps){
+  _initialChips=0; // 前のゲームの最初のチップ額を持ち越さない
   players=ps;_handNo=0;
   ps.forEach(function(p,i){if(p.isMe)myIdx=i;});
   gamePath=''; holePfx='';
@@ -1834,7 +1858,7 @@ function startRoundOffline(){
   var active=players.filter(function(p){return p.active;});
   if(active.length<2){
     var w=active[0]||players[0];
-    showMsg('ゲーム終了','<span class="wn">'+w.name+'</span>の優勝！','もう一度',function(){document.getElementById('back-btn-wrap').style.display='none';showScreen('screen-lobby');offlineMode=false;});
+    offlineGameOver(w);
     return;
   }
   _handNo++;
@@ -1876,6 +1900,22 @@ function scheduleOfflineAction(){
   }
 }
 
+// レイズ（このストリートのベット総額を target にする）— CPU対戦・オンライン・人・CPUで共通
+// 最小額は「今のベット＋直前のレイズ幅」。手持ちが足りず最小額に届かない時は全額（オールイン）で、
+// その場合はレイズ幅を変えず、すでに行動した人に順番を戻さない（ルールどおり）
+function applyRaiseTo(p,idx,target){
+  var maxTo=p.bet+p.chips;
+  var nb=Math.min(Math.max(snap5(target||0),curBet+lastRaise),maxTo);
+  var cost=nb-p.bet;
+  if(cost<=0) return;
+  p.chips-=cost;p.bet=nb;p.totalBet+=cost;pot+=cost;
+  if(p.chips<=0){p.chips=0;p.allIn=true;}
+  if(nb>curBet){
+    if(nb-curBet>=lastRaise){lastRaise=nb-curBet;acts=[idx];}
+    curBet=nb;
+  }
+}
+
 function applyCpuAction(p,dec){
   if(dec.action==='fold'){p.folded=true;}
   else if(dec.action==='check'){}
@@ -1885,9 +1925,7 @@ function applyCpuAction(p,dec){
     else{p.chips-=tc;p.bet+=tc;p.totalBet+=tc;pot+=tc;if(p.chips<5)p.allIn=true;}
   }
   else if(dec.action==='raise'){
-    var nb=snap5(Math.min(Math.max(dec.amount,curBet+5),p.chips+p.bet));
-    if(nb-p.bet<5){p.folded=true;}
-    else{lastRaise=Math.max(nb-curBet,lastRaise);curBet=nb;var cost=nb-p.bet;p.chips-=cost;p.bet=nb;p.totalBet+=cost;pot+=cost;if(p.chips<=0){p.chips=0;p.allIn=true;}acts=[curIdx];}
+    applyRaiseTo(p,curIdx,dec.amount);
   }
   if(acts.indexOf(curIdx)<0)acts.push(curIdx);
 }
@@ -1964,7 +2002,7 @@ function sendOffline(action,amount){
   if(action==='fold'){p.folded=true;}
   else if(action==='check'){}
   else if(action==='call'){var tc=Math.min(curBet-p.bet,p.chips);p.chips-=tc;p.bet+=tc;p.totalBet+=tc;pot+=tc;if(!p.chips)p.allIn=true;}
-  else if(action==='raise'){var nb=Math.min(Math.max(amount,curBet+1),p.chips+p.bet);lastRaise=Math.max(nb-curBet,lastRaise);curBet=nb;var cost=nb-p.bet;p.chips-=cost;p.bet=nb;p.totalBet+=cost;pot+=cost;if(!p.chips)p.allIn=true;acts=[myIdx];}
+  else if(action==='raise'){applyRaiseTo(p,myIdx,amount);}
   else if(action==='allin'){
     var allAmt3=p.chips; var nb3=p.bet+allAmt3; var raiseAmt3=nb3-curBet;
     if(nb3>curBet){
@@ -2619,14 +2657,7 @@ function applyAction(d){
     if(p.chips<=0){ p.chips=0; p.allIn=true; }
   }
   else if(d.action==='raise'){
-    var nb=Math.min(Math.max(d.amount, curBet+lastRaise), p.chips+p.bet);
-    var raiseBy=nb-curBet;
-    lastRaise=Math.max(raiseBy, BB);
-    curBet=nb;
-    var cost=nb-p.bet;
-    p.chips-=cost; p.bet=nb; p.totalBet+=cost; pot+=cost;
-    if(p.chips<=0){ p.chips=0; p.allIn=true; }
-    acts=[d.playerIdx]; // レイズは全員再アクション
+    applyRaiseTo(p,d.playerIdx,d.amount);
   }
   else if(d.action==='allin'){
     var allInAmt=p.chips;
@@ -2694,10 +2725,7 @@ function processCpuQueue(){
       if(p2.chips<=0){p2.chips=0;p2.allIn=true;}
     }
     else if(dec.action==='raise'){
-      var nb=snap5(Math.min(Math.max(dec.amount,curBet+BB),p2.chips+p2.bet));
-      var cost=nb-p2.bet;
-      if(cost<1){p2.folded=true;}
-      else{lastRaise=Math.max(nb-curBet,lastRaise);curBet=nb;p2.chips-=cost;p2.bet=nb;p2.totalBet+=cost;pot+=cost;if(p2.chips<=0){p2.chips=0;p2.allIn=true;}acts=[cpuIdx];}
+      applyRaiseTo(p2,cpuIdx,dec.amount);
     }
     else if(dec.action==='allin'){
       var allAmt=p2.chips;var nb2=p2.bet+allAmt;var raiseAmt2=nb2-curBet;
@@ -3136,22 +3164,11 @@ function gameRankingRows(){
 }
 function gEsc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function gDiffHtml(d){return '<span class="'+(d>0?'pos':d<0?'neg':'zero')+'">'+(d>0?'+'+d:d===0?'±0':''+d)+'</span>';}
-function showGameRanking(){
-  var old=document.getElementById('g-ranking');if(old) old.parentNode.removeChild(old);
-  if(!players||!players.length) return;
-  var rows=gameRankingRows(),live=gameHandLive();
-  var myPos=rows.findIndex(function(r){return r.p.isMe;});
-  var alive=players.filter(function(p){return !p.eliminated&&(p.chips>0||live&&p.active);}).length;
+// ランキングの行（ランキング画面とCPU対戦の最終結果で共通）
+function gameRankingListHtml(rows){
+  rows=rows||gameRankingRows();
+  var h='<div class="rk-list">';
   var maxAbs=rows.reduce(function(m,r){return Math.max(m,Math.abs(r.net));},1);
-  var ov=document.createElement('div');
-  ov.id='g-ranking';ov.className='picker';ov.style.display='block';ov.style.zIndex='1300';
-  var h='<div style="max-width:500px;margin:0 auto;">';
-  h+='<div class="topbar"><div><div class="picker-title" style="margin:0;">ランキング</div>';
-  h+='<div class="rk-sub">'+(offlineMode&&_handNo?'HAND '+_handNo+' 時点・':'')+'リバイ込みの収支</div></div>';
-  h+='<button id="g-rank-close" class="icon-btn">✕ 閉じる</button></div>';
-  h+='<div class="rk-stats"><div><span>あなたの順位</span><b>'+(myPos>=0?(myPos+1)+'<small> / '+rows.length+'</small>':'—')+'</b></div>';
-  h+='<div><span>残っている人</span><b>'+alive+'人</b></div>';
-  h+='<div><span>あなたの収支</span><b>'+(myPos>=0?(rows[myPos].net>0?'+'+rows[myPos].net:rows[myPos].net===0?'±0':''+rows[myPos].net):'—')+'</b></div></div>';
   rows.forEach(function(r,k){
     var p=r.p,ai=avInfo(p.name,r.i),notes=[];
     if(p.isMe) notes.push('あなた');
@@ -3168,6 +3185,24 @@ function showGameRanking(){
     h+='<div class="rk-net">'+gDiffHtml(r.net)+'</div>';
     h+='</div>';
   });
+  return h+'</div>';
+}
+function showGameRanking(){
+  var old=document.getElementById('g-ranking');if(old) old.parentNode.removeChild(old);
+  if(!players||!players.length) return;
+  var rows=gameRankingRows(),live=gameHandLive();
+  var myPos=rows.findIndex(function(r){return r.p.isMe;});
+  var alive=players.filter(function(p){return !p.eliminated&&(p.chips>0||live&&p.active);}).length;
+  var ov=document.createElement('div');
+  ov.id='g-ranking';ov.className='picker';ov.style.display='block';ov.style.zIndex='1300';
+  var h='<div style="max-width:500px;margin:0 auto;">';
+  h+='<div class="topbar"><div><div class="picker-title" style="margin:0;">ランキング</div>';
+  h+='<div class="rk-sub">'+(offlineMode&&_handNo?'HAND '+_handNo+' 時点・':'')+'リバイ込みの収支</div></div>';
+  h+='<button id="g-rank-close" class="icon-btn">✕ 閉じる</button></div>';
+  h+='<div class="rk-stats"><div><span>あなたの順位</span><b>'+(myPos>=0?(myPos+1)+'<small> / '+rows.length+'</small>':'—')+'</b></div>';
+  h+='<div><span>残っている人</span><b>'+alive+'人</b></div>';
+  h+='<div><span>あなたの収支</span><b>'+(myPos>=0?(rows[myPos].net>0?'+'+rows[myPos].net:rows[myPos].net===0?'±0':''+rows[myPos].net):'—')+'</b></div></div>';
+  h+=gameRankingListHtml(rows);
   h+='<div class="rk-foot">'+(live?'進行中のハンドで賭けているチップは、まだ本人の持ち点として数えています（フォールドした分は除く）。':'ハンドとハンドの間の時点です。')+'投入は最初のチップとリバイの合計です。</div>';
   h+='</div>';
   ov.innerHTML=h;
@@ -3606,6 +3641,7 @@ function checkEliminated(afterRoundCb){
       var stillActive = players.filter(function(q){ return q.active; });
       if(stillActive.length < 2){
         var winner = stillActive[0];
+        if(offlineMode){ offlineGameOver(winner); return; }
         var winMsg = winner ? '<span class="wn">'+winner.name+'</span>の優勝！' : 'ゲーム終了';
         showMsg('ゲーム終了', winMsg, 'ロビーへ', function(){
           document.getElementById('back-btn-wrap').style.display='none';
@@ -7227,7 +7263,14 @@ if(/[?&]test=1\b/.test(location.search)){
     get players(){return players;},get pot(){return pot;},get phase(){return phase;},
     get curIdx(){return curIdx;},get myIdx(){return myIdx;},get isHost(){return isHost;},
     get comm(){return comm;},get dealerIdx(){return dealerIdx;},
-    get handNo(){return _handNo;},get sdLog(){return _sdLog;},
+    get handNo(){return _handNo;},get sdLog(){return _sdLog;},get initialChips(){return _initialChips;},
+    // レイズの規則だけを確かめる: 状態を作って applyRaiseTo を呼び、結果を返す
+    testRaise:function(st,target){
+      curBet=st.curBet;lastRaise=st.lastRaise;acts=st.acts.slice();pot=st.pot||0;
+      var q={bet:st.bet,chips:st.chips,totalBet:st.bet,allIn:false};
+      applyRaiseTo(q,9,target);
+      return {curBet:curBet,lastRaise:lastRaise,acts:acts.slice(),bet:q.bet,chips:q.chips,allIn:q.allIn,pot:pot};
+    },
     // 指定した場面でショーダウンだけを行う（各プレイヤー: name, stack=ハンド開始時のチップ, bet=このハンドの賭け額, hole, folded）
     testShowdown:function(spec){
       var C=function(t){return {r:t.slice(0,-1),s:t.slice(-1)};};
