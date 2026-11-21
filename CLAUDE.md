@@ -57,7 +57,7 @@
 - 出さない条件: 招待リンク `?join=` / `?ccroom=`、チップ計算オンラインの復帰（保存セッションに roomCode）、テスト `?test=1`（`window.__showTitle=true` の時だけ出す）
 - 判定は `INITIAL_SEARCH`（スクリプトの最初で覚えた URL のパラメータ）で行う。`?join=` の処理が `history.replaceState` で URL を消すため、`location.search` を後で読まない
 - カードは `cH()` のロイヤルストレートフラッシュを扇形に配る（`--r` 角度、`--d` 遅れ）。背の低い画面（高さ720px以下）は詰めた配置
-- タイトルとロビーでは画面スリープ防止をしない。BGM も流さない（ゲーム画面だけ）
+- タイトルとロビーでは画面スリープ防止をしない。BGM も流さない（ゲーム画面だけ。理由は BGM の項）
 - `tests/title.test.js`
 
 ## 効果音・BGM（v55〜、メインのゲームとチップ計算で共通）
@@ -65,14 +65,14 @@
 - 設定: 効果音 `ccSoundOn`（localStorage `cc_sound`）、BGM `bgmOn`（`poker_bgm`、`?test=1` では既定オフ）。ボタンは `.sfx-btn` / `.bgm-btn` クラスで全画面ぶんまとめて `ccUpdateSoundBtn()` が更新（メイン `#g-sound-btn` `#g-bgm-btn`、チップ計算 `#cc-sound-btn` `#cc-bgm-btn`）
 - AudioContext は `sndCtx()` で1つだけ作る。効果音は `ccAudio()`（効果音オフなら null）
 - 効果音の呼び出し場所: アクション `showActionBubble()` → `ccPlayActionSound()`、配札 `showDealOverlay()` → `sndDeal()`、フロップ等のめくり `showPhaseOverlay()` → `ccPlayCardSound()`、自分の手番 `renderAction()` / `renderActionOffline()` → `sndMyTurn()`、結果 `showMsg()` → `sndForResult()`（本文の `.wn` に自分の名前があれば `sndWin()`、なければ `sndLose()`）
-- BGM: 音源ファイルなしで Web Audio でその場で鳴らす。曲は `BGM_SONGS` の3つ（v63〜）
-  - `title`: タイトルとロビー。パッド＋ピアノのアルペジオ（`bgmStepTitle`）、ドラムなし
+- BGM: 音源ファイルなしで Web Audio でその場で鳴らす。曲は `BGM_SONGS` の2つで、ゲーム画面（`screen-game` / `screen-chipcalc`）だけで流す
+  - タイトル・ロビーの曲は作らない（v64 で取りやめ）。スマホは最初のタップまで音が出せず、タイトルの最初のタップは「はじめる」なので、タイトルでは聞こえずロビーで急に鳴り始めるだけになるため
   - `lounge`: ゲーム中。ラウンジジャズ（`bgmStep`、エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）
   - `allin`: オールインの演出。刻むベース・心音のキック・ハイハット・せり上がるノイズ（`bgmStepAllin`）
   - `bgmWanted()` が画面と `BGM_TENSION` から曲を選び、`bgmSync()` が違えばクロスフェードで切り替える。`bgmTick()` が 120ms ごとに 0.4 秒先まで予約。`showScreen()` と `visibilitychange`、起動時に呼ぶ
   - オールインの判定: `renderAll()`（メイン）/ `ccRenderAll()`（チップ計算）で「フォールドしていない人がオールイン、かつ結果がまだ」の間 `bgmSetTension(true)`。`showMsg()`（結果）とロビーへ戻る時に false
   - スマホは最初のタップまで音が出ない（AudioContext が suspended）。`pointerdown` で再開する
-  - 3曲の音量は `bgmProbe(mode,ms)`（`?test=1`）で測ってそろえてある（RMS 約 0.015〜0.018）。曲を変えたら測り直す
+  - 曲の音量は `bgmProbe(mode,ms)`（`?test=1`）で測ってそろえてある（RMS 約 0.015〜0.018）。曲を変えたら測り直す
 
 ## ショーダウンの精算（v58〜、メインのゲーム）
 - CPU対戦 `doShowdownOffline()` とオンライン（ホスト）`finishSD()` は同じ `settleShowdown(cont)` と `showdownView(cont,res)` を使う。片方だけ直さない

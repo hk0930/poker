@@ -934,7 +934,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.22.63-sdk</div>
+    <div class="ver">v2026.11.22.64-sdk</div>
   </div>
 </div>
 
@@ -3882,7 +3882,7 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   // ゲーム中は画面を消さない、ロビーに戻ったら解除
   if(id==='screen-lobby'||id==='screen-title') noSleepOff(); else noSleepOn();
-  bgmSync(); // 画面に合わせて BGM を切り替える（タイトル・ロビー / ゲーム / オールイン）
+  bgmSync(); // 画面に合わせて BGM を切り替える（ゲーム画面だけで流す）
 }
 
 // グローバルに公開（ボタンのonclickから呼び出せるよう）
@@ -4123,8 +4123,8 @@ function sndForResult(title,bodyEl){
 }
 
 // ─── BGM（Web Audio でその場で作る。音源ファイルなし） ───
-// 曲は3つ。bgmSync() が画面と状況から選び、変わる時はクロスフェードする
-//   title : タイトル・ロビー。ピアノのアルペジオとパッドだけの静かな曲
+// 曲は2つ（ゲーム画面だけで流す）。bgmSync() が状況から選び、変わる時はクロスフェードする
+// タイトル・ロビーでは流さない（スマホは最初のタップまで音が出せず、タイトルの最初のタップは「はじめる」なので聞こえないため）
 //   lounge: ゲーム中。ii-V-I のラウンジジャズ（エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）
 //   allin : 誰かがオールインした時。短調の刻むベース・心音のキック・ハイハット・せり上がるノイズ
 // どの曲も8分音符ごとに 0.4 秒先まで予約する（bgmTick）
@@ -4136,19 +4136,14 @@ var BGM_SONGS={
     [38,[3,7,10,14]],[43,[4,10,14,21]],[40,[3,7,10,14]],[45,[4,10,13,19]],   // Dm9 G13 Em9 A7
     [41,[4,7,11,14]],[46,[4,7,10,14]],[40,[3,7,10,14]],[45,[4,7,10,13]],     // Fmaj9 Bb9 Em9 A7(b9)
     [38,[3,7,10,14]],[43,[5,10,14,17]],[36,[4,7,11,14]],[36,[4,7,11,14]]]},  // Dm9 G7sus Cmaj9 Cmaj9
-  title:{tempo:70,swing:false,vol:0.36,cutoff:3200,prog:[
-    [41,[4,7,11,14]],[40,[3,7,10,14]],[38,[3,7,10,14]],[36,[4,7,11,14]],     // Fmaj9 Em9 Dm9 Cmaj9
-    [46,[4,7,11,14]],[45,[3,7,10,14]],[43,[3,7,10,14]],[36,[5,10,14,17]]]},  // Bbmaj9 Am9 Gm9 C9sus
   allin:{tempo:112,swing:false,vol:0.2,cutoff:2200,prog:[
     [38,[3,7,12,14]],[38,[3,7,12,14]],[34,[4,7,12,14]],[33,[4,7,10,13]]]}    // Dm(add9) Dm Bb(add9) A7(b9)
 };
 var BGM_COMP=[[0],[0,3],[1,4],[0,5],[2,6],[3,7],[0,6]]; // ラウンジ: 1小節(8分×8)のうちコードを鳴らす位置
-var BGM_ARP=[0,1,2,3,4,3,2,1]; // タイトル: アルペジオの順番（構成音の番号、4 は1オクターブ上の根音）
 function midiF(m){return 440*Math.pow(2,(m-69)/12);}
 function bgmWanted(){
   if(!bgmOn||document.hidden) return null;
   var a=document.querySelector('.screen.active');if(!a) return null;
-  if(a.id==='screen-title'||a.id==='screen-lobby') return 'title';
   if(a.id==='screen-game'||a.id==='screen-chipcalc') return BGM_TENSION?'allin':'lounge';
   return null;
 }
@@ -4206,8 +4201,7 @@ function bgmTick(){
   if(BGM.next<ctx.currentTime-0.2) BGM.next=ctx.currentTime+0.05; // 一時停止から戻ったら今から再開
   while(BGM.next<ctx.currentTime+0.4){
     var song=BGM_SONGS[BGM.mode];
-    if(BGM.mode==='title') bgmStepTitle(ctx,BGM.next,BGM.step,song);
-    else if(BGM.mode==='allin') bgmStepAllin(ctx,BGM.next,BGM.step,song);
+    if(BGM.mode==='allin') bgmStepAllin(ctx,BGM.next,BGM.step,song);
     else bgmStep(ctx,BGM.next,BGM.step,song);
     bgmAdvance(song);
   }
@@ -4243,26 +4237,6 @@ function bgmStep(ctx,t,step,song){
     var o2=ch[1][Math.floor(Math.random()*ch[1].length)];
     var m2=ch[0]+24+o2;while(m2<69) m2+=12;while(m2>84) m2-=12;
     bgmVibe(ctx,t,midiF(m2),beat*1.5);
-  }
-}
-// タイトル・ロビー: パッドの上でピアノがゆっくりアルペジオ。ドラムなし
-function bgmStepTitle(ctx,t,step,song){
-  var ch=song.prog[BGM.bar],beat=60/song.tempo,bar=beat*4;
-  if(step===0){
-    bgmPad(ctx,t,ch[1].map(function(o){return midiF(ch[0]+12+o);}),bar*1.05,0.018);
-    bgmBass(ctx,t,midiF(ch[0]>45?ch[0]-12:ch[0]),bar*0.95,0.16);
-  }
-  // アルペジオ: 構成音を上がって下りる。小節の最後の拍はときどき休む
-  if(!(step===7&&Math.random()<0.4)){
-    var idx=BGM_ARP[step],o=idx===4?12:ch[1][idx];
-    var m=ch[0]+24+o;while(m>79) m-=12;
-    bgmKeys(ctx,t,midiF(m),beat*1.6,step===0?0.05:0.034);
-  }
-  // 2小節ごとに高い音で短いフレーズ
-  if(BGM.bar%2===1&&(step===2||step===5)&&Math.random()<0.55){
-    var o2=ch[1][Math.floor(Math.random()*ch[1].length)];
-    var m2=ch[0]+36+o2;while(m2>91) m2-=12;
-    bgmVibe(ctx,t,midiF(m2),beat*2.2);
   }
 }
 // オールイン: 8分で刻むベース、心音のキック、ハイハット、パッドの持続音、4小節目でせり上がる
@@ -7397,7 +7371,6 @@ if(/[?&]test=1\b/.test(location.search)){
   var sess=null;try{sess=ccGetSavedSession();}catch(e){}
   var skip=params.get('join')||params.get('ccroom')||(sess&&sess.roomCode)||(/[?&]test=1\b/.test(INITIAL_SEARCH)&&!window.__showTitle);
   if(!skip&&document.getElementById('screen-lobby').classList.contains('active')) showScreen('screen-title');
-  else bgmSync(); // タイトルを飛ばした時もロビーの曲を選ぶ（スマホは最初のタップで鳴り始める）
   document.getElementById('btn-title-start').addEventListener('click',function(){
     sndCtx(); // スマホはこのタップから音が出せるようになる
     if(ccSoundOn){try{var ctx=ccAudio();[392,523.25,659.25,783.99].forEach(function(f,i){ccTone(ctx,'triangle',f,0.6,0.09,i*0.07);});}catch(e){}}

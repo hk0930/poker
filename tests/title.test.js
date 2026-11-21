@@ -52,15 +52,15 @@ test('タイトル: テストでは既定で出さない（ほかのテストは
   await page.context().close();
 });
 
-test('タイトル: BGM がオンならタイトル曲が流れる', async () => {
+test('タイトル: BGM がオンでもタイトルとロビーでは流さない', async () => {
   const page = await open();
   await page.evaluate(() => { localStorage.setItem('poker_bgm', '1'); });
   await page.reload();
   assert.equal(await active(page), 'screen-title');
-  assert.equal(await page.evaluate(() => window.__poker.bgmMode), 'title');
+  assert.equal(await page.evaluate(() => window.__poker.bgmMode), null);
   await page.click('#btn-title-start');
   await page.waitForFunction(() => document.getElementById('screen-lobby').classList.contains('active'));
-  assert.equal(await page.evaluate(() => window.__poker.bgmMode), 'title', 'ロビーでも続けて流れる');
+  assert.equal(await page.evaluate(() => window.__poker.bgmMode), null);
   assert.deepEqual(page.errors, []);
   await page.context().close();
 });
