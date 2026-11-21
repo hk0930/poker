@@ -224,15 +224,41 @@ test('効果音とBGM: ボタンで切り替わり、端末に記憶され、チ
   await playHandCpu(page, 'call');
   assert.deepEqual(page.errors, []);
 
-  // ロビーでは BGM を止める
+  // ロビーではタイトル用の曲に切り替わる
   await page.evaluate(() => window._pokerGoLobby());
-  assert.equal((await soundState(page)).playing, false);
+  assert.equal(await page.evaluate(() => window.__poker.bgmMode), 'title');
 
   // 再読み込みしても設定が残る
   await page.reload();
   s = await soundState(page);
   assert.equal(s.bgm, true); assert.equal(s.sfx, true);
-  assert.equal(s.playing, false, 'ロビーでは流さない');
+  assert.equal(await page.evaluate(() => window.__poker.bgmMode), 'title', 'ロビーではタイトル用の曲');
+  await page.context().close();
+});
+
+test('BGM: ロビーはタイトル曲、ゲーム中はラウンジ、オールインで切り替わり、結果が出ると戻る', async () => {
+  const page = await startCpuGame({ cpu: 1 });
+  const mode = () => page.evaluate(() => window.__poker.bgmMode);
+  await page.click('#g-bgm-btn');
+  assert.equal(await mode(), 'lounge', 'ゲーム中はラウンジ');
+  for (let i = 0; i < 100; i++) { if ((await snap(page)).ap) break; await page.clock.runFor(250); }
+  await page.click('#brow .ab-allin');
+  assert.equal(await mode(), 'allin', '自分がオールインしたら切り替わる');
+  // ハンドの決着まで進める（相手がフォールドしても結果で戻る）
+  for (let i = 0; i < 400; i++) {
+    const s = await snap(page);
+    if (s.mover) break;
+    if (s.ap) { await page.click('#brow .' + (s.btns.includes('ab-check') ? 'ab-check' : 'ab-call')); continue; }
+    await page.clock.runFor(250);
+  }
+  assert.equal(await mode(), 'lounge', '結果が出たら元の曲');
+  await page.click('#mnext');
+  await page.clock.runFor(1000);
+  assert.notEqual(await mode(), 'allin', '次のハンドはオールインの曲ではない');
+  await page.evaluate(() => window._pokerGoLobby());
+  assert.equal(await mode(), 'title', 'ロビーではタイトル曲');
+  await page.click('#g-bgm-btn').catch(() => {});
+  assert.deepEqual(page.errors, []);
   await page.context().close();
 });
 

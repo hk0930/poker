@@ -65,7 +65,14 @@
 - 設定: 効果音 `ccSoundOn`（localStorage `cc_sound`）、BGM `bgmOn`（`poker_bgm`、`?test=1` では既定オフ）。ボタンは `.sfx-btn` / `.bgm-btn` クラスで全画面ぶんまとめて `ccUpdateSoundBtn()` が更新（メイン `#g-sound-btn` `#g-bgm-btn`、チップ計算 `#cc-sound-btn` `#cc-bgm-btn`）
 - AudioContext は `sndCtx()` で1つだけ作る。効果音は `ccAudio()`（効果音オフなら null）
 - 効果音の呼び出し場所: アクション `showActionBubble()` → `ccPlayActionSound()`、配札 `showDealOverlay()` → `sndDeal()`、フロップ等のめくり `showPhaseOverlay()` → `ccPlayCardSound()`、自分の手番 `renderAction()` / `renderActionOffline()` → `sndMyTurn()`、結果 `showMsg()` → `sndForResult()`（本文の `.wn` に自分の名前があれば `sndWin()`、なければ `sndLose()`）
-- BGM: 音源ファイルなしで Web Audio でその場で鳴らすラウンジジャズ（`BGM_PROG` のコード進行、エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）。`bgmTick()` が 120ms ごとに 0.4 秒先まで予約。`bgmSync()` がゲーム画面（`screen-game` / `screen-chipcalc`）かつ表示中の時だけ流す。`showScreen()` と `visibilitychange` で呼ぶ
+- BGM: 音源ファイルなしで Web Audio でその場で鳴らす。曲は `BGM_SONGS` の3つ（v63〜）
+  - `title`: タイトルとロビー。パッド＋ピアノのアルペジオ（`bgmStepTitle`）、ドラムなし
+  - `lounge`: ゲーム中。ラウンジジャズ（`bgmStep`、エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）
+  - `allin`: オールインの演出。刻むベース・心音のキック・ハイハット・せり上がるノイズ（`bgmStepAllin`）
+  - `bgmWanted()` が画面と `BGM_TENSION` から曲を選び、`bgmSync()` が違えばクロスフェードで切り替える。`bgmTick()` が 120ms ごとに 0.4 秒先まで予約。`showScreen()` と `visibilitychange`、起動時に呼ぶ
+  - オールインの判定: `renderAll()`（メイン）/ `ccRenderAll()`（チップ計算）で「フォールドしていない人がオールイン、かつ結果がまだ」の間 `bgmSetTension(true)`。`showMsg()`（結果）とロビーへ戻る時に false
+  - スマホは最初のタップまで音が出ない（AudioContext が suspended）。`pointerdown` で再開する
+  - 3曲の音量は `bgmProbe(mode,ms)`（`?test=1`）で測ってそろえてある（RMS 約 0.015〜0.018）。曲を変えたら測り直す
 
 ## ショーダウンの精算（v58〜、メインのゲーム）
 - CPU対戦 `doShowdownOffline()` とオンライン（ホスト）`finishSD()` は同じ `settleShowdown(cont)` と `showdownView(cont,res)` を使う。片方だけ直さない

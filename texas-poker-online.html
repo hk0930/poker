@@ -934,7 +934,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.22.62-sdk</div>
+    <div class="ver">v2026.11.22.63-sdk</div>
   </div>
 </div>
 
@@ -3362,6 +3362,8 @@ function betVec(angDeg){
 }
 
 function renderAll(){
+  // オールインの演出: フォールドしていない人がオールインしていて、まだ結果が出ていない間は BGM を切り替える
+  bgmSetTension(players.some(function(p){return p.active&&!p.folded&&p.allIn;})&&!document.getElementById('mover').classList.contains('show'));
   var area=document.getElementById('seats');area.innerHTML='';
   // apVisible を forEach の外で1回だけ取得（シートクラス付与より前）
   var apVisible = document.getElementById('ap').style.display !== 'none';
@@ -3454,6 +3456,7 @@ function renderAll(){
 function showInfo(m){_dbg('showInfo:'+m.substring(0,25));document.getElementById('ibar').classList.add('show');document.getElementById('ibar-t').textContent=m;}
 function hideInfo(){document.getElementById('ibar').classList.remove('show');}
 function showMsg(title,body,lbl,fn,ch,commCards,endFn){
+  bgmSetTension(false); // 結果が出たら元の曲に戻す
   document.getElementById('mover').classList.add('show');
   if(gamePath) document.getElementById('back-btn-wrap').style.display='block';
   document.getElementById('mtitle').textContent=title;
@@ -3879,12 +3882,13 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   // ゲーム中は画面を消さない、ロビーに戻ったら解除
   if(id==='screen-lobby'||id==='screen-title') noSleepOff(); else noSleepOn();
-  bgmSync(); // BGM はゲーム画面（メイン・チップ計算）だけで流す
+  bgmSync(); // 画面に合わせて BGM を切り替える（タイトル・ロビー / ゲーム / オールイン）
 }
 
 // グローバルに公開（ボタンのonclickから呼び出せるよう）
 window._pokerShowScreen = showScreen;
 window._pokerGoLobby = function(){
+  bgmSetTension(false);
   document.getElementById('back-btn-wrap').style.display='none';
   // オンラインのFirebaseリスナーを全て停止
   if(gamePath){
@@ -4118,68 +4122,105 @@ function sndForResult(title,bodyEl){
   if(names.indexOf(me)>=0) sndWin(/ゲーム終了/.test(title)); else sndLose();
 }
 
-// ─── BGM: その場で作るラウンジジャズ（Web Audio、音源ファイルなし） ───
-// 8分音符ごとに少し先まで予約する。ii-V-I の進行にエレピのコンプ、ウォーキングベース、ブラシのライド、ときどきヴィブラフォン
-var BGM={timer:null,master:null,filter:null,next:0,step:0,bar:0,noise:null,comp:[]};
-var BGM_TEMPO=84;
-var BGM_PROG=[ // [ベースの根音(MIDI), コードの構成音(根音からの半音数)]
-  [38,[3,7,10,14]],[43,[4,10,14,21]],[36,[4,7,11,14]],[45,[4,7,10,13]],   // Dm9 G13 Cmaj9 A7(b9)
-  [38,[3,7,10,14]],[43,[4,10,14,21]],[40,[3,7,10,14]],[45,[4,10,13,19]],   // Dm9 G13 Em9 A7
-  [41,[4,7,11,14]],[46,[4,7,10,14]],[40,[3,7,10,14]],[45,[4,7,10,13]],     // Fmaj9 Bb9 Em9 A7(b9)
-  [38,[3,7,10,14]],[43,[5,10,14,17]],[36,[4,7,11,14]],[36,[4,7,11,14]]     // Dm9 G7sus Cmaj9 Cmaj9
-];
-var BGM_COMP=[[0],[0,3],[1,4],[0,5],[2,6],[3,7],[0,6]]; // 1小節(8分×8)のうちコードを鳴らす位置
+// ─── BGM（Web Audio でその場で作る。音源ファイルなし） ───
+// 曲は3つ。bgmSync() が画面と状況から選び、変わる時はクロスフェードする
+//   title : タイトル・ロビー。ピアノのアルペジオとパッドだけの静かな曲
+//   lounge: ゲーム中。ii-V-I のラウンジジャズ（エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）
+//   allin : 誰かがオールインした時。短調の刻むベース・心音のキック・ハイハット・せり上がるノイズ
+// どの曲も8分音符ごとに 0.4 秒先まで予約する（bgmTick）
+var BGM={timer:null,master:null,filter:null,comp:null,next:0,step:0,bar:0,noise:null,mode:null,pattern:[0]};
+var BGM_TENSION=false; // オールインの演出中
+var BGM_SONGS={
+  lounge:{tempo:84,swing:true,vol:0.2,cutoff:2600,prog:[ // [ベースの根音(MIDI), コードの構成音(根音からの半音数)]
+    [38,[3,7,10,14]],[43,[4,10,14,21]],[36,[4,7,11,14]],[45,[4,7,10,13]],   // Dm9 G13 Cmaj9 A7(b9)
+    [38,[3,7,10,14]],[43,[4,10,14,21]],[40,[3,7,10,14]],[45,[4,10,13,19]],   // Dm9 G13 Em9 A7
+    [41,[4,7,11,14]],[46,[4,7,10,14]],[40,[3,7,10,14]],[45,[4,7,10,13]],     // Fmaj9 Bb9 Em9 A7(b9)
+    [38,[3,7,10,14]],[43,[5,10,14,17]],[36,[4,7,11,14]],[36,[4,7,11,14]]]},  // Dm9 G7sus Cmaj9 Cmaj9
+  title:{tempo:70,swing:false,vol:0.36,cutoff:3200,prog:[
+    [41,[4,7,11,14]],[40,[3,7,10,14]],[38,[3,7,10,14]],[36,[4,7,11,14]],     // Fmaj9 Em9 Dm9 Cmaj9
+    [46,[4,7,11,14]],[45,[3,7,10,14]],[43,[3,7,10,14]],[36,[5,10,14,17]]]},  // Bbmaj9 Am9 Gm9 C9sus
+  allin:{tempo:112,swing:false,vol:0.2,cutoff:2200,prog:[
+    [38,[3,7,12,14]],[38,[3,7,12,14]],[34,[4,7,12,14]],[33,[4,7,10,13]]]}    // Dm(add9) Dm Bb(add9) A7(b9)
+};
+var BGM_COMP=[[0],[0,3],[1,4],[0,5],[2,6],[3,7],[0,6]]; // ラウンジ: 1小節(8分×8)のうちコードを鳴らす位置
+var BGM_ARP=[0,1,2,3,4,3,2,1]; // タイトル: アルペジオの順番（構成音の番号、4 は1オクターブ上の根音）
 function midiF(m){return 440*Math.pow(2,(m-69)/12);}
-function bgmShouldPlay(){
-  if(!bgmOn||document.hidden) return false;
-  var a=document.querySelector('.screen.active');
-  return !!a&&(a.id==='screen-game'||a.id==='screen-chipcalc');
+function bgmWanted(){
+  if(!bgmOn||document.hidden) return null;
+  var a=document.querySelector('.screen.active');if(!a) return null;
+  if(a.id==='screen-title'||a.id==='screen-lobby') return 'title';
+  if(a.id==='screen-game'||a.id==='screen-chipcalc') return BGM_TENSION?'allin':'lounge';
+  return null;
 }
-function bgmSync(){ if(bgmShouldPlay()) bgmStart(); else bgmStop(); }
-function bgmStart(){
+function bgmShouldPlay(){ return !!bgmWanted(); }
+function bgmSync(){
+  var w=bgmWanted();
+  if(!w){bgmStop();return;}
+  if(BGM.timer&&BGM.mode===w) return;
+  bgmStop(w==='allin'?0.35:0.9); // 前の曲はフェードアウト（予約済みの音はそのまま消えていく）
+  bgmStart(w);
+}
+// オールインの演出: on で緊張感のある曲へ、off で元の曲へ
+function bgmSetTension(on){
+  if(BGM_TENSION===!!on) return;
+  BGM_TENSION=!!on;
+  bgmSync();
+}
+function bgmStart(mode){
   if(BGM.timer) return;
   var ctx=sndCtx();if(!ctx) return;
+  mode=mode||bgmWanted()||'lounge';
+  var song=BGM_SONGS[mode];
   var comp=ctx.createDynamicsCompressor();comp.connect(ctx.destination);
   var master=ctx.createGain();master.gain.setValueAtTime(0.0001,ctx.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+1.5);
-  var filt=ctx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=2600;
+  master.gain.exponentialRampToValueAtTime(song.vol,ctx.currentTime+(mode==='allin'?0.4:1.5));
+  var filt=ctx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=song.cutoff;
   filt.connect(master);master.connect(comp);
   if(!BGM.noise){
-    var buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.5),ctx.sampleRate),d=buf.getChannelData(0);
+    var buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*2),ctx.sampleRate),d=buf.getChannelData(0);
     for(var i=0;i<d.length;i++) d[i]=Math.random()*2-1;
     BGM.noise=buf;
   }
-  BGM.master=master;BGM.filter=filt;BGM.comp=comp;
-  BGM.next=ctx.currentTime+0.1;BGM.step=0;BGM.bar=Math.floor(Math.random()*4)*4;
+  BGM.mode=mode;BGM.master=master;BGM.filter=filt;BGM.comp=comp;
+  BGM.next=ctx.currentTime+0.1;BGM.step=0;
+  BGM.bar=mode==='lounge'?Math.floor(Math.random()*4)*4:0;
   BGM.timer=setInterval(bgmTick,120);
   bgmTick();
 }
-function bgmStop(){
+function bgmStop(fade){
   if(!BGM.timer) return;
   clearInterval(BGM.timer);BGM.timer=null;
   var ctx=_ccAudioCtx,m=BGM.master,c=BGM.comp;
-  BGM.master=null;BGM.filter=null;
+  BGM.master=null;BGM.filter=null;BGM.mode=null;
   if(!ctx||!m) return;
+  var f=fade||0.5;
   try{
     m.gain.cancelScheduledValues(ctx.currentTime);
     m.gain.setValueAtTime(Math.max(m.gain.value,0.0001),ctx.currentTime);
-    m.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.5);
+    m.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+f);
   }catch(e){}
-  setTimeout(function(){try{m.disconnect();c.disconnect();}catch(e){}},700);
+  setTimeout(function(){try{m.disconnect();c.disconnect();}catch(e){}},(f+0.8)*1000);
 }
 function bgmTick(){
   var ctx=_ccAudioCtx;if(!ctx||!BGM.master) return;
   if(BGM.next<ctx.currentTime-0.2) BGM.next=ctx.currentTime+0.05; // 一時停止から戻ったら今から再開
-  while(BGM.next<ctx.currentTime+0.4){ bgmStep(ctx,BGM.next,BGM.step); bgmAdvance(); }
+  while(BGM.next<ctx.currentTime+0.4){
+    var song=BGM_SONGS[BGM.mode];
+    if(BGM.mode==='title') bgmStepTitle(ctx,BGM.next,BGM.step,song);
+    else if(BGM.mode==='allin') bgmStepAllin(ctx,BGM.next,BGM.step,song);
+    else bgmStep(ctx,BGM.next,BGM.step,song);
+    bgmAdvance(song);
+  }
 }
-function bgmAdvance(){
-  var beat=60/BGM_TEMPO;
-  BGM.next+=(BGM.step%2===0)?beat*2/3:beat/3; // スイング（3連の長短）
+function bgmAdvance(song){
+  var beat=60/song.tempo;
+  BGM.next+=song.swing?((BGM.step%2===0)?beat*2/3:beat/3):beat/2; // ラウンジはスイング（3連の長短）
   BGM.step++;
-  if(BGM.step>=8){BGM.step=0;BGM.bar=(BGM.bar+1)%BGM_PROG.length;}
+  if(BGM.step>=8){BGM.step=0;BGM.bar=(BGM.bar+1)%song.prog.length;}
 }
-function bgmStep(ctx,t,step){
-  var ch=BGM_PROG[BGM.bar],nx=BGM_PROG[(BGM.bar+1)%BGM_PROG.length],beat=60/BGM_TEMPO;
+// ラウンジジャズ（ゲーム中）
+function bgmStep(ctx,t,step,song){
+  var ch=song.prog[BGM.bar],nx=song.prog[(BGM.bar+1)%song.prog.length],beat=60/song.tempo;
   if(step===0) BGM.pattern=BGM_COMP[Math.floor(Math.random()*BGM_COMP.length)];
   // ブラシのライド: 1・2・2裏・3・4・4裏
   if(step!==2&&step!==6) bgmRide(ctx,t,(step%2)?0.05:0.08);
@@ -4204,6 +4245,43 @@ function bgmStep(ctx,t,step){
     bgmVibe(ctx,t,midiF(m2),beat*1.5);
   }
 }
+// タイトル・ロビー: パッドの上でピアノがゆっくりアルペジオ。ドラムなし
+function bgmStepTitle(ctx,t,step,song){
+  var ch=song.prog[BGM.bar],beat=60/song.tempo,bar=beat*4;
+  if(step===0){
+    bgmPad(ctx,t,ch[1].map(function(o){return midiF(ch[0]+12+o);}),bar*1.05,0.018);
+    bgmBass(ctx,t,midiF(ch[0]>45?ch[0]-12:ch[0]),bar*0.95,0.16);
+  }
+  // アルペジオ: 構成音を上がって下りる。小節の最後の拍はときどき休む
+  if(!(step===7&&Math.random()<0.4)){
+    var idx=BGM_ARP[step],o=idx===4?12:ch[1][idx];
+    var m=ch[0]+24+o;while(m>79) m-=12;
+    bgmKeys(ctx,t,midiF(m),beat*1.6,step===0?0.05:0.034);
+  }
+  // 2小節ごとに高い音で短いフレーズ
+  if(BGM.bar%2===1&&(step===2||step===5)&&Math.random()<0.55){
+    var o2=ch[1][Math.floor(Math.random()*ch[1].length)];
+    var m2=ch[0]+36+o2;while(m2>91) m2-=12;
+    bgmVibe(ctx,t,midiF(m2),beat*2.2);
+  }
+}
+// オールイン: 8分で刻むベース、心音のキック、ハイハット、パッドの持続音、4小節目でせり上がる
+function bgmStepAllin(ctx,t,step,song){
+  var ch=song.prog[BGM.bar],beat=60/song.tempo,bar=beat*4;
+  // 刻むベース（拍の頭を強く）
+  bgmPulse(ctx,t,midiF(ch[0]),beat*0.42,step%2===0?0.26:0.16);
+  // 心音: ドン・ドン（1拍目と、その8分後）
+  if(step===0||step===1) bgmKick(ctx,t,step===0?0.55:0.35);
+  if(step===4&&BGM.bar%2===1) bgmKick(ctx,t,0.4);
+  // ハイハット（裏拍を強く）
+  bgmHat(ctx,t,step%2?0.05:0.025);
+  // 暗い持続音
+  if(step===0) bgmPad(ctx,t,ch[1].map(function(o){return midiF(ch[0]+12+o);}),bar*1.02,0.022,'sawtooth');
+  // 高い緊張音: 半音でぶつかる2音を交互に
+  if(step%4===0) bgmVibe(ctx,t,midiF(81+((step/4+BGM.bar)%2)),beat*1.6);
+  // 4小節目: ノイズがせり上がって次の頭へ
+  if(BGM.bar===song.prog.length-1&&step===0) bgmRiser(ctx,t,bar);
+}
 function bgmKeys(ctx,t,f,dur,vol){
   var g=ctx.createGain(),o=ctx.createOscillator(),o2=ctx.createOscillator(),g2=ctx.createGain();
   o.type='sine';o.frequency.value=f;o2.type='sine';o2.frequency.value=f*2;g2.gain.value=0.25;
@@ -4212,11 +4290,12 @@ function bgmKeys(ctx,t,f,dur,vol){
   o.connect(g);o2.connect(g2);g2.connect(g);g.connect(BGM.filter);
   o.start(t);o2.start(t);o.stop(t+dur+0.35);o2.stop(t+dur+0.35);
 }
-function bgmBass(ctx,t,f,dur){
+function bgmBass(ctx,t,f,dur,vol){
+  var v=vol||0.32;
   var g=ctx.createGain(),o=ctx.createOscillator();
   o.type='triangle';o.frequency.value=f;
-  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.32,t+0.02);
-  g.gain.exponentialRampToValueAtTime(0.12,t+0.18);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+0.02);
+  g.gain.exponentialRampToValueAtTime(v*0.38,t+0.18);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   o.connect(g);g.connect(BGM.filter);o.start(t);o.stop(t+dur+0.05);
 }
 function bgmRide(ctx,t,vol){
@@ -4231,6 +4310,40 @@ function bgmVibe(ctx,t,f,dur){
   trem.connect(tg);tg.connect(g.gain);
   g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.045,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   o.connect(g);g.connect(BGM.filter);o.start(t);trem.start(t);o.stop(t+dur+0.05);trem.stop(t+dur+0.05);
+}
+function bgmPad(ctx,t,freqs,dur,vol,type){
+  freqs.forEach(function(f){
+    var g=ctx.createGain(),o=ctx.createOscillator();
+    o.type=type||'sine';o.frequency.value=f;o.detune.value=(Math.random()-.5)*8;
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+Math.min(0.8,dur*0.3));
+    g.gain.setValueAtTime(vol,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);g.connect(BGM.filter);o.start(t);o.stop(t+dur+0.05);
+  });
+}
+function bgmPulse(ctx,t,f,dur,vol){
+  var g=ctx.createGain(),o=ctx.createOscillator();
+  o.type='triangle';o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(BGM.filter);o.start(t);o.stop(t+dur+0.02);
+}
+function bgmKick(ctx,t,vol){
+  var g=ctx.createGain(),o=ctx.createOscillator();
+  o.type='sine';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(42,t+0.16);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+  o.connect(g);g.connect(BGM.master);o.start(t);o.stop(t+0.32);
+}
+function bgmHat(ctx,t,vol){
+  var s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+  s.buffer=BGM.noise;f.type='highpass';f.frequency.value=8000;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  s.connect(f);f.connect(g);g.connect(BGM.master);s.start(t,Math.random()*1.5);s.stop(t+0.06);
+}
+function bgmRiser(ctx,t,dur){
+  var s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+  s.buffer=BGM.noise;s.loop=true;f.type='bandpass';f.Q.value=4;
+  f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(6000,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.07,t+dur*0.95);g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.05);
+  s.connect(f);f.connect(g);g.connect(BGM.master);s.start(t);s.stop(t+dur+0.1);
 }
 document.addEventListener('visibilitychange',bgmSync);
 
@@ -4862,6 +4975,7 @@ function ccSetPot(v){
 }
 
 function ccRenderAll(){
+  bgmSetTension(!!cc.roundActive&&cc.players.some(function(p){return !p.folded&&!p.eliminated&&p.allIn;}));
   var seatsEl=document.getElementById('cc-seats');
   var wrap=document.getElementById('cc-table-wrap');
   var n=cc.players.length;
@@ -7253,7 +7367,17 @@ if(/[?&]test=1\b/.test(location.search)){
         main:document.querySelector('#mbody .wn').textContent,side:[].map.call(document.querySelectorAll('#mbody .wn-side'),function(e){return e.textContent;}),
         trophies:[].map.call(document.querySelectorAll('#mcards .sd-row.win .sd-nm'),function(e){return e.textContent;})};
     },get sfxOn(){return ccSoundOn;},get bgmOn(){return bgmOn;},
-    get bgmPlaying(){return !!BGM.timer;},rankingRows:function(){return gameRankingRows().map(function(r){return {name:r.p.name,isMe:!!r.p.isMe,stack:r.stack,buyin:r.buyin,net:r.net};});},
+    get bgmPlaying(){return !!BGM.timer;},get bgmMode(){return BGM.timer?BGM.mode:null;},
+    // 曲ごとの音量を測る（無音や音割れがないかの確認用）
+    bgmProbe:function(mode,ms){
+      return new Promise(function(res){
+        bgmStop(0.01);bgmStart(mode);
+        var ctx=_ccAudioCtx,an=ctx.createAnalyser();an.fftSize=2048;BGM.comp.connect(an);
+        var buf=new Float32Array(an.fftSize),peak=0,sum=0,n=0;
+        var iv=setInterval(function(){an.getFloatTimeDomainData(buf);for(var i=0;i<buf.length;i++){var v=Math.abs(buf[i]);if(v>peak)peak=v;sum+=v*v;n++;}},50);
+        setTimeout(function(){clearInterval(iv);bgmStop(0.01);res({peak:peak,rms:Math.sqrt(sum/Math.max(n,1)),state:ctx.state});},ms);
+      });
+    },rankingRows:function(){return gameRankingRows().map(function(r){return {name:r.p.name,isMe:!!r.p.isMe,stack:r.stack,buyin:r.buyin,net:r.net};});},
     totalChips:function(){return players.reduce(function(s,p){return s+(p.chips||0);},0)+(pot||0);}
   };
 }
@@ -7273,6 +7397,7 @@ if(/[?&]test=1\b/.test(location.search)){
   var sess=null;try{sess=ccGetSavedSession();}catch(e){}
   var skip=params.get('join')||params.get('ccroom')||(sess&&sess.roomCode)||(/[?&]test=1\b/.test(INITIAL_SEARCH)&&!window.__showTitle);
   if(!skip&&document.getElementById('screen-lobby').classList.contains('active')) showScreen('screen-title');
+  else bgmSync(); // タイトルを飛ばした時もロビーの曲を選ぶ（スマホは最初のタップで鳴り始める）
   document.getElementById('btn-title-start').addEventListener('click',function(){
     sndCtx(); // スマホはこのタップから音が出せるようになる
     if(ccSoundOn){try{var ctx=ccAudio();[392,523.25,659.25,783.99].forEach(function(f,i){ccTone(ctx,'triangle',f,0.6,0.09,i*0.07);});}catch(e){}}
