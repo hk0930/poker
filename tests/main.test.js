@@ -267,3 +267,21 @@ test('CPU対戦: 自分の手札がテーブルや他の席・操作パネルと
     }
   }
 });
+
+test('CPU対戦: 配る・めくる・アクション・決着で効果音が鳴る', async () => {
+  const page = await startCpuGame({ cpu: 1 });
+  const log = [];
+  for (let i = 0; i < 400; i++) {
+    log.push(...(await page.evaluate(() => window.__sfxLog.splice(0))));
+    const s = await snap(page);
+    if (s.mover) break;
+    if (s.ap) { await myAction(page, 'call', s); continue; }
+    await page.clock.runFor(250);
+  }
+  log.push(...(await page.evaluate(() => window.__sfxLog.splice(0))));
+  for (const name of ['shuffle', 'deal', 'turn', 'win']) assert.ok(log.includes(name), name + ' が鳴っていない: ' + log.join(','));
+  assert.ok(log.includes('knock') || log.includes('chips'), 'チェックかコールの音');
+  if ((await snap(page)).title === 'ショーダウン') assert.ok(log.includes('flip'), '場のカードをめくる音');
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
