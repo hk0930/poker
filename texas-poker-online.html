@@ -229,6 +229,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .mbody{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:10px;overflow-y:auto;flex:0 0 auto;max-height:40vh;}
 .mbody .wn{color:var(--gold-light);font-size:17px;font-weight:800;}.mbody .hn{color:#8fe6b4;font-size:13px;font-weight:700;}
 .mcards{display:flex;gap:4px;justify-content:center;margin:6px 0;flex-wrap:wrap;width:100%;overflow-y:auto;flex:1 1 auto;min-height:72px;}
+.mcards:empty{display:none;}
 .mnext{min-height:52px;padding:0 28px;border:none;font-size:16px;font-weight:800;flex-shrink:0;margin-top:8px;}
 .mnext:active{transform:scale(.97);}
 .action-bubble{position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:rgba(6,12,9,.95);border:1px solid var(--gold);border-radius:999px;padding:3px 12px;font-weight:800;white-space:nowrap;z-index:10;pointer-events:none;animation:bubblePop .25s var(--ease);box-shadow:0 4px 14px rgba(0,0,0,.5);}
@@ -634,9 +635,32 @@ body{background-color:var(--ink);}
   .mtable #seats .seat:not(.me) .pod-avw{width:32px;height:32px;}
   .mtable #seats .seat:not(.me) .pod-bet{top:16px;}
 }
+.sd-list{width:100%;text-align:left;}
+.sd-row{display:flex;align-items:center;gap:10px;padding:8px 12px;margin-bottom:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;}
+.sd-row.win{border-color:rgba(214,189,137,.55);background:linear-gradient(180deg,rgba(214,189,137,.1),rgba(214,189,137,.03)),var(--surface);}
+.sd-row.side{border-color:rgba(214,189,137,.3);}
+.sd-row.fold,.sd-row.out{opacity:.62;}
+.sd-main{flex:1;min-width:0;}
+.sd-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13.5px;font-weight:600;color:var(--text);}
+.sd-row.win .sd-nm{color:var(--accent);}
+.sd-hand{font-size:11.5px;color:var(--text-2);margin-top:2px;}
+.sd-hand span,.sd-money span{margin:0 5px;color:var(--text-3);}
+.sd-row.win .sd-hand,.sd-row.side .sd-hand{color:#8fe6b4;}
+.sd-money{font-size:12px;color:var(--text-3);margin-top:2px;font-variant-numeric:tabular-nums;}
+.sd-tag{font-size:10px;font-weight:700;letter-spacing:.06em;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--text-2);line-height:1.6;}
+.sd-tag.win{background:var(--accent);color:var(--accent-ink);border-color:transparent;}
+.sd-tag.side{color:var(--accent);border-color:rgba(214,189,137,.45);}
+.sd-tag.out{color:#ff8f8c;border-color:rgba(255,143,140,.35);}
+.sd-cards{display:flex;gap:2px;flex-shrink:0;}
+.rb-name{color:var(--accent);}
+.rb-sub{font-size:12.5px;color:var(--text-2);}
+.rb-note{font-size:12px;color:var(--text-3);margin-top:6px;}
+.rb-btns{margin-top:8px;flex-shrink:0;}
+/* スマホ幅では「戻す」を記号だけにして ROUND 表示が切れないようにする */
+@media (max-width:420px){#cc-undo-btn{width:38px;padding:0;}#cc-undo-btn .undo-lbl{display:none;}}
+.warn-text{color:#ff8f8c;font-size:11px;margin-left:4px;}
 .sd-side{display:inline-block;font-size:12px;color:var(--text-2);margin-top:4px;}
 .sd-side .wn-side{color:var(--accent);font-weight:700;}
-.sd-note{font-size:10.5px;color:var(--text-3);margin-left:4px;}
 .rk-list{width:100%;text-align:left;}
 .rk-row.me .rk-name{color:var(--accent);}
 .rk-stats b small{font-size:13px;color:var(--text-3);}
@@ -865,7 +889,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.21.59-sdk</div>
+    <div class="ver">v2026.11.22.60-sdk</div>
   </div>
 </div>
 
@@ -950,7 +974,7 @@ body{background-color:var(--ink);}
       <button id="cc-bgm-btn" class="icon-btn round bgm-btn" aria-label="BGM" title="BGM" aria-pressed="true"></button>
       <button id="cc-rank-btn" class="icon-btn round" aria-label="暫定ランキング" title="暫定ランキング"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.500a3 3 0 0 0 3 4M16 6h2.500a3 3 0 0 1-3 4M12 13v4M8.500 20h7M10 17h4"/></svg></button>
       <button id="cc-history-btn" class="icon-btn round" style="display:none;" aria-label="ハンド履歴" title="ハンド履歴"><svg viewBox="0 0 24 24"><path d="M5 6.5h14M5 12h14M5 17.5h9"/></svg></button>
-      <button id="cc-undo-btn" class="icon-btn" style="display:none;"><svg viewBox="0 0 24 24"><path d="M8.5 6.5L4 11l4.5 4.5"/><path d="M4.5 11h10a5 5 0 0 1 0 10h-2"/></svg>戻す</button>
+      <button id="cc-undo-btn" class="icon-btn" style="display:none;" aria-label="1手戻す" title="1手戻す"><svg viewBox="0 0 24 24"><path d="M8.5 6.5L4 11l4.5 4.5"/><path d="M4.5 11h10a5 5 0 0 1 0 10h-2"/></svg><span class="undo-lbl">戻す</span></button>
     </div>
   </div>
   <!-- ブラインド表示 -->
@@ -1706,7 +1730,7 @@ function offlineGameOver(winner){
   showMsg('ゲーム終了',body,'もう一度',function(){
     resetOfflineGame();
     document.getElementById('btn-start-offline').click(); // ロビーの設定（名前・チップ・CPU）のまま始め直す
-  },gameRankingListHtml());
+  },gameRankingListHtml(gameRankingRows(false)));
   var lb=document.getElementById('mnext-lobby');
   lb.style.display='block';
   lb.onclick=function(){
@@ -2042,7 +2066,7 @@ function watchLobby(){
       var allReady = humanIds.every(function(id){return room.ready&&room.ready[id];});
       if(hasDup){
         btn.disabled=true; btn.textContent='名前が重複しています';
-        rmsg.textContent='⚠ 重複する名前があります'; rmsg.style.color='#ff8f8c';
+        rmsg.textContent='重複する名前があります'; rmsg.style.color='#ff8f8c';
       } else if(n<2){
         btn.disabled=true; btn.textContent='参加者を待っています...'; rmsg.style.color='';
         rmsg.textContent=Object.keys(ps).length+'人参加中';
@@ -2084,7 +2108,7 @@ function renderPlistWithCpu(ps, cpuCnt, cpuDiff, readyMap){
     var isReady=readyMap&&readyMap[p.id];
     var isH=p.seat===0;
     var readyBadge=isH?'<div class="htag">HOST</div>':(isReady?'<div class="htag" style="background:rgba(0,150,0,.5);border-color:rgba(0,255,0,.3);color:#8f8;">READY</div>':'<div class="htag" style="background:rgba(80,80,0,.4);border-color:rgba(255,200,0,.3);color:#fa8;">WAIT</div>');
-    var dupWarn=isDup?'<span style="color:#ff8f8c;font-size:11px;margin-left:4px;">⚠重複</span>':'';
+    var dupWarn=isDup?'<span class="warn-text">名前が重複</span>':'';
     el.innerHTML+='<div class="pitem"><div class="dot" style="background:'+(isDup?'#ff8f8c':isReady?'#8f8':'')+'"></div>'
       +'<span style="color:'+(isDup?'#ff8f8c':'')+'">'+p.name+(isMe?' (あなた)':'')+'</span>'+dupWarn+readyBadge+'</div>';
   });
@@ -2108,7 +2132,7 @@ document.getElementById('btn-start').addEventListener('click', function(){
     var hasDup = names.some(function(n,i){return names.indexOf(n)!==i;});
     if(hasDup){
       var rmsg=document.getElementById('room-msg');
-      rmsg.textContent='⚠ 重複する名前があります。解消してからゲームを開始してください。';
+      rmsg.textContent='重複する名前があります。解消してからゲームを開始してください。';
       rmsg.style.color='#ff8f8c';
       return;
     }
@@ -2274,7 +2298,7 @@ function _watchHostPresence(){
       isHost = true;
       // 新ホスト通知モーダル
       var mover=document.getElementById('mover');
-      document.getElementById('mtitle').textContent='🎯 あなたがホストになりました';
+      document.getElementById('mtitle').textContent='あなたがホストになりました';
       document.getElementById('mbody').innerHTML='前のホストが退出したため、<br>あなたがホストを引き継ぎました。';
       document.getElementById('mcards').innerHTML='';
       document.getElementById('mcomm').style.display='none';
@@ -2329,7 +2353,7 @@ function _showHostLeft(){
   var mcomm=document.getElementById('mcomm');
   var mnext=document.getElementById('mnext');
   mover.classList.add('show');
-  mtitle.textContent='🚪 ホストが退出しました';
+  mtitle.textContent='ホストが退出しました';
   mbody.innerHTML='ホストがゲームを終了しました。<br>ロビーに戻ります。';
   mcards.innerHTML='';
   mcomm.style.display='none';
@@ -2758,7 +2782,7 @@ function _showAllInReveal(revealMap, cb){
     // 名前
     var nameEl = document.createElement('div');
     nameEl.style.cssText = 'font-size:12px;color:rgba(255,255,255,.85);min-width:80px;flex:1;';
-    nameEl.textContent = p.name + (p.isMe ? ' ⭐' : '');
+    nameEl.textContent = p.name + (p.isMe ? '（あなた）' : '');
     row.appendChild(nameEl);
     // カード2枚（裏向きで初期化）
     var cardEls = [];
@@ -3002,31 +3026,24 @@ function showdownView(cont,res,opt){
     lines.push('<span class="sd-side">サイドポット'+(sides.length>1?(k+1):'')+'（'+r.amount+'）: <span class="wn-side">'+names(r.winners)+'</span>・'+HN[r.winners[0].best.score.rank]+'</span>');
   });
   if(res.refund) lines.push('<span class="sd-side">'+res.refund.p.name+' の誰もコールしなかった '+res.refund.amount+' は本人に返却</span>');
-  var ch='<div style="width:100%;">';
+  var ch='<div class="sd-list">';
   players.filter(function(p){return p.active;}).forEach(function(p){
     var inCont=cont.indexOf(p)>=0,isMain=main.indexOf(p)>=0,isW=res.all.indexOf(p)>=0;
     var sideOnly=isW&&!isMain;
-    var gained=p.chips-p.chipsBefore;
-    var gainStr=gained>=0?'<span style="color:#8fe6b4;">+'+gained+'</span>':'<span style="color:#ff8f8c;">'+gained+'</span>';
     var isElim=!isW&&(p.eliminated||(p.chips<BB&&p.chips>=0));
-    var bg=isMain?'rgba(201,168,76,.18)':inCont?'rgba(0,0,0,.35)':'rgba(80,0,0,.25)';
-    var border=isMain?'rgba(201,168,76,.6)':sideOnly?'rgba(201,168,76,.3)':inCont?'rgba(255,255,255,.12)':'rgba(200,0,0,.3)';
-    var statusTxt=isElim?'💀 ELIMINATED':inCont?HN[p.best.score.rank]:'FOLD';
-    var detailTxt=inCont?handDetail(p.best.score):'';
-    var notes=[];
-    if(sideOnly) notes.push('サイドポット獲得');
-    if(res.refund&&res.refund.p===p) notes.push('返却 '+res.refund.amount);
-    ch+='<div style="margin-bottom:6px;padding:5px 8px;border-radius:8px;background:'+bg+';border:1px solid '+border+';display:flex;align-items:center;gap:6px;">';
-    ch+='<div style="flex:1;min-width:0;">';
-    ch+='<div style="font-size:12px;color:'+(isMain?'var(--gold-light)':inCont?'rgba(255,255,255,.8)':'rgba(255,100,100,.7)')+';">'+(isMain?'🏆 ':inCont||isElim?'':'❌ ')+p.name+(notes.length?' <span class="sd-note">'+notes.join('・')+'</span>':'')+'</div>';
-    ch+='<div style="font-size:11px;color:'+(isW?'#8fe6b4':'rgba(255,255,255,.45)')+';">'+statusTxt+(detailTxt?' ／ '+detailTxt:'')+'</div>';
-    ch+='<div style="font-size:11px;color:rgba(255,255,255,.4);">'+gainStr+' (残'+p.chips+')</div>';
+    var cls=isMain?'win':sideOnly?'side':!inCont?'fold':isElim?'out':'';
+    var tags=[];
+    if(isMain) tags.push('<span class="sd-tag win">勝利</span>');
+    if(sideOnly) tags.push('<span class="sd-tag side">サイドポット</span>');
+    if(res.refund&&res.refund.p===p) tags.push('<span class="sd-tag">返却 '+res.refund.amount+'</span>');
+    if(!inCont) tags.push('<span class="sd-tag">フォールド</span>');
+    if(isElim) tags.push('<span class="sd-tag out">脱落</span>');
+    ch+='<div class="sd-row '+cls+'"><div class="sd-main">';
+    ch+='<div class="sd-name"><span class="sd-nm">'+gEsc(p.name)+'</span>'+tags.join('')+'</div>';
+    if(inCont) ch+='<div class="sd-hand">'+HN[p.best.score.rank]+'<span>／</span>'+handDetail(p.best.score)+'</div>';
+    ch+='<div class="sd-money">'+gDiffHtml(p.chips-p.chipsBefore)+'<span>残り '+p.chips+'</span></div>';
     ch+='</div>';
-    if(inCont&&p.hole&&p.hole.length){
-      ch+='<div style="display:flex;gap:2px;flex-shrink:0;">';
-      p.hole.forEach(function(c){ch+=cH(c,true);});
-      ch+='</div>';
-    }
+    if(inCont&&p.hole&&p.hole.length) ch+='<div class="sd-cards">'+p.hole.map(function(c){return cH(c,true);}).join('')+'</div>';
     ch+='</div>';
   });
   ch+='</div>';
@@ -3087,8 +3104,8 @@ var _handNo=0;
 function gameHandLive(){
   return (pot||0)>0&&!document.getElementById('mover').classList.contains('show');
 }
-function gameRankingRows(){
-  var live=gameHandLive();
+function gameRankingRows(live){
+  if(live===undefined) live=gameHandLive();
   var rows=players.map(function(p,i){
     var stack=(p.chips||0)+(live&&p.active&&!p.folded?(p.totalBet||0):0);
     var buyin=(_initialChips||p.chipsBefore||p.chips||0)*((p.rebuyCount||0)+1);
@@ -3100,18 +3117,19 @@ function gameRankingRows(){
 function gEsc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function gDiffHtml(d){return '<span class="'+(d>0?'pos':d<0?'neg':'zero')+'">'+(d>0?'+'+d:d===0?'±0':''+d)+'</span>';}
 // ランキングの行（ランキング画面とCPU対戦の最終結果で共通）
-function gameRankingListHtml(rows){
+function gameRankingListHtml(rows,opt){
+  opt=opt||{};
   rows=rows||gameRankingRows();
   var h='<div class="rk-list">';
   var maxAbs=rows.reduce(function(m,r){return Math.max(m,Math.abs(r.net));},1);
   rows.forEach(function(r,k){
     var p=r.p,ai=avInfo(p.name,r.i),notes=[];
-    if(p.isMe) notes.push('あなた');
+    if(p.isMe&&!opt.noMe) notes.push('あなた');
     else if(p.isCpu) notes.push('CPU');
     if(p.rebuyCount>0) notes.push('リバイ'+p.rebuyCount+'回');
     if(p.eliminated) notes.push('脱落');
     var barPct=Math.round(Math.abs(r.net)/maxAbs*100);
-    h+='<div class="rk-row'+(k===0&&r.net>0?' top':'')+(p.eliminated?' out':'')+(p.isMe?' me':'')+'">';
+    h+='<div class="rk-row'+(k===0&&r.net>0?' top':'')+(p.eliminated?' out':'')+(p.isMe&&!opt.noMe?' me':'')+'">';
     h+='<div class="rk-pos">'+(k+1)+'</div>';
     h+='<div class="pod-av rk-av" style="--av:'+ai.c+'">'+gEsc(ai.t)+'</div>';
     h+='<div class="rk-main"><div class="rk-name">'+gEsc(p.name)+(notes.length?'<span class="rk-note">'+notes.join('・')+'</span>':'')+'</div>';
@@ -3155,48 +3173,19 @@ function showGameEndSummary(){
   var allP = players.slice();
   allP.sort(function(a,b){ return b.chips - a.chips; });
 
-  // 各プレイヤーの投資合計 = _initialChips × (rebuyCount + 1)
-  var ch = '<div style="width:100%;">';
-  allP.forEach(function(p, rank){
-    var invest = _initialChips * ((p.rebuyCount||0) + 1);
-    var net = p.chips - invest;
-    var netColor = net >= 0 ? '#7fef7f' : '#ff7f7f';
-    var netStr = (net >= 0 ? '+' : '') + net;
-    var isTop = rank === 0 && p.chips > 0;
-    var bg = isTop ? 'rgba(201,168,76,.2)' : p.eliminated ? 'rgba(80,0,0,.2)' : 'rgba(0,0,0,.35)';
-    var border = isTop ? 'rgba(201,168,76,.6)' : p.eliminated ? 'rgba(200,0,0,.3)' : 'rgba(255,255,255,.12)';
-    var medal = rank===0&&!p.eliminated?'🥇 ':rank===1&&!p.eliminated?'🥈 ':rank===2&&!p.eliminated?'🥉 ':'';
-
-    ch += '<div style="margin-bottom:5px;padding:7px 10px;border-radius:8px;background:'+bg+';border:1px solid '+border+';display:flex;align-items:center;gap:6px;">';
-    // 順位・名前
-    ch += '<div style="flex:1;min-width:0;">';
-    ch += '<div style="font-size:12px;color:'+(isTop?'var(--gold-light)':p.eliminated?'rgba(255,100,100,.7)':'rgba(255,255,255,.85)')+';">'+medal+p.name+(p.isCpu?' 🤖':'')+(p.isMe?' ⭐':'')+'</div>';
-    // 残チップ
-    ch += '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px;">残チップ <span style="color:var(--gold-light);">'+p.chips+'</span>';
-    // リバイ情報
-    if((p.rebuyCount||0) > 0){
-      ch += ' <span style="font-size:11px;color:rgba(255,180,80,.8);">（×'+(p.rebuyCount+1)+' 購入）</span>';
-    }
-    ch += '</div>';
-    // 投資対比
-    ch += '<div style="font-size:12px;color:rgba(255,255,255,.4);">投資 '+invest+' → <span style="color:'+netColor+';font-weight:700;">'+netStr+'</span></div>';
-    ch += '</div>';
-    // チップ表示
-    ch += '<div style="font-size:16px;color:'+(isTop?'var(--gold-light)':'rgba(255,255,255,.5)')+';">'+p.chips+'</div>';
-    ch += '</div>';
-  });
-  ch += '</div>';
+  // 最終成績: ランキングと同じ部品（全員の端末に送るので「あなた」の印は付けない）
+  var ch = gameRankingListHtml(gameRankingRows(false),{noMe:true});
 
   // ホストはFirebaseにゲーム終了を通知
   if(isHost && gamePath){
-    pushState({result:{title:'🏁 ゲーム終了',body:'最終成績',ch:ch,gameEnd:true},waitFor:null});
+    pushState({result:{title:'ゲーム終了',body:'最終成績',ch:ch,gameEnd:true},waitFor:null});
   }
 
   // モーダル表示
   var mover = document.getElementById('mover');
   document.getElementById('mnext-end').style.display='none';
   document.getElementById('mnext-lobby').style.display='none';
-  document.getElementById('mtitle').textContent='🏁 ゲーム終了 — 最終成績';
+  document.getElementById('mtitle').textContent='ゲーム終了 — 最終成績';
   document.getElementById('mbody').innerHTML=ch;
   document.getElementById('mcards').innerHTML='';
   document.getElementById('mcomm').style.display='none';
@@ -3525,19 +3514,19 @@ function checkEliminated(afterRoundCb){
     var mcomm = document.getElementById('mcomm');
     var mnext = document.getElementById('mnext');
     mover.classList.add('show');
-    mtitle.textContent = '💀 チップ不足';
+    mtitle.textContent = 'チップ不足';
     mcards.innerHTML = '';
     mcomm.style.display = 'none';
     // リバイボタンを含むHTML
     var purchaseHistory = '';
     if((p.rebuyCount||0) > 0){
-      purchaseHistory = '<div style="font-size:12px;color:rgba(255,200,100,.7);margin-top:6px;">これまでの購入: 初回 + ' + p.rebuyCount + '回</div>';
+      purchaseHistory = '<div class="rb-note">これまでの購入: 初回 + ' + p.rebuyCount + '回</div>';
     }
     // rebuyAmt を先に確定させる
     var rebuyAmt = _initialChips || (players[0]?players[0].chipsBefore:500)||500;
     var roleLabel = p.isCpu ? '（CPU）' : '';
-    mbody.innerHTML = '<b style="color:var(--gold-light);">' + p.name + roleLabel + '</b> のチップが不足しました。<br>' +
-      '<span style="font-size:12px;color:rgba(255,255,255,.6);">' + label + ' として ' + rebuyAmt + ' チップを追加しますか？</span>' +
+    mbody.innerHTML = '<b class="rb-name">' + gEsc(p.name) + roleLabel + '</b> のチップが不足しました。<br>' +
+      '<span class="rb-sub">' + label + ' として ' + rebuyAmt + ' チップを追加しますか？</span>' +
       purchaseHistory;
     // 2ボタン: リバイ or 脱落
     mnext.style.display = 'none';
@@ -3545,15 +3534,14 @@ function checkEliminated(afterRoundCb){
     if(!btnWrap){
       btnWrap = document.createElement('div');
       btnWrap.id = 'rebuy-btn-wrap';
-      btnWrap.style.cssText = 'display:flex;gap:10px;justify-content:center;margin-top:8px;';
+      btnWrap.className = 'app-dlg-btns rb-btns';
       mnext.parentNode.insertBefore(btnWrap, mnext);
     }
     btnWrap.innerHTML = '';
     // リバイボタン
     var btnRebuy = document.createElement('button');
-    btnRebuy.className = 'mnext';
-    btnRebuy.style.background = 'linear-gradient(135deg,#1a6a1a,#2ea02e)';
-    btnRebuy.textContent = '✅ チップ購入 (' + rebuyAmt + ')';
+    btnRebuy.className = 'btn';
+    btnRebuy.textContent = 'リバイ（+' + rebuyAmt + '）';
     btnRebuy.onclick = function(){
       if(!_initialChips) _initialChips=rebuyAmt;
       doRebuy(p);
@@ -3564,9 +3552,8 @@ function checkEliminated(afterRoundCb){
     };
     // 脱落ボタン
     var btnElim = document.createElement('button');
-    btnElim.className = 'mnext';
-    btnElim.style.background = 'linear-gradient(135deg,#6a1a1a,#a02e2e)';
-    btnElim.textContent = '❌ 脱落する';
+    btnElim.className = 'btn-ghost danger';
+    btnElim.textContent = '脱落する';
     btnElim.onclick = function(){
       p.active = false; p.eliminated = true;
       btnWrap.innerHTML = '';
@@ -3586,8 +3573,8 @@ function checkEliminated(afterRoundCb){
       }
       processNext();
     };
-    btnWrap.appendChild(btnRebuy);
     btnWrap.appendChild(btnElim);
+    btnWrap.appendChild(btnRebuy);
   }
   processNext();
 }
@@ -7216,7 +7203,7 @@ if(/[?&]test=1\b/.test(location.search)){
       doShowdownOffline();
       return {chips:players.map(function(p){return p.chips;}),body:document.getElementById('mbody').innerText,
         main:document.querySelector('#mbody .wn').textContent,side:[].map.call(document.querySelectorAll('#mbody .wn-side'),function(e){return e.textContent;}),
-        trophies:(document.getElementById('mcards').innerText.match(/🏆 [^\n ]+/g)||[]).map(function(t){return t.slice(3);})};
+        trophies:[].map.call(document.querySelectorAll('#mcards .sd-row.win .sd-nm'),function(e){return e.textContent;})};
     },get sfxOn(){return ccSoundOn;},get bgmOn(){return bgmOn;},
     get bgmPlaying(){return !!BGM.timer;},rankingRows:function(){return gameRankingRows().map(function(r){return {name:r.p.name,isMe:!!r.p.isMe,stack:r.stack,buyin:r.buyin,net:r.net};});},
     totalChips:function(){return players.reduce(function(s,p){return s+(p.chips||0);},0)+(pot||0);}

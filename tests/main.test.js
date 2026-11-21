@@ -32,7 +32,7 @@ const snap = (page) => page.evaluate(() => {
     ap: document.getElementById('ap').style.display === 'block',
     mover: document.getElementById('mover').classList.contains('show'),
     title: document.getElementById('mtitle').textContent,
-    rebuy: !!document.querySelector('#rebuy-btn-wrap button') && document.getElementById('rebuy-btn-wrap').offsetParent !== null,
+    rebuy: !!document.querySelector('#rebuy-btn-wrap .btn') && document.getElementById('rebuy-btn-wrap').offsetParent !== null,
     btns: [...document.querySelectorAll('#brow .ab')].map((b) => b.className.split(' ')[1]),
     phase: P.phase, pot: P.pot, curIdx: P.curIdx, myIdx: P.myIdx,
     chips: P.players.map((p) => p.chips), total: P.totalChips(),
@@ -67,7 +67,7 @@ async function nextRoundCpu(page) {
   for (let i = 0; i < 20; i++) {
     await page.clock.runFor(250);
     const s = await snap(page);
-    if (s.rebuy) { await page.click('#rebuy-btn-wrap button'); continue; }
+    if (s.rebuy) { await page.click('#rebuy-btn-wrap .btn'); continue; }
     if (!s.mover || s.title !== 'ショーダウン' && s.title !== 'ラウンド終了') return;
   }
 }

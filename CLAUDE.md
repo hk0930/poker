@@ -64,6 +64,9 @@
 - `settleShowdown`: まず `refundUncalled()` で誰もコールしていない超過ベットを本人に返す（勝ちとして扱わない）→ `calcSidePots()` のポットごとに、そのポットに参加できる人の中で一番強い手が取る。結果は `{refund, pots:[{amount,winners,eligible}], main, all}`
 - 表示: 見出し `.wn` はメインポットの勝者だけ、役もメインの勝者のもの。サイドポットは `.sd-side` の行（続けて同じ人が取ったポットは1行にまとめる、勝者は `.wn-side`）、返却は別の行。🏆 はメインの勝者だけ、サイドだけ取った人は「サイドポット獲得」
 - 結果モーダルは見出し（`.mbody`）を常に全部見せ、プレイヤー一覧（`.mcards`）をスクロールさせる
+- 結果の一覧は `.sd-list` / `.sd-row`（`.win` メインの勝者・`.side` サイドだけ・`.fold`・`.out` 脱落）＋ `.sd-tag`（勝利・サイドポット・返却・フォールド・脱落）。絵文字は使わない
+- 最終成績（CPU対戦の決着 `offlineGameOver()`、オンラインの `showGameEndSummary()`）はランキングと同じ `gameRankingListHtml(rows,{noMe})`。オンラインは全員に送るので `noMe:true`
+- チップ不足（リバイ確認）は `#rebuy-btn-wrap.app-dlg-btns` に「脱落する（.btn-ghost.danger）」「リバイ（.btn）」の順。テストは `#rebuy-btn-wrap .btn` を押す
 - テスト: `tests/showdown.test.js`。`tests/showdown-ref.js` はアプリと別に書いた参照実装（役の判定・サイドポット）。`?test=1` の `__poker.testShowdown(spec)` で任意の場面を作れる。`__poker.sdLog` に毎回のショーダウン前後の状態が残るので、実プレイ（CPU対戦・オンライン）の配分も参照実装と突き合わせている
 
 ## お知らせ・確認ダイアログ（v56〜）
@@ -80,7 +83,8 @@
 ## デザインシステム（v53〜 会員制ポーカークラブ）
 - 方向性: 墨色の地（`--ink`）＋シャンパンゴールド1色（`--accent`）。装飾は足さず、細い線（`--line`）と余白で品を出す。光沢・グラデーション文字・絵文字アイコンは使わない
 - 文字: 本文と日本語の見出しは `--font`（Inter + Noto Sans JP）。セリフ `--serif`（Cormorant Garamond）はロゴ・ROUND表記・金額などラテン文字と数字だけ（日本語に使うと明朝に置き換わって崩れる）
-- アイコンは線画 SVG（stroke 1.4〜1.6、`currentColor`）。ボタンは `.icon-btn`（丸は `.round`）
+- アイコンは線画 SVG（stroke 1.4〜1.6、`currentColor`）。ボタンは `.icon-btn`（丸は `.round`）。画面の文言に絵文字を使わない（トランプのマーク ♠♥♦♣ と ✕ ✓ は可。LINE 共有用のテキストは例外）
+- チップ計算の上部は狭いので、420px 以下では「戻す」ボタンを記号だけにしている
 - 背景とフェルトには `--noise`（SVGのノイズ）を重ねて質感を出す。フェルトは黒いレール＋真鍮の細線＋内側の印刷線＋中央に薄い HOLD'EM
 - 席: `.pod-avw`（アバター `.pod-av`、ディーラー `.pod-d`、SB/BB `.pod-pos`、伏せ札 `.pod-cards`）＋名札 `.pod-plate`（名前・チップ・状態 `.pod-tag`）。アバターは `avInfo(name,i)`（「プレイヤーN」は数字）。ベット額 `.pod-bet` は `betVec(角度)` でテーブル中央寄りに置く
 - アクションボタンは落ち着いた単色: FOLD=線だけ / CHECK・CALL=エメラルド / RAISE=シャンパン / ALL IN=深紅

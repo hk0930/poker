@@ -105,9 +105,9 @@ test('CPU対戦の実プレイ: すべてのショーダウンの配分が参照
           mover: document.getElementById('mover').classList.contains('show'),
           title: document.getElementById('mtitle').textContent,
           btns: [...document.querySelectorAll('#brow .ab')].map((b) => b.className.split(' ')[1]),
-          rebuy: !!document.querySelector('#rebuy-btn-wrap button') && document.getElementById('rebuy-btn-wrap').offsetParent !== null,
+          rebuy: !!document.querySelector('#rebuy-btn-wrap .btn') && document.getElementById('rebuy-btn-wrap').offsetParent !== null,
         }));
-        if (s.rebuy) { await page.click('#rebuy-btn-wrap button'); continue; }
+        if (s.rebuy) { await page.click('#rebuy-btn-wrap .btn'); continue; }
         if (s.mover) { title = s.title; break; }
         if (s.ap) { // サイドポットができやすいようにオールインを多めに
           const r = Math.random();
@@ -121,7 +121,7 @@ test('CPU対戦の実プレイ: すべてのショーダウンの配分が参照
       await page.click('#mnext');
       for (let i = 0; i < 12; i++) {
         await page.clock.runFor(250);
-        if (await page.evaluate(() => !!document.querySelector('#rebuy-btn-wrap button') && document.getElementById('rebuy-btn-wrap').offsetParent !== null)) await page.click('#rebuy-btn-wrap button');
+        if (await page.evaluate(() => !!document.querySelector('#rebuy-btn-wrap .btn') && document.getElementById('rebuy-btn-wrap').offsetParent !== null)) await page.click('#rebuy-btn-wrap .btn');
       }
     }
     const log = await page.evaluate(() => window.__poker.sdLog);
