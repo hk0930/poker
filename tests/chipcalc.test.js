@@ -551,15 +551,17 @@ test('レイズ: RAISEを押すと入力欄が開き、もう一度押すと確�
   await page.click('.cc-act-btn[data-act="raise"]');
   assert.ok(await h.visible(page, '.cc-chip-btn[data-v="25"]'));
   assert.equal((await h.state(page)).curIdx, 0, '1回目では手番は進まない');
+  assert.equal((await page.textContent('#cc-bet-display')).trim(), '20', '開いた時点で最小レイズ額が入っている');
   await page.click('.cc-chip-btn[data-v="25"]');
   await page.click('.cc-chip-btn[data-v="5"]');
   await page.click('.cc-act-btn[data-act="raise"]');
   const s = await h.state(page);
-  assert.equal(s.curBet, 30);
+  assert.equal(s.curBet, 50, '最小額 20 にチップ 25+5 を足した額');
   assert.equal(s.curIdx, 1);
   assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')), '次の人では閉じている');
   // ✕で閉じられる
   await page.click('.cc-act-btn[data-act="raise"]');
+  assert.equal((await page.textContent('#cc-bet-display')).trim(), '90', '次の人も最小レイズ額（50 + 直前のレイズ幅 40）で開く');
   await page.click('#cc-ap .raise-close');
   assert.ok(!(await h.visible(page, '.cc-chip-btn[data-v="25"]')));
   await finish(page);

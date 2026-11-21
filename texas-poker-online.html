@@ -926,7 +926,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.21.56-sdk</div>
+    <div class="ver">v2026.11.21.57-sdk</div>
   </div>
 </div>
 
@@ -5132,7 +5132,13 @@ document.querySelectorAll('.cc-act-btn').forEach(function(b){
     var act=this.dataset.act;
     if(!cc.roundActive||cc.curIdx<0) return;
     var ccApEl=document.getElementById('cc-ap');
-    if(act==='raise'&&!ccApEl.classList.contains('raising')){ccApEl.classList.add('raising');return;}
+    if(act==='raise'&&!ccApEl.classList.contains('raising')){
+      // 入力欄を開いた時点で最小レイズ額を入れておく（チップを足せばそこから上がる）
+      var rp=cc.players[cc.curIdx];
+      if(rp) cc.raiseAmount=Math.min(cc.curBet+cc.lastRaise,rp.bet+rp.chips);
+      ccUpdateRaiseDisplay();
+      ccApEl.classList.add('raising');return;
+    }
     if(act!=='raise') ccApEl.classList.remove('raising');
     if(ccIsOnline&&!ccIsHost){
       if(act==='raise'){

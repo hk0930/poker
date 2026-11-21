@@ -132,6 +132,18 @@ test('CPU対戦: オールインしてもハンドが最後まで進む', async 
   await page.context().close();
 });
 
+test('CPU対戦: レイズを押すと最小レイズ額が入った状態で開く', async () => {
+  const page = await startCpuGame({ cpu: 1 });
+  for (let i = 0; i < 100; i++) { if ((await snap(page)).ap) break; await page.clock.runFor(250); }
+  const s = await snap(page);
+  assert.ok(s.btns.includes('ab-raise'));
+  await page.click('#brow .ab-raise');
+  const shown = +(await page.textContent('#bet-display')).trim();
+  assert.ok(shown >= 20, '最小レイズ額（BB 10 の2倍以上）が入っている: ' + shown);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
 // ─── 効果音・BGM・ランキング（CPU対戦） ───
 
 const soundState = (page) => page.evaluate(() => ({
