@@ -306,7 +306,23 @@ async function playHandOnline(room, strategy = () => 'call', timeoutMs = 60000) 
   throw new Error('オンラインのハンドが終わりません: ' + JSON.stringify(await Promise.all(room.all.map(snap))));
 }
 
+// ホストが行ったショーダウンの配分を、アプリとは別に書いた参照実装と突き合わせる
+const ref = require('./showdown-ref');
+async function checkShowdowns(host) {
+  const log = await host.evaluate(() => window.__poker.sdLog);
+  for (const e of log) {
+    if (!e.after) continue;
+    const exp = ref.expectedPayouts(e.before);
+    e.before.players.forEach((p, i) => {
+      const got = e.after.players[i].chips - p.chips;
+      assert.ok(Math.abs(got - exp.pay[p.idx]) <= exp.odd, `${p.name}: 受け取り ${got}、正しくは ${exp.pay[p.idx]}`);
+    });
+  }
+  return log.filter((e) => e.after).length;
+}
+
 async function closeRoom(room) {
+  await checkShowdowns(room.host);
   for (const p of room.all) { assert.deepEqual(p.errors, []); await p.context().close(); }
 }
 
@@ -345,6 +361,7 @@ test('オンライン対戦: オールインでもハンドが最後まで進む
   await playHandOnline(room, () => 'allin');
   const hs = await snap(room.host);
   assert.equal(hs.sumChips, 1000);
+  assert.equal(await checkShowdowns(room.host), 1, 'オールインのショーダウンを参照実装と照合');
   await closeRoom(room);
 });
 

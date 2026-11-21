@@ -261,9 +261,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #mover.show{display:flex;animation:fadeIn .2s both;}
 .mcard{background:linear-gradient(180deg,#18261f,#0e1813);border:1px solid rgba(216,180,90,.5);border-radius:24px;padding:20px 16px 16px;text-align:center;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:popIn .3s var(--ease) both;}
 .mtitle{font-size:20px;font-weight:800;color:var(--gold-light);margin-bottom:10px;letter-spacing:.04em;}
-.mbody{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:10px;overflow-y:auto;flex:1;}
+.mbody{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:10px;overflow-y:auto;flex:0 0 auto;max-height:40vh;}
 .mbody .wn{color:var(--gold-light);font-size:17px;font-weight:800;}.mbody .hn{color:#8fe6b4;font-size:13px;font-weight:700;}
-.mcards{display:flex;gap:4px;justify-content:center;margin:6px 0;flex-wrap:wrap;width:100%;overflow-y:auto;}
+.mcards{display:flex;gap:4px;justify-content:center;margin:6px 0;flex-wrap:wrap;width:100%;overflow-y:auto;flex:1 1 auto;min-height:72px;}
 .mnext{min-height:52px;padding:0 28px;background:linear-gradient(180deg,#f0d27c 0%,var(--gold) 50%,#b58c34 100%);border:none;border-radius:var(--r);color:#241800;font-size:16px;font-weight:800;flex-shrink:0;margin-top:8px;box-shadow:0 6px 20px rgba(216,180,90,.25),inset 0 1px 0 rgba(255,255,255,.45);}
 .mnext:active{transform:scale(.97);}
 .action-bubble{position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:rgba(6,12,9,.95);border:1px solid var(--gold);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:800;white-space:nowrap;z-index:10;pointer-events:none;animation:bubblePop .25s var(--ease);box-shadow:0 4px 14px rgba(0,0,0,.5);}
@@ -699,6 +699,9 @@ body{background-color:var(--ink);}
   .mtable #seats .seat:not(.me) .pod-avw{width:32px;height:32px;}
   .mtable #seats .seat:not(.me) .pod-bet{top:16px;}
 }
+.sd-side{display:inline-block;font-size:12px;color:var(--text-2);margin-top:4px;}
+.sd-side .wn-side{color:var(--accent);font-weight:700;}
+.sd-note{font-size:10.5px;color:var(--text-3);margin-left:4px;}
 .rk-row.me .rk-name{color:var(--accent);}
 .rk-stats b small{font-size:13px;color:var(--text-3);}
 .rk-sub{font-size:11px;color:var(--text-3);letter-spacing:.06em;margin-top:2px;}
@@ -926,7 +929,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.21.57-sdk</div>
+    <div class="ver">v2026.11.21.58-sdk</div>
   </div>
 </div>
 
@@ -1913,66 +1916,11 @@ function nextPhaseOffline(){
 
 function doShowdownOffline(){
   var cont=players.filter(function(p){return p.active&&!p.folded;});
-  cont.forEach(function(p){p.best=evalHand(p.hole.concat(comm));});
-  cont.sort(function(a,b){return cmpSc(b.best.score,a.best.score);});
-  // calcSidePotsと同じロジックで分配（オンラインと統一）
-  var pots2=calcSidePots(cont);
-  var actualWins=[];
-  pots2.forEach(function(sidePot){
-    if(!sidePot.eligible||sidePot.eligible.length===0) return;
-    var ranked2=sidePot.eligible.slice().sort(function(a,b){return cmpSc(b.best.score,a.best.score);});
-    var topSc2=ranked2[0].best.score;
-    var sideWins2=ranked2.filter(function(p){return cmpSc(p.best.score,topSc2)===0;});
-    var share2=Math.floor(sidePot.amount/sideWins2.length);
-    var rem2=sidePot.amount-(share2*sideWins2.length);
-    sideWins2.forEach(function(w){w.chips+=share2;if(actualWins.indexOf(w)<0)actualWins.push(w);});
-    if(rem2>0) sideWins2[0].chips+=rem2;
-  });
-  if(actualWins.length===0 && cont.length>0){
-    var topSc0=cont[0].best.score;
-    var fb=cont.filter(function(p){return cmpSc(p.best.score,topSc0)===0;});
-    var fs=Math.floor(pot/fb.length);var fr=pot-(fs*fb.length);
-    fb.forEach(function(w){w.chips+=fs;actualWins.push(w);});
-    if(fr>0) fb[0].chips+=fr;
-  }
-  var wins=actualWins.length?actualWins:cont.slice(0,1);
-  // チップ増減を計算（ショーダウン前のchipsBeforeと現在のchipsの差）
-  var allActive=players.filter(function(p){return p.active;});
-  var ch='<div style="width:100%;">';
-  allActive.forEach(function(p){
-    var inCont=cont.indexOf(p)>=0;
-    var isW=wins.indexOf(p)>=0;
-    var gained=p.chips-p.chipsBefore; // chipsBefore はショーダウン前に保存
-    var gainStr=gained>=0?'<span style="color:#8fe6b4;">+'+gained+'</span>':'<span style="color:#ff8f8c;">'+gained+'</span>';
-    var isElim2=!isW&&(p.eliminated||(p.chips<BB&&p.chips>=0));
-    var bg=isW?'rgba(201,168,76,.18)':inCont?'rgba(0,0,0,.35)':'rgba(80,0,0,.25)';
-    var border=isW?'rgba(201,168,76,.6)':inCont?'rgba(255,255,255,.12)':'rgba(200,0,0,.3)';
-    ch+='<div style="margin-bottom:6px;padding:5px 8px;border-radius:8px;background:'+bg+';border:1px solid '+border+';display:flex;align-items:center;gap:6px;">';
-    ch+='<div style="flex:1;min-width:0;">';
-    var detailTxt2=inCont?handDetail(p.best.score):'';
-    var statusTxt2=isElim2?'💀 ELIMINATED':inCont?HN[p.best.score.rank]:'FOLD';
-    var prefix2=isW?'🏆 ':isElim2?'':inCont?'':'❌ ';
-    ch+='<div style="font-size:12px;color:'+(isW?'var(--gold-light)':inCont?'rgba(255,255,255,.8)':'rgba(255,100,100,.7)')+';">'+prefix2+p.name+'</div>';
-    ch+='<div style="font-size:11px;color:'+(isW?'#8fe6b4':'rgba(255,255,255,.45)')+';">'+statusTxt2+(detailTxt2?' ／ '+detailTxt2:'')+'</div>';
-    ch+='<div style="font-size:11px;color:rgba(255,255,255,.4);">'+gainStr+' (残'+p.chips+')</div>';
-    ch+='</div>';
-    if(inCont&&p.hole&&p.hole.length){
-      ch+='<div style="display:flex;gap:2px;flex-shrink:0;">';
-      p.hole.forEach(function(c){ch+=cH(c,true);});
-      ch+='</div>';
-    }
-    ch+='</div>';
-  });
-  ch+='</div>';
-  var bestLoser2=cont.find(function(p){return wins.indexOf(p)<0;});
-  var reasonStr2=wins.length===1&&bestLoser2?winReason(wins[0],bestLoser2):'';
-  var winDetail2=handDetail(wins[0].best.score);
-  var bodyLines2=['<span class="wn">'+wins.map(function(w){return w.name;}).join(' & ')+'</span>の勝利！'];
-  bodyLines2.push('<span class="hn">'+HN[wins[0].best.score.rank]+'</span>');
-  bodyLines2.push('<span style="font-size:12px;color:rgba(255,220,100,.9);">'+winDetail2+'</span>');
-  if(reasonStr2) bodyLines2.push('<span style="font-size:12px;color:rgba(180,255,180,.85);">▶ '+reasonStr2+'</span>');
-  var body=bodyLines2.join('<br>');
-  renderAll();showMsg('ショーダウン',body,'次のラウンド',function(){checkEliminated(function(){startRoundOffline();});},ch,comm);
+  _sdRecord('before');
+  var res=settleShowdown(cont);
+  _sdRecord('after');
+  var v=showdownView(cont,res);
+  renderAll();showMsg('ショーダウン',v.body,'次のラウンド',function(){checkEliminated(function(){startRoundOffline();});},v.ch,comm);
 }
 
 function renderActionOffline(){
@@ -3030,6 +2978,106 @@ function doShowdown(){
     });
   });
 }
+// ─── ショーダウンの精算（CPU対戦・オンライン対戦で共通） ───
+// 1) 誰もコールしていない超過ベットは本人に返す（勝ちではない）
+// 2) メインポット・サイドポットごとに、そのポットに参加できる人の中で一番強い手が取る
+function refundUncalled(){
+  var c=players.filter(function(p){return p.totalBet>0;}).sort(function(a,b){return b.totalBet-a.totalBet;});
+  if(!c.length) return null;
+  var top=c[0],ex=top.totalBet-(c.length>1?c[1].totalBet:0);
+  if(ex<=0||top.folded) return null;
+  top.totalBet-=ex;top.chips+=ex;pot-=ex;
+  top.bet=Math.max(0,(top.bet||0)-ex);
+  return {p:top,amount:ex};
+}
+function settleShowdown(cont){
+  var refund=refundUncalled();
+  cont.forEach(function(p){p.best=evalHand(p.hole.concat(comm));});
+  cont.sort(function(a,b){return cmpSc(b.best.score,a.best.score);});
+  var potResults=[];
+  calcSidePots(cont).forEach(function(sp){
+    if(!sp.eligible||!sp.eligible.length) return;
+    var ranked=sp.eligible.slice().sort(function(a,b){return cmpSc(b.best.score,a.best.score);});
+    var top=ranked[0].best.score;
+    var winners=ranked.filter(function(p){return cmpSc(p.best.score,top)===0;});
+    var share=Math.floor(sp.amount/winners.length),rem=sp.amount-share*winners.length;
+    winners.forEach(function(w){w.chips+=share;});
+    if(rem>0) winners[0].chips+=rem;
+    potResults.push({amount:sp.amount,winners:winners,eligible:sp.eligible});
+  });
+  if(!potResults.length&&cont.length){ // 念のため: ポットが組めなかった時は全額を一番強い手へ
+    var top0=cont[0].best.score;
+    var fb=cont.filter(function(p){return cmpSc(p.best.score,top0)===0;});
+    var fs=Math.floor(pot/fb.length),fr=pot-fs*fb.length;
+    fb.forEach(function(w){w.chips+=fs;});
+    if(fr>0) fb[0].chips+=fr;
+    potResults.push({amount:pot,winners:fb,eligible:cont.slice()});
+  }
+  var all=[];
+  potResults.forEach(function(r){r.winners.forEach(function(w){if(all.indexOf(w)<0)all.push(w);});});
+  return {refund:refund,pots:potResults,main:potResults[0]?potResults[0].winners:[],all:all};
+}
+// 結果モーダルの本文と一覧（メインポットの勝者を見出しに、サイドポットと返却は別の行に）
+function showdownView(cont,res,opt){
+  var main=res.main,mainW=main[0];
+  var names=function(ws){return ws.map(function(w){return w.name;}).join(' & ');};
+  var lines=['<span class="wn">'+names(main)+'</span>の勝利！'];
+  if(mainW){
+    lines.push('<span class="hn">'+HN[mainW.best.score.rank]+'</span>');
+    lines.push('<span style="font-size:12px;color:rgba(255,220,100,.9);">'+handDetail(mainW.best.score)+'</span>');
+    var bestLoser=res.pots[0].eligible.slice().sort(function(a,b){return cmpSc(b.best.score,a.best.score);}).find(function(p){return main.indexOf(p)<0;});
+    if(main.length===1&&bestLoser){var rs=winReason(mainW,bestLoser);if(rs) lines.push('<span style="font-size:12px;color:rgba(180,255,180,.85);">▶ '+rs+'</span>');}
+  }
+  // サイドポット: 続けて同じ人が取ったポットは1行にまとめる
+  var sides=[];
+  res.pots.slice(1).forEach(function(r){
+    var last=sides[sides.length-1];
+    if(last&&names(last.winners)===names(r.winners)) last.amount+=r.amount;
+    else sides.push({amount:r.amount,winners:r.winners});
+  });
+  sides.forEach(function(r,k){
+    lines.push('<span class="sd-side">サイドポット'+(sides.length>1?(k+1):'')+'（'+r.amount+'）: <span class="wn-side">'+names(r.winners)+'</span>・'+HN[r.winners[0].best.score.rank]+'</span>');
+  });
+  if(res.refund) lines.push('<span class="sd-side">'+res.refund.p.name+' の誰もコールしなかった '+res.refund.amount+' は本人に返却</span>');
+  var ch='<div style="width:100%;">';
+  players.filter(function(p){return p.active;}).forEach(function(p){
+    var inCont=cont.indexOf(p)>=0,isMain=main.indexOf(p)>=0,isW=res.all.indexOf(p)>=0;
+    var sideOnly=isW&&!isMain;
+    var gained=p.chips-p.chipsBefore;
+    var gainStr=gained>=0?'<span style="color:#8fe6b4;">+'+gained+'</span>':'<span style="color:#ff8f8c;">'+gained+'</span>';
+    var isElim=!isW&&(p.eliminated||(p.chips<BB&&p.chips>=0));
+    var bg=isMain?'rgba(201,168,76,.18)':inCont?'rgba(0,0,0,.35)':'rgba(80,0,0,.25)';
+    var border=isMain?'rgba(201,168,76,.6)':sideOnly?'rgba(201,168,76,.3)':inCont?'rgba(255,255,255,.12)':'rgba(200,0,0,.3)';
+    var statusTxt=isElim?'💀 ELIMINATED':inCont?HN[p.best.score.rank]:'FOLD';
+    var detailTxt=inCont?handDetail(p.best.score):'';
+    var notes=[];
+    if(sideOnly) notes.push('サイドポット獲得');
+    if(res.refund&&res.refund.p===p) notes.push('返却 '+res.refund.amount);
+    ch+='<div style="margin-bottom:6px;padding:5px 8px;border-radius:8px;background:'+bg+';border:1px solid '+border+';display:flex;align-items:center;gap:6px;">';
+    ch+='<div style="flex:1;min-width:0;">';
+    ch+='<div style="font-size:12px;color:'+(isMain?'var(--gold-light)':inCont?'rgba(255,255,255,.8)':'rgba(255,100,100,.7)')+';">'+(isMain?'🏆 ':inCont||isElim?'':'❌ ')+p.name+(notes.length?' <span class="sd-note">'+notes.join('・')+'</span>':'')+'</div>';
+    ch+='<div style="font-size:11px;color:'+(isW?'#8fe6b4':'rgba(255,255,255,.45)')+';">'+statusTxt+(detailTxt?' ／ '+detailTxt:'')+'</div>';
+    ch+='<div style="font-size:11px;color:rgba(255,255,255,.4);">'+gainStr+' (残'+p.chips+')</div>';
+    ch+='</div>';
+    if(inCont&&p.hole&&p.hole.length){
+      ch+='<div style="display:flex;gap:2px;flex-shrink:0;">';
+      p.hole.forEach(function(c){ch+=cH(c,true);});
+      ch+='</div>';
+    }
+    ch+='</div>';
+  });
+  ch+='</div>';
+  return {body:lines.join('<br>'),ch:ch};
+}
+
+// 自動テスト用: ショーダウン直前の状態と配分後のチップを記録（?test=1 の時だけ）
+var _sdLog=[];
+function _sdRecord(stage){
+  if(!/[?&]test=1\b/.test(location.search)) return;
+  var snap={stage:stage,pot:pot,comm:comm.slice(),players:players.map(function(p){return {name:p.name,idx:p.idx,chips:p.chips,totalBet:p.totalBet,folded:!!p.folded,active:!!p.active,allIn:!!p.allIn,hole:(p.hole||[]).slice(),chipsBefore:p.chipsBefore};})};
+  if(stage==='before') _sdLog.push({before:snap});
+  else if(_sdLog.length) _sdLog[_sdLog.length-1].after=snap;
+}
 function calcSidePots(contPlayers){
   // contPlayers: フォールドしていないショーダウン参加者（best設定済み）
   // allContrib: 全プレイヤー（フォールド含む、totalBet>0）
@@ -3060,82 +3108,12 @@ function calcSidePots(contPlayers){
 }
 
 function finishSD(cont,holes){
-  cont.forEach(function(p){if(holes[p.idx])p.hole=holes[p.idx];p.best=evalHand(p.hole.concat(comm));});
-  cont.sort(function(a,b){return cmpSc(b.best.score,a.best.score);});
-  // サイドポット計算
-  // cont を渡すことで eligible が確実に best 設定済みの同一オブジェクトを参照する
-  var pots=calcSidePots(cont);
-  var allWinners=[];
-  // 分配前に各プレイヤーのchipsを確認（二重加算防止）
-  var chipsAdded={};
-  players.forEach(function(p){chipsAdded[p.idx]=0;});
-  pots.forEach(function(sidePot){
-    if(!sidePot.eligible||sidePot.eligible.length===0) return;
-    // eligible の中でbestを持つプレイヤーを特定
-    var ranked=sidePot.eligible.slice().sort(function(a,b){return cmpSc(b.best.score,a.best.score);});
-    var topSc=ranked[0].best.score;
-    var winners=ranked.filter(function(p){return cmpSc(p.best.score,topSc)===0;});
-    // このポットを winners で山分け
-    var share=Math.floor(sidePot.amount/winners.length);
-    var remainder=sidePot.amount-(share*winners.length);
-    winners.forEach(function(w){
-      w.chips+=share;
-      chipsAdded[w.idx]+=share;
-      if(allWinners.indexOf(w)<0) allWinners.push(w);
-    });
-    if(remainder>0){
-      winners[0].chips+=remainder;
-      chipsAdded[winners[0].idx]+=remainder;
-    }
-  });
-  if(allWinners.length===0 && cont.length>0){
-    // フォールバック: potsが空の場合はpot全額を最強ハンドへ
-    var topSc2=cont[0].best.score;
-    var fallbackWinners=cont.filter(function(p){return cmpSc(p.best.score,topSc2)===0;});
-    var fShare=Math.floor(pot/fallbackWinners.length);
-    var fRem=pot-(fShare*fallbackWinners.length);
-    fallbackWinners.forEach(function(w){w.chips+=fShare;allWinners.push(w);});
-    if(fRem>0) fallbackWinners[0].chips+=fRem;
-  }
-  var wins=allWinners;
-  // 同役の場合の勝因を特定（勝者 vs 最強の敗者）
-  var bestLoser=cont.find(function(p){return wins.indexOf(p)<0;});
-  var reasonStr=wins.length===1&&bestLoser?winReason(wins[0],bestLoser):'';
-  // 全プレイヤー（フォールド含む）表示
-  var allActiveOnline=players.filter(function(p){return p.active;});
-  var ch='<div style="width:100%;">';
-  allActiveOnline.forEach(function(p){
-    var inCont=cont.indexOf(p)>=0;
-    var isW=wins.indexOf(p)>=0;
-    var gained=p.chips-p.chipsBefore;
-    var gainStr=gained>=0?'<span style="color:#8fe6b4;">+'+gained+'</span>':'<span style="color:#ff8f8c;">'+gained+'</span>';
-    var bg=isW?'rgba(201,168,76,.18)':inCont?'rgba(0,0,0,.35)':'rgba(80,0,0,.25)';
-    var border=isW?'rgba(201,168,76,.6)':inCont?'rgba(255,255,255,.12)':'rgba(200,0,0,.3)';
-    ch+='<div style="margin-bottom:6px;padding:5px 8px;border-radius:8px;background:'+bg+';border:1px solid '+border+';display:flex;align-items:center;gap:6px;">';
-    ch+='<div style="flex:1;min-width:0;">';
-    var isElim=!isW&&(p.eliminated||(!p.active&&!inCont)||(p.chips<BB&&p.chips>=0&&!p.eliminated));
-    var detailTxt=inCont?handDetail(p.best.score):'';
-    var statusTxt=isElim?'💀 ELIMINATED':inCont?HN[p.best.score.rank]:'FOLD';
-    var prefix=isW?'🏆 ':isElim?'':inCont?'':'❌ ';
-    ch+='<div style="font-size:12px;color:'+(isW?'var(--gold-light)':inCont?'rgba(255,255,255,.8)':'rgba(255,100,100,.7)')+';">'+prefix+p.name+'</div>';
-    ch+='<div style="font-size:11px;color:'+(isW?'#8fe6b4':'rgba(255,255,255,.45)')+';">'+statusTxt+(detailTxt?' ／ '+detailTxt:'')+'</div>';
-    ch+='<div style="font-size:11px;color:rgba(255,255,255,.4);">'+gainStr+' (残'+p.chips+')</div>';
-    ch+='</div>';
-    if(inCont&&p.hole&&p.hole.length){
-      ch+='<div style="display:flex;gap:2px;flex-shrink:0;">';
-      p.hole.forEach(function(c){ch+=cH(c,true);});
-      ch+='</div>';
-    }
-    ch+='</div>';
-  });
-  ch+='</div>';
-  var winDetail=handDetail(wins[0].best.score);
-  var bodyLines=['<span class="wn">'+wins.map(function(w){return w.name;}).join(' & ')+'</span>の勝利！'];
-  bodyLines.push('<span class="hn">'+HN[wins[0].best.score.rank]+'</span>');
-  bodyLines.push('<span style="font-size:12px;color:rgba(255,220,100,.9);">'+winDetail+'</span>');
-  if(reasonStr) bodyLines.push('<span style="font-size:12px;color:rgba(180,255,180,.85);">▶ '+reasonStr+'</span>');
-  var body=bodyLines.join('<br>');
-  pushState({showdown:{body:body,ch:ch,comm:comm},reveal:holes,waitFor:null});
+  cont.forEach(function(p){if(holes[p.idx])p.hole=holes[p.idx];});
+  _sdRecord('before');
+  var res=settleShowdown(cont);
+  _sdRecord('after');
+  var v=showdownView(cont,res);
+  pushState({showdown:{body:v.body,ch:v.ch,comm:comm},reveal:holes,waitFor:null});
 }
 
 
@@ -4130,7 +4108,7 @@ function sndForResult(title,bodyEl){
   var me=(myIdx>=0&&players[myIdx])?players[myIdx].name:null;
   var wn=bodyEl.querySelector('.wn');
   if(!wn||!me){ if(/終了/.test(title)) sndChipsIn(); return; }
-  var names=wn.textContent.split(' & ');
+  var names=[].concat.apply([],[].map.call(bodyEl.querySelectorAll('.wn,.wn-side'),function(e){return e.textContent.split(' & ');}));
   if(names.indexOf(me)>=0) sndWin(/ゲーム終了/.test(title)); else sndLose();
 }
 
@@ -7249,7 +7227,19 @@ if(/[?&]test=1\b/.test(location.search)){
     get players(){return players;},get pot(){return pot;},get phase(){return phase;},
     get curIdx(){return curIdx;},get myIdx(){return myIdx;},get isHost(){return isHost;},
     get comm(){return comm;},get dealerIdx(){return dealerIdx;},
-    get handNo(){return _handNo;},get sfxOn(){return ccSoundOn;},get bgmOn(){return bgmOn;},
+    get handNo(){return _handNo;},get sdLog(){return _sdLog;},
+    // 指定した場面でショーダウンだけを行う（各プレイヤー: name, stack=ハンド開始時のチップ, bet=このハンドの賭け額, hole, folded）
+    testShowdown:function(spec){
+      var C=function(t){return {r:t.slice(0,-1),s:t.slice(-1)};};
+      offlineMode=true;myIdx=0;
+      players=spec.players.map(function(q,i){return {name:q.name,idx:i,isMe:i===0,isCpu:i>0,active:true,eliminated:false,folded:!!q.folded,allIn:q.bet>=q.stack,chips:q.stack-q.bet,chipsBefore:q.stack,bet:0,totalBet:q.bet,hole:q.hole.map(C),rebuyCount:0};});
+      comm=spec.comm.map(C);pot=spec.players.reduce(function(t,q){return t+q.bet;},0);phase=4;
+      showScreen('screen-game');
+      doShowdownOffline();
+      return {chips:players.map(function(p){return p.chips;}),body:document.getElementById('mbody').innerText,
+        main:document.querySelector('#mbody .wn').textContent,side:[].map.call(document.querySelectorAll('#mbody .wn-side'),function(e){return e.textContent;}),
+        trophies:(document.getElementById('mcards').innerText.match(/🏆 [^\n ]+/g)||[]).map(function(t){return t.slice(3);})};
+    },get sfxOn(){return ccSoundOn;},get bgmOn(){return bgmOn;},
     get bgmPlaying(){return !!BGM.timer;},rankingRows:function(){return gameRankingRows().map(function(r){return {name:r.p.name,isMe:!!r.p.isMe,stack:r.stack,buyin:r.buyin,net:r.net};});},
     totalChips:function(){return players.reduce(function(s,p){return s+(p.chips||0);},0)+(pot||0);}
   };

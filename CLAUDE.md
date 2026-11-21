@@ -59,6 +59,13 @@
 - 効果音の呼び出し場所: アクション `showActionBubble()` → `ccPlayActionSound()`、配札 `showDealOverlay()` → `sndDeal()`、フロップ等のめくり `showPhaseOverlay()` → `ccPlayCardSound()`、自分の手番 `renderAction()` / `renderActionOffline()` → `sndMyTurn()`、結果 `showMsg()` → `sndForResult()`（本文の `.wn` に自分の名前があれば `sndWin()`、なければ `sndLose()`）
 - BGM: 音源ファイルなしで Web Audio でその場で鳴らすラウンジジャズ（`BGM_PROG` のコード進行、エレピ・ウォーキングベース・ブラシ・ヴィブラフォン）。`bgmTick()` が 120ms ごとに 0.4 秒先まで予約。`bgmSync()` がゲーム画面（`screen-game` / `screen-chipcalc`）かつ表示中の時だけ流す。`showScreen()` と `visibilitychange` で呼ぶ
 
+## ショーダウンの精算（v58〜、メインのゲーム）
+- CPU対戦 `doShowdownOffline()` とオンライン（ホスト）`finishSD()` は同じ `settleShowdown(cont)` と `showdownView(cont,res)` を使う。片方だけ直さない
+- `settleShowdown`: まず `refundUncalled()` で誰もコールしていない超過ベットを本人に返す（勝ちとして扱わない）→ `calcSidePots()` のポットごとに、そのポットに参加できる人の中で一番強い手が取る。結果は `{refund, pots:[{amount,winners,eligible}], main, all}`
+- 表示: 見出し `.wn` はメインポットの勝者だけ、役もメインの勝者のもの。サイドポットは `.sd-side` の行（続けて同じ人が取ったポットは1行にまとめる、勝者は `.wn-side`）、返却は別の行。🏆 はメインの勝者だけ、サイドだけ取った人は「サイドポット獲得」
+- 結果モーダルは見出し（`.mbody`）を常に全部見せ、プレイヤー一覧（`.mcards`）をスクロールさせる
+- テスト: `tests/showdown.test.js`。`tests/showdown-ref.js` はアプリと別に書いた参照実装（役の判定・サイドポット）。`?test=1` の `__poker.testShowdown(spec)` で任意の場面を作れる。`__poker.sdLog` に毎回のショーダウン前後の状態が残るので、実プレイ（CPU対戦・オンライン）の配分も参照実装と突き合わせている
+
 ## お知らせ・確認ダイアログ（v56〜）
 - ブラウザ標準の `alert()` / `confirm()` は使わない（見た目がアプリと合わず、表示中は JS が止まって BGM も途切れる）。代わりに `appAlert(msg)` / `appConfirm(msg, onOk, {ok, cancel, danger, onCancel})`。確認は**コールバック**で続きを書く（戻り値で分岐しない）
 - 中身は `appDialog()`（`#app-dlg`、`.dialog-ov` + `.dialog`）。効果音・BGM と同じく IIFE の外に置いている
