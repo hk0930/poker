@@ -481,3 +481,34 @@ test('CPU対戦: 自分の手札がテーブルや他の席・操作パネルと
     }
   }
 });
+
+test('CPU対戦の途中でロビーに戻っても、CPUの処理と「考えています」が残らない', async () => {
+  const page = await startCpuGame({ cpu: 4 });
+  for (let i = 0; i < 40; i++) {
+    if (await page.evaluate(() => document.getElementById('cpu-bar').style.display === 'block')) break;
+    await page.clock.runFor(100);
+  }
+  assert.equal(await page.evaluate(() => document.getElementById('cpu-bar').style.display), 'block', 'CPUが考えている途中');
+  await page.click('#btn-back-lobby');
+  await page.click('#confirm-yes');
+  assert.equal(await page.evaluate(() => document.getElementById('cpu-bar').style.display), 'none', '表示が消える');
+  await page.clock.runFor(5000); // 予約されていた CPU の処理の時間を過ぎても
+  assert.deepEqual(page.errors, [], '前のゲームの処理が動いてエラーにならない');
+  // すぐに新しいゲームを始めても、前のゲームの CPU が割り込まない
+  await page.click('#btn-start-offline');
+  const s = await playHandCpu(page, 'call');
+  assert.equal(s.sumChips, 2500);
+  assert.deepEqual(page.errors, []);
+  await page.context().close();
+});
+
+test('オンライン: 「考えています」の表示は1つだけ', async () => {
+  const room = await setupOnline({ cpu: 2 });
+  for (let i = 0; i < 60; i++) {
+    const n = await room.host.evaluate(() => [document.getElementById('ibar'), document.getElementById('cpu-bar')]
+      .filter((e) => getComputedStyle(e).display !== 'none' && /考えています/.test(e.textContent)).length);
+    assert.ok(n <= 1, '「考えています」が2つ出ている');
+    await room.host.waitForTimeout(100);
+  }
+  await closeRoom(room);
+});

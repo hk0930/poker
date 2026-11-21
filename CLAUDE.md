@@ -52,6 +52,11 @@
 - `tests/members.test.js` — 途中参加・退席（1台モード）
 - 暫定ランキング: 上部のトロフィー `#cc-rank-btn` → `ccShowRanking()`。`ccRankingRows()` が 収支 = 持ち点 − 投入額 で並べる（持ち点はハンド中なら賭けている額 `totalBet` も含める、投入額は `startChips` = バイイン＋リバイ）。退席者（`cc.leftPlayers`）も含む。参加者の端末でも同期済みの `players`/`left` から計算する
 
+## ゲームを出た後の予約処理（v66〜）
+- CPUの思考・演出の後の続きは `setTimeout` で予約している。ゲームを出たら `endGameTimers()`（`_gameGen` を進め、CPUキューと「考えています」を消す）。予約する時は `gameGuard(fn)` で包み、世代が変わっていたら何もしない
+- `endGameTimers()` はロビーへ戻る `_pokerGoLobby()`・CPU対戦の開始 `launchOffline()`・`resetOfflineGame()` で呼ぶ。オンラインの `_launch()` は参加者側で何度も呼ばれるので呼ばない（`hideCpuBar()` だけ）
+- 「考えています」は1か所だけ: CPU対戦は `#cpu-bar`（`showCpuThinking`）、オンラインは `#ibar`（`showInfo`）。片方を出す時にもう片方を消す
+
 ## タイトル画面（v61〜）
 - `#screen-title`。開いた時に出し、まず「TAP TO START」→ タップでタイトル曲が流れ「はじめる」`#btn-title-start`・遊び方 `#btn-title-guide` が出る →「はじめる」でロビーへ
 - 出さない条件: 招待リンク `?join=` / `?ccroom=`、チップ計算オンラインの復帰（保存セッションに roomCode）、テスト `?test=1`（`window.__showTitle=true` の時だけ出す）

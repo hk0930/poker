@@ -945,7 +945,7 @@ body{background-color:var(--ink);}
   </div> <!-- /panel-online -->
   <div class="lobby-foot">
     <button id="btn-guide" class="text-link"><svg viewBox="0 0 24 24"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5"/></svg>遊び方・役の一覧</button>
-    <div class="ver">v2026.11.22.65-sdk</div>
+    <div class="ver">v2026.11.22.66-sdk</div>
   </div>
 </div>
 
@@ -1801,10 +1801,12 @@ function offlineGameOver(winner){
 }
 // CPU対戦の状態を消す（次のゲームに前のチップ額・ハンド数を持ち越さない）
 function resetOfflineGame(){
+  endGameTimers();
   offlineMode=false;players=[];myHole=[];_initialChips=0;_handNo=0;pot=0;comm=[];
 }
 
 function launchOffline(ps){
+  endGameTimers();
   _initialChips=0; // 前のゲームの最初のチップ額を持ち越さない
   players=ps;_handNo=0;
   ps.forEach(function(p,i){if(p.isMe)myIdx=i;});
@@ -1850,12 +1852,19 @@ function cpuDecide(p,state){
   return{action:'fold',label:'FOLD'};
 }
 
+// ゲームの世代: 始める・やめるたびに進める。古いゲームの予約済みの処理（CPUの思考・演出の後の続き）は世代が違えば何もしない
+// （ロビーに戻った後や次のゲームで、前のゲームの CPU が動き続けるのを防ぐ）
+var _gameGen=0;
+function gameGuard(fn){var g=_gameGen;return function(){if(g!==_gameGen) return;return fn.apply(this,arguments);};}
+function endGameTimers(){_gameGen++;_cpuQueue=[];_cpuBusy=false;hideCpuBar();hideInfo();}
+
 function showCpuThinking(p,cb){
+  hideInfo(); // 「考えています」は1か所だけに出す
   var bar=document.getElementById('cpu-bar');bar.style.display='block';
   document.getElementById('cpu-bar-text').textContent=p.name+' が考えています...';
   var prog=document.getElementById('cpu-prog');
   prog.style.animation='none';prog.offsetHeight;prog.style.animation='cpuprog 1s linear forwards';
-  setTimeout(cb,600+Math.random()*900);
+  setTimeout(gameGuard(cb),600+Math.random()*900);
 }
 function hideCpuBar(){document.getElementById('cpu-bar').style.display='none';}
 
@@ -1891,7 +1900,7 @@ function startRoundOffline(){
   renderAll();
   // 自分の手札をディール演出で表示してからゲーム開始
   if(myPlayer && myHole.length===2){
-    showDealOverlay(myHole, function(){ scheduleOfflineAction(); });
+    showDealOverlay(myHole, gameGuard(function(){ scheduleOfflineAction(); }));
   } else {
     scheduleOfflineAction();
   }
@@ -1907,7 +1916,7 @@ function scheduleOfflineAction(){
       applyCpuAction(p,dec);
       renderAll();
       showActionBubble(curIdx, dec.action, dec.amount||0);
-      setTimeout(function(){ advanceOffline(); }, 600);
+      setTimeout(gameGuard(function(){ advanceOffline(); }), 600);
     });
   } else {
     hideCpuBar();
@@ -1966,7 +1975,7 @@ function nextPhaseOffline(){
   else if(phase>=4){doShowdownOffline();return;}
   curIdx=nxt(dealerIdx);
   renderAll();
-  showPhaseOverlay(PNAMES[phase]||'', newCards, function(){scheduleOfflineAction();});
+  showPhaseOverlay(PNAMES[phase]||'', newCards, gameGuard(function(){scheduleOfflineAction();}));
 }
 
 function doShowdownOffline(){
@@ -2283,6 +2292,7 @@ function launchGame(room){
 function _launch(room){
   _dbg('_launch isHost='+isHost+' myId='+myId.substring(0,6));
   if(!room) return;
+  hideCpuBar(); // CPU対戦の「考えています」は残さない（タイマーは呼ばれ直しても止めない）
   SB=room.SB; BB=room.BB;
   var seats=room.seats||{};
   var arr=Object.values(room.players||{}).sort(function(a,b){return(seats[a.id]||0)-(seats[b.id]||0);});
@@ -2722,7 +2732,7 @@ function processCpuQueue(){
   }
   showInfo(p.name+' が考えています...');
   renderAll();
-  setTimeout(function(){
+  setTimeout(gameGuard(function(){
     var p2=players[cpuIdx];
     if(!p2||p2.folded||p2.allIn){
       hideInfo();
@@ -2759,8 +2769,8 @@ function processCpuQueue(){
     renderAll();
     _cpuBusy=false;
     pushState({lastAction:{playerIdx:cpuIdx,action:dec.action,amount:dec.amount||0}});
-    setTimeout(function(){advance();},50);
-  }, 800+Math.floor(Math.random()*400));
+    setTimeout(gameGuard(function(){advance();}),50);
+  }), 800+Math.floor(Math.random()*400));
 }
 
 function runCpuTurn(targetIdx){
@@ -3464,7 +3474,7 @@ function renderAll(){
   document.getElementById('pot').innerHTML='<span class="lbl">POT</span><span class="amt'+(pot>0?'':' zero')+'">'+(pot||0)+'</span>';
   document.getElementById('phase').textContent=PNAMES[Math.min(phase,4)]||'SHOWDOWN';
 }
-function showInfo(m){_dbg('showInfo:'+m.substring(0,25));document.getElementById('ibar').classList.add('show');document.getElementById('ibar-t').textContent=m;}
+function showInfo(m){_dbg('showInfo:'+m.substring(0,25));hideCpuBar();document.getElementById('ibar').classList.add('show');document.getElementById('ibar-t').textContent=m;}
 function hideInfo(){document.getElementById('ibar').classList.remove('show');}
 function showMsg(title,body,lbl,fn,ch,commCards,endFn){
   bgmSetTension(false); // 結果が出たら元の曲に戻す
@@ -3900,6 +3910,7 @@ function showScreen(id){
 window._pokerShowScreen = showScreen;
 window._pokerGoLobby = function(){
   bgmSetTension(false);
+  endGameTimers();
   document.getElementById('back-btn-wrap').style.display='none';
   // オンラインのFirebaseリスナーを全て停止
   if(gamePath){
